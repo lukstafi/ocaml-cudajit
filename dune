@@ -2,16 +2,10 @@
 
 ; export LIBRARY_PATH="/usr/local/cuda/lib64/stubs:$LIBRARY_PATH"
 
-; (env (_ (env-vars (LIBRARY_PATH "/usr/local/cuda/lib64/stubs:$(LIBRARY_PATH)"))))
-
 ; (env
 ;  (_
 ;   (env-vars
 ;    (LIBRARY_PATH "/usr/local/cuda/lib64/stubs"))))
-
-; (env
-;  (_
-;   (link_flags -cclib -L,/usr/local/cuda/lib64/stubs)))
 
 (library
  (public_name cudajit)
