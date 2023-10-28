@@ -36,6 +36,6 @@ let () =
   Cu.ctx_destroy context
 ```
 
-(the `...` ale parts omitted for presentation brevity).
+(the `...` are parts omitted for presentation brevity).
 You can see how a kernel is compiled and launched, how on-device tensors are created, retrieved to host
 (i.e. the CPU), and released.

@@ -1,3 +1,7 @@
+(* If the test fails, to verify your CUDA and NVRTC installation, follow the following instructions:
+   https://docs.nvidia.com/cuda/nvrtc/index.html#code-saxpy-cpp
+   and see where the OCaml version diverges. *)
+
 let kernel =
   {|
 extern "C" __global__ void saxpy(float a, float *x, float *y, float *out, size_t n) {
