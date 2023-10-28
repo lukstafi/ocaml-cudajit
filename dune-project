@@ -22,10 +22,15 @@
 
 (package
  (name cudajit)
- (synopsis "Bindings to the `cuda` and `nvrtc` libraries with a unified interface")
+ (synopsis
+  "Bindings to the `cuda` and `nvrtc` libraries with a unified interface")
  (description
-  "Bindings to manually selected parts of `lcuda` and `lnvrtc`, with a few types \
-   and conversion functions to facilitate use.")
- (depends ocaml dune ctypes ctypes-foreign conf-cuda)
+  "Bindings to manually selected parts of `lcuda` and `lnvrtc`, with a few types and conversion functions to facilitate use.")
+ ;  TODO: prepare conf-cuda-toolkit according to the instructions:
+ ; https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-ubuntu
+ ; https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-wsl
+ ; https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-debian
+ ; and all the others: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#overview
+ (depends ocaml dune ctypes ctypes-foreign conf-cuda-toolkit)
  (tags
   (cuda jit nvrtc)))
