@@ -1,11 +1,7 @@
-; Note: currently a flaw on my system -- cuda did not fully install. Solutions:
-
-; export LIBRARY_PATH="/usr/local/cuda/lib64/stubs:$LIBRARY_PATH"
-
-; (env
-;  (_
-;   (env-vars
-;    (LIBRARY_PATH "/usr/local/cuda/lib64/stubs"))))
+(env
+ (_
+  (c_flags -I /usr/local/cuda/include)
+  (link_flags -cclib -L/usr/local/cuda/lib64/stubs)))
 
 (library
  (public_name cudajit)
@@ -13,8 +9,3 @@
  (preprocess
   (pps ppx_sexp_conv))
  (libraries cuda_ffi nvrtc_ffi sexplib0))
-
-; (rule
-; (target debug.log)
-; (mode promote)
-; (action (with-stdout-to debug.log (progn (echo %{env:LIBRARY_PATH=}) (echo %{env:C_INCLUDE_PATH=})))))
