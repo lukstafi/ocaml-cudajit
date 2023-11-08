@@ -9,6 +9,7 @@
   (external_library_name libcuda)
   (build_flags_resolver
    (vendored
+    (c_flags :standard -fPIC)
     (c_library_flags
      -lcuda
      -I
