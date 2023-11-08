@@ -15,8 +15,11 @@ bug-reports: "https://github.com/lukstafi/ocaml-cudajit/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.11"}
+  "base"
   "ctypes"
   "ctypes-foreign"
+  "ppx_jane"
+  "ppx_sexp_conv"
   "conf-cuda-toolkit"
   "odoc" {with-doc}
 ]
