@@ -9,6 +9,7 @@
   (external_library_name libnvrtc)
   (build_flags_resolver
    (vendored
+    (c_flags :standard -fPIC)
     (c_library_flags
      -lnvrtc
      -I
