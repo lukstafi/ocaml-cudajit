@@ -31,6 +31,15 @@
  ; https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-wsl
  ; https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-debian
  ; and all the others: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#overview
- (depends ocaml dune base ctypes ctypes-foreign ppx_jane ppx_sexp_conv conf-cuda-toolkit)
+ (depends
+  ocaml
+  dune
+  ctypes
+  ctypes-foreign
+  ; conf-cuda-toolkit
+  sexplib0
+  ppx_sexp_conv
+  ppx_expect
+  )
  (tags
   (cuda jit nvrtc)))
