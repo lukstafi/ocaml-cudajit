@@ -13,9 +13,9 @@
     (c_library_flags
      -lnvrtc
      -I
-     /usr/local/cuda/include
+     %{env:CUDA_PATH=/usr/local/cuda}/include
      -L
-     /usr/local/cuda/lib64/stubs)))
+     %{env:CUDA_PATH=/usr/local/cuda}/lib64/stubs)))
   (headers
    (include "nvrtc.h"))
   (type_description

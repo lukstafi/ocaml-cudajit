@@ -1,1 +1,0 @@
-/usr/local/cuda/lib64/stubs:$(LIBRARY_PATH)/usr/local/cuda/include:$(C_INCLUDE_PATH)

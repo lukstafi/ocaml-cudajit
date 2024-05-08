@@ -1,7 +1,7 @@
 (env
  (_
-  (c_flags -I /usr/local/cuda/include)
-  (link_flags -cclib -L/usr/local/cuda/lib64/stubs)))
+  (c_flags -I %{env:CUDA_PATH=/usr/local/cuda}/include)
+  (link_flags -cclib -L%{env:CUDA_PATH=/usr/local/cuda}/lib64/stubs)))
 
 (library
  (public_name cudajit)
