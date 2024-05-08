@@ -1,4 +1,14 @@
-## [v0.1.0] 2023-10-28
+## [0.1.1] 2024-05-08
+
+### Added
+
+- Continuous Integration on GitHub thanks to GitHub action Jimver/cuda-toolkit.
+
+### Fixed
+
+- Test target should erase compiler versions.
+
+## [0.1.0] 2023-10-28
 
 ### Added
 
