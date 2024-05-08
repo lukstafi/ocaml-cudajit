@@ -19,7 +19,7 @@ jobs:
         ocaml-compiler:
           - 5.1.x
           # - 5.2.x
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }},gpu
     steps:
     - uses: actions/checkout@v2
     - uses: Jimver/cuda-toolkit@v0.2.15
