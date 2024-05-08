@@ -33,6 +33,7 @@ jobs:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
         dune-cache: true
         allow-prerelease-opam: true
+    - run: ls $CUDA_PATH/include
     - run: opam pin -n .
     - run: opam depext -yt cudajit
     - run: opam install . --deps-only --with-test --with-doc
