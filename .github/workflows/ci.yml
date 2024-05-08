@@ -26,8 +26,14 @@ jobs:
       id: cuda-toolkit
       with:
         method: network
-        sub-packages: '["cudart"]'
       #   cuda: '12.4.1'
+    - run: ls /usr
+    - run: ls /usr/local
+    - run: ls /usr/include
+    - run: ls /usr/local/include
+    - run: ls $CUDA_PATH
+    - run: ls $CUDA_PATH/targets
+    - run: ls $CUDA_PATH/targets/x86_64-linux
     - run: ls $CUDA_PATH/targets/x86_64-linux/lib
     - uses: ocaml/setup-ocaml@v2
       with:
