@@ -28,9 +28,10 @@ jobs:
         method: network
         sub-packages: '["cudart"]'
       #   cuda: '12.4.1'
-    - run: ls /usr
-    - run: ls /usr/local
-    - run: ls $CUDA_PATH
+    - run: ls /usr/include
+    - run: ls /usr/local/include
+    - run: ls $CUDA_PATH/lib64
+    - run: ls $CUDA_PATH/targets
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
