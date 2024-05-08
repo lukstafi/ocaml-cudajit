@@ -14,8 +14,6 @@
      -lnvrtc
      -I
      %{env:CUDA_PATH=/usr/local/cuda}/include
-     -I
-     %{env:CUDA_PATH=/usr/local/cuda}/targets/x86_64-linux/lib/include
      -L
      %{env:CUDA_PATH=/usr/local/cuda}/lib64/stubs
      -L

@@ -1,6 +1,6 @@
 (env
  (_
-  (c_flags -I %{env:CUDA_PATH=/usr/local/cuda}/include -I %{env:CUDA_PATH=/usr/local/cuda}/targets/x86_64-linux/lib/include)
+  (c_flags -I %{env:CUDA_PATH=/usr/local/cuda}/include)
   (link_flags -cclib -L%{env:CUDA_PATH=/usr/local/cuda}/lib64/stubs -cclib -L%{env:CUDA_PATH=/usr/local/cuda}/lib64)))
 
 (library
