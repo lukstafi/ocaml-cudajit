@@ -19,7 +19,7 @@ jobs:
         ocaml-compiler:
           - 5.1.x
           # - 5.2.x
-    runs-on: ${{ matrix.os }},gpu
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
     - uses: Jimver/cuda-toolkit@v0.2.15
@@ -27,6 +27,7 @@ jobs:
       with:
         method: network
       #   cuda: '12.4.1'
+    - run: nvidia-smi
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
