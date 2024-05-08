@@ -18,10 +18,11 @@ let%expect_test "SAXPY compilation" =
   in
   (match prog.log with None -> () | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
   [%expect {| CUDA Compile log: |}];
-  Format.printf "PTX: %s%!" @@ Str.global_replace
-  (Str.regexp
-     {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+|})
-  "NNN" @@ Cudajit.string_from_ptx prog;
+  Format.printf "PTX: %s%!"
+  @@ Str.global_replace
+       (Str.regexp {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+|})
+       "NNN"
+  @@ Cudajit.string_from_ptx prog;
   [%expect
     {|
     PTX: //
@@ -88,44 +89,45 @@ let%expect_test "SAXPY" =
   let module Cu = Cudajit in
   let prog = Cu.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ] ~with_debug:true in
   Cu.init ();
-  let device = Cu.device_get ~ordinal:0 in
-  let context = Cu.ctx_create ~flags:0 device in
-  let module_ = Cu.module_load_data_ex prog [] in
-  let kernel = Cu.module_get_function module_ ~name:"saxpy" in
-  let size = num_threads * num_blocks in
-  let module Host = Bigarray.Genarray in
-  let a = 5.1 in
-  let hX = Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx -> Float.of_int idx.(0)) in
-  let dX = Cu.alloc_and_memcpy hX in
-  let hY =
-    Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx -> Float.of_int @@ (idx.(0) * 2))
-  in
-  let dY = Cu.alloc_and_memcpy hY in
-  let hOut = Host.create Bigarray.Float32 Bigarray.C_layout [| size |] in
-  let dOut = Cu.alloc_and_memcpy hOut in
-  Cu.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads ~shared_mem_bytes:0 Cu.no_stream
-    [
-      Single a;
-      Tensor dX;
-      Tensor dY;
-      Tensor dOut;
-      Size_t Unsigned.Size_t.(mul (of_int num_threads) @@ of_int num_blocks);
-    ];
-  Cu.ctx_synchronize ();
-  Cu.memcpy_D_to_H ~dst:hOut ~src:dOut ();
-  Cu.mem_free dX;
-  Cu.mem_free dY;
-  Cu.mem_free dOut;
-  Cu.module_unload module_;
-  Cu.ctx_destroy context;
-  Format.set_margin 110;
-  for i = 0 to size - 1 do
-    let ( ! ) arr = Host.get arr [| i |] in
-    Format.printf "%.1f * %.1f + %.1f = %.2f;@ " a !hX !hY !hOut
-  done;
-  Format.print_newline ();
-  [%expect
-    {|
+  if Cu.device_get_count () > 0 then (
+    let device = Cu.device_get ~ordinal:0 in
+    let context = Cu.ctx_create ~flags:0 device in
+    let module_ = Cu.module_load_data_ex prog [] in
+    let kernel = Cu.module_get_function module_ ~name:"saxpy" in
+    let size = num_threads * num_blocks in
+    let module Host = Bigarray.Genarray in
+    let a = 5.1 in
+    let hX = Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx -> Float.of_int idx.(0)) in
+    let dX = Cu.alloc_and_memcpy hX in
+    let hY =
+      Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx -> Float.of_int @@ (idx.(0) * 2))
+    in
+    let dY = Cu.alloc_and_memcpy hY in
+    let hOut = Host.create Bigarray.Float32 Bigarray.C_layout [| size |] in
+    let dOut = Cu.alloc_and_memcpy hOut in
+    Cu.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads ~shared_mem_bytes:0 Cu.no_stream
+      [
+        Single a;
+        Tensor dX;
+        Tensor dY;
+        Tensor dOut;
+        Size_t Unsigned.Size_t.(mul (of_int num_threads) @@ of_int num_blocks);
+      ];
+    Cu.ctx_synchronize ();
+    Cu.memcpy_D_to_H ~dst:hOut ~src:dOut ();
+    Cu.mem_free dX;
+    Cu.mem_free dY;
+    Cu.mem_free dOut;
+    Cu.module_unload module_;
+    Cu.ctx_destroy context;
+    Format.set_margin 110;
+    for i = 0 to size - 1 do
+      let ( ! ) arr = Host.get arr [| i |] in
+      Format.printf "%.1f * %.1f + %.1f = %.2f;@ " a !hX !hY !hOut
+    done;
+    Format.print_newline ();
+    [%expect
+      {|
       5.1 * 0.0 + 0.0 = 0.00; 5.1 * 1.0 + 2.0 = 7.10; 5.1 * 2.0 + 4.0 = 14.20; 5.1 * 3.0 + 6.0 = 21.30;
       5.1 * 4.0 + 8.0 = 28.40; 5.1 * 5.0 + 10.0 = 35.50; 5.1 * 6.0 + 12.0 = 42.60; 5.1 * 7.0 + 14.0 = 49.70;
       5.1 * 8.0 + 16.0 = 56.80; 5.1 * 9.0 + 18.0 = 63.90; 5.1 * 10.0 + 20.0 = 71.00; 5.1 * 11.0 + 22.0 = 78.10;
@@ -1489,4 +1491,4 @@ let%expect_test "SAXPY" =
       5.1 * 4084.0 + 8168.0 = 28996.40; 5.1 * 4085.0 + 8170.0 = 29003.50; 5.1 * 4086.0 + 8172.0 = 29010.60;
       5.1 * 4087.0 + 8174.0 = 29017.70; 5.1 * 4088.0 + 8176.0 = 29024.80; 5.1 * 4089.0 + 8178.0 = 29031.90;
       5.1 * 4090.0 + 8180.0 = 29039.00; 5.1 * 4091.0 + 8182.0 = 29046.10; 5.1 * 4092.0 + 8184.0 = 29053.20;
-      5.1 * 4093.0 + 8186.0 = 29060.30; 5.1 * 4094.0 + 8188.0 = 29067.40; 5.1 * 4095.0 + 8190.0 = 29074.50; |}]
+      5.1 * 4093.0 + 8186.0 = 29060.30; 5.1 * 4094.0 + 8188.0 = 29067.40; 5.1 * 4095.0 + 8190.0 = 29074.50; |}])
