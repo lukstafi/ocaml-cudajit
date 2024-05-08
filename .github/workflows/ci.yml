@@ -27,7 +27,6 @@ jobs:
       with:
         method: network
       #   cuda: '12.4.1'
-    - run: nvidia-smi
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
