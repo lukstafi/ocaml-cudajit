@@ -11,7 +11,6 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macos-latest
           # The CI does not support OCaml version 5.1 yet (at the time of writing).
           # - windows-latest
           # Either the waiting queue for FreeBSD is very long, or it is not available.
