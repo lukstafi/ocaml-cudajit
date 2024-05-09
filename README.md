@@ -39,3 +39,5 @@ let () =
 (the `...` are parts omitted for presentation brevity).
 You can see how a kernel is compiled and launched, how on-device tensors are created, retrieved to host
 (i.e. the CPU), and released.
+
+[Automatically generated API docs.](https://lukstafi.github.io/ocaml-cudajit/cudajit/index.html)
