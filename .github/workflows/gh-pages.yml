@@ -11,6 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@main
 
+      - uses: Jimver/cuda-toolkit@v0.2.15
+        id: cuda-toolkit
+        with:
+          method: network
+          sub-packages: '[ "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
+
       - name: Cache opam
         id: cache-opam
         uses: actions/cache@v2
@@ -18,7 +24,6 @@ jobs:
           path: ~/.opam
           key: opam-ubuntu-latest-5.1.1
 
-      # - uses: actions/checkout@v2
       - uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: '5.1.1'
