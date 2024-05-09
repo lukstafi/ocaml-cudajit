@@ -26,9 +26,10 @@ jobs:
       id: cuda-toolkit
       with:
         method: network
-        sub-packages: '[ "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
-        non-cuda-sub-packages: '[ "cuda-drivers_520.61.05" ]'
-      #   cuda: '12.4.1'
+        # FIXME(#3): Unfortunately, we cannot restrict the subpackages because of:
+        # https://github.com/Jimver/cuda-toolkit/issues/344 
+        # sub-packages: '[ "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
+        # non-cuda-sub-packages: '[ "cuda-drivers_520.61.05" ]'
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
