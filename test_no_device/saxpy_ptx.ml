@@ -21,7 +21,7 @@ let%expect_test "SAXPY compilation" =
   Format.printf "PTX: %s%!"
   @@ Str.global_replace
        (Str.regexp
-          {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+\|\.version [0-9]+\.[0-9]+|})
+          {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+\|\.version [0-9]+\.[0-9]+\|\.target sm_[0-9]+|})
        "NNN"
   @@ Cudajit.string_from_ptx prog;
   [%expect
@@ -35,7 +35,7 @@ let%expect_test "SAXPY compilation" =
     //
 
     NNN
-    .target sm_52
+    NNN
     .address_size 64
 
     	// .globl	saxpy
