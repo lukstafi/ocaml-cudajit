@@ -15,7 +15,7 @@
 
 (maintainers "Lukasz Stafiniak")
 
-(license LICENSE)
+(license MIT)
 
 (documentation
  https://github.com/lukstafi/ocaml-cudajit/blob/master/README.md)
