@@ -27,7 +27,7 @@ jobs:
       with:
         method: network
         sub-packages: '[ "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
-        non-cuda-sub-packages: '[ "cuda-drivers_520" ]'
+        non-cuda-sub-packages: '[ "cuda-drivers_520.61.05" ]'
       #   cuda: '12.4.1'
     - uses: ocaml/setup-ocaml@v2
       with:
