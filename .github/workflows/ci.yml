@@ -36,4 +36,4 @@ jobs:
     - run: opam depext -yt cudajit
     - run: opam install . --deps-only --with-test --with-doc
     - run: opam exec -- dune build
-    - run: opam exec -- dune runtest
+    - run: opam exec -- dune test test_no_device
