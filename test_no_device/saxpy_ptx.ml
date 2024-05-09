@@ -20,7 +20,8 @@ let%expect_test "SAXPY compilation" =
   [%expect {| CUDA Compile log: |}];
   Format.printf "PTX: %s%!"
   @@ Str.global_replace
-       (Str.regexp {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+|})
+       (Str.regexp
+          {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+\|\.version [0-9]+\.[0-9]+|})
        "NNN"
   @@ Cudajit.string_from_ptx prog;
   [%expect
@@ -33,7 +34,7 @@ let%expect_test "SAXPY compilation" =
     // Based on NNN
     //
 
-    .version 8.3
+    NNN
     .target sm_52
     .address_size 64
 

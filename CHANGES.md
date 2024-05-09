@@ -1,8 +1,8 @@
-## [0.1.1] 2024-05-08
+## [0.1.1] 2024-05-09
 
 ### Added
 
-- Continuous Integration on GitHub thanks to GitHub action Jimver/cuda-toolkit.
+- Continuous Integration on GitHub thanks to GitHub action Jimver/cuda-toolkit, but only PTX compilation.
 
 ### Fixed
 
