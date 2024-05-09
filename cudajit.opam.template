@@ -1,0 +1,5 @@
+# We depend on system-level cuda-toolkit. This is somewhat safe because it does not contain drivers.
+# But see:
+# https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-wsl
+# and all the others: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#overview
+depexts: [ "cuda-toolkit" ]
