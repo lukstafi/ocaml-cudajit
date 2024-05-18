@@ -3,6 +3,11 @@
 ### Added
 
 - Support for peer-to-peer device-to-device copying.
+- Support for context flags.
+
+### Changed
+
+- `ctx_create` properly handles context flags.
 
 ## [0.1.1] 2024-05-09
 

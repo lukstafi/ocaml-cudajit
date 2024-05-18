@@ -9,7 +9,9 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let cu_device_get = F.foreign "cuDeviceGet" F.(ptr E.cu_device @-> int @-> returning E.cu_result)
 
   let cu_ctx_create =
-    F.foreign "cuCtxCreate" F.(ptr cu_context @-> int @-> E.cu_device @-> returning E.cu_result)
+    F.foreign "cuCtxCreate" F.(ptr cu_context @-> uint @-> E.cu_device @-> returning E.cu_result)
+
+  let cu_ctx_get_flags = F.foreign "cuCtxGetFlags" F.(ptr uint @-> returning E.cu_result)
 
   let cu_device_primary_ctx_retain =
     F.foreign "cuDevicePrimaryCtxRetain" F.(ptr cu_context @-> E.cu_device @-> returning E.cu_result)

@@ -359,6 +359,21 @@ type cu_limit =
   | CU_LIMIT_UNCATEGORIZED of int64
 [@@deriving sexp]
 
+type cu_ctx_flags =
+  | CU_CTX_SCHED_AUTO
+  | CU_CTX_SCHED_SPIN
+  | CU_CTX_SCHED_YIELD
+  | CU_CTX_SCHED_BLOCKING_SYNC
+  | CU_CTX_SCHED_MASK
+  | CU_CTX_MAP_HOST
+  | CU_CTX_LMEM_RESIZE_TO_MAX
+  | CU_CTX_COREDUMP_ENABLE
+  | CU_CTX_USER_COREDUMP_ENABLE
+  | CU_CTX_SYNC_MEMOPS
+  | CU_CTX_FLAGS_MASK
+  | CU_CTX_FLAGS_UNCATEGORIZED of int64
+[@@deriving sexp]
+
 module Types (T : Ctypes.TYPE) = struct
   let cu_device_v1 = T.typedef T.int "CUdevice_v1"
   let cu_device_t = T.typedef cu_device_v1 "CUdevice"
@@ -1323,5 +1338,35 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_LIMIT_MAX_L2_FETCH_GRANULARITY, cu_limit_max_l2_fetch_granularity);
         (CU_LIMIT_PERSISTING_L2_CACHE_SIZE, cu_limit_persisting_l2_cache_size);
         (CU_LIMIT_MAX, cu_limit_max);
+      ]
+
+  let cu_ctx_sched_auto = T.constant "CU_CTX_SCHED_AUTO" T.int64_t
+  let cu_ctx_sched_spin = T.constant "CU_CTX_SCHED_SPIN" T.int64_t
+  let cu_ctx_sched_yield = T.constant "CU_CTX_SCHED_YIELD" T.int64_t
+  let cu_ctx_sched_blocking_sync = T.constant "CU_CTX_SCHED_BLOCKING_SYNC" T.int64_t
+  let cu_ctx_sched_mask = T.constant "CU_CTX_SCHED_MASK" T.int64_t
+  let cu_ctx_map_host = T.constant "CU_CTX_MAP_HOST" T.int64_t
+  let cu_ctx_lmem_resize_to_max = T.constant "CU_CTX_LMEM_RESIZE_TO_MAX" T.int64_t
+  let cu_ctx_coredump_enable = T.constant "CU_CTX_COREDUMP_ENABLE" T.int64_t
+  let cu_ctx_user_coredump_enable = T.constant "CU_CTX_USER_COREDUMP_ENABLE" T.int64_t
+  let cu_ctx_sync_memops = T.constant "CU_CTX_SYNC_MEMOPS" T.int64_t
+  let cu_ctx_flags_mask = T.constant "CU_CTX_FLAGS_MASK" T.int64_t
+
+  let cu_ctx_flags =
+    T.enum ~typedef:true
+      ~unexpected:(fun error_code -> CU_CTX_FLAGS_UNCATEGORIZED error_code)
+      "CUctx_flags"
+      [
+        (CU_CTX_SCHED_AUTO, cu_ctx_sched_auto);
+        (CU_CTX_SCHED_SPIN, cu_ctx_sched_spin);
+        (CU_CTX_SCHED_YIELD, cu_ctx_sched_yield);
+        (CU_CTX_SCHED_BLOCKING_SYNC, cu_ctx_sched_blocking_sync);
+        (CU_CTX_SCHED_MASK, cu_ctx_sched_mask);
+        (CU_CTX_MAP_HOST, cu_ctx_map_host);
+        (CU_CTX_LMEM_RESIZE_TO_MAX, cu_ctx_lmem_resize_to_max);
+        (CU_CTX_COREDUMP_ENABLE, cu_ctx_coredump_enable);
+        (CU_CTX_USER_COREDUMP_ENABLE, cu_ctx_user_coredump_enable);
+        (CU_CTX_SYNC_MEMOPS, cu_ctx_sync_memops);
+        (CU_CTX_FLAGS_MASK, cu_ctx_flags_mask);
       ]
 end

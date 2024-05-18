@@ -20,7 +20,7 @@ let%expect_test "SAXPY" =
   Cu.init ();
   if Cu.device_get_count () > 0 then (
     let device = Cu.device_get ~ordinal:0 in
-    let context = Cu.ctx_create ~flags:0 device in
+    let context = Cu.ctx_create [] device in
     let module_ = Cu.module_load_data_ex prog [] in
     let kernel = Cu.module_get_function module_ ~name:"saxpy" in
     let size = num_threads * num_blocks in

@@ -80,13 +80,74 @@ let device_get ~ordinal =
   check "cu_device_get" @@ Cuda.cu_device_get device ordinal;
   !@device
 
+type ctx_flag =
+  | SCHED_AUTO
+  | SCHED_SPIN
+  | SCHED_YIELD
+  | SCHED_BLOCKING_SYNC
+  | SCHED_MASK
+  | MAP_HOST  (** MAP_HOST is deprecated: it is always present regardless of passed config. *)
+  | LMEM_RESIZE_TO_MAX
+  | COREDUMP_ENABLE
+  | USER_COREDUMP_ENABLE
+  | SYNC_MEMOPS
+[@@deriving sexp]
 
-(* FIXME: handle [flags]! Introduce the ctx_flag type (not native to CUDA API), [flags] is a list. *)
-let ctx_create ~flags device =
+type ctx_flags = ctx_flag list [@@deriving sexp]
+
+let uint_of_ctx_flag f =
+  let open Cuda_ffi.Types_generated in
+  match f with
+  | SCHED_AUTO -> Unsigned.UInt.of_int64 cu_ctx_sched_auto
+  | SCHED_SPIN -> Unsigned.UInt.of_int64 cu_ctx_sched_spin
+  | SCHED_YIELD -> Unsigned.UInt.of_int64 cu_ctx_sched_yield
+  | SCHED_BLOCKING_SYNC -> Unsigned.UInt.of_int64 cu_ctx_sched_blocking_sync
+  | SCHED_MASK -> Unsigned.UInt.of_int64 cu_ctx_sched_mask
+  | MAP_HOST -> Unsigned.UInt.of_int64 cu_ctx_map_host
+  | LMEM_RESIZE_TO_MAX -> Unsigned.UInt.of_int64 cu_ctx_lmem_resize_to_max
+  | COREDUMP_ENABLE -> Unsigned.UInt.of_int64 cu_ctx_coredump_enable
+  | USER_COREDUMP_ENABLE -> Unsigned.UInt.of_int64 cu_ctx_user_coredump_enable
+  | SYNC_MEMOPS -> Unsigned.UInt.of_int64 cu_ctx_sync_memops
+
+let ctx_create (flags : ctx_flags) device =
   let open Ctypes in
   let ctx = allocate_n cu_context ~count:1 in
+  let open Unsigned.UInt in
+  let flags = List.fold_left (fun flags flag -> Infix.(flags lor uint_of_ctx_flag flag)) zero flags in
   check "cu_ctx_create" @@ Cuda.cu_ctx_create ctx flags device;
   !@ctx
+
+let ctx_get_flags () : ctx_flags =
+  let open Ctypes in
+  let open Unsigned.UInt in
+  let flags = allocate uint zero in
+  check "cu_ctx_create" @@ Cuda.cu_ctx_get_flags flags;
+  let mask = Unsigned.UInt.of_int64 Cuda_ffi.Types_generated.cu_ctx_flags_mask in
+  let rec unfold flags remaining =
+    match remaining with
+    | [] ->
+        if not (equal flags zero) then failwith @@ "ctx_get_flags: unknown flag " ^ to_string flags else []
+    | flag :: remaining ->
+        if equal flags zero then []
+        else
+          let uflag = uint_of_ctx_flag flag in
+          if equal Infix.(flags land uflag) zero then unfold flags remaining
+          else flag :: unfold Infix.(flags lxor uflag) remaining
+  in
+  unfold
+    Infix.(!@flags land mask)
+    [
+      SCHED_AUTO;
+      SCHED_SPIN;
+      SCHED_YIELD;
+      SCHED_BLOCKING_SYNC;
+      SCHED_MASK;
+      MAP_HOST;
+      LMEM_RESIZE_TO_MAX;
+      COREDUMP_ENABLE;
+      USER_COREDUMP_ENABLE;
+      SYNC_MEMOPS;
+    ]
 
 let device_primary_ctx_release device =
   check "cu_device_primary_ctx_release" @@ Cuda.cu_device_primary_ctx_release device
