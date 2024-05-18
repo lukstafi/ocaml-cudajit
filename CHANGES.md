@@ -1,3 +1,9 @@
+## [0.2.0] 2024-05-18
+
+### Added
+
+- Support for peer-to-peer device-to-device copying.
+
 ## [0.1.1] 2024-05-09
 
 ### Added

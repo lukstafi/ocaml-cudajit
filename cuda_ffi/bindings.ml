@@ -19,19 +19,12 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let cu_device_primary_ctx_reset =
     F.foreign "cuDevicePrimaryCtxReset" F.(E.cu_device @-> returning E.cu_result)
+
   let cu_ctx_get_device = F.foreign "cuCtxGetDevice" F.(ptr E.cu_device @-> returning E.cu_result)
-
-  let cu_ctx_get_current =
-    F.foreign "cuCtxGetCurrent" F.(ptr cu_context @-> returning E.cu_result)
-
-  let cu_ctx_pop_current =
-    F.foreign "cuCtxPopCurrent" F.(ptr cu_context @-> returning E.cu_result)
-
-  let cu_ctx_set_current =
-    F.foreign "cuCtxSetCurrent" F.(cu_context @-> returning E.cu_result)
-
-  let cu_ctx_push_current =
-    F.foreign "cuCtxPushCurrent" F.(cu_context @-> returning E.cu_result)
+  let cu_ctx_get_current = F.foreign "cuCtxGetCurrent" F.(ptr cu_context @-> returning E.cu_result)
+  let cu_ctx_pop_current = F.foreign "cuCtxPopCurrent" F.(ptr cu_context @-> returning E.cu_result)
+  let cu_ctx_set_current = F.foreign "cuCtxSetCurrent" F.(cu_context @-> returning E.cu_result)
+  let cu_ctx_push_current = F.foreign "cuCtxPushCurrent" F.(cu_context @-> returning E.cu_result)
 
   let cu_module_load_data_ex =
     F.foreign "cuModuleLoadDataEx"
@@ -60,6 +53,21 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let cu_memcpy_D_to_H =
     F.foreign "cuMemcpyDtoH" F.(ptr void @-> cu_deviceptr @-> size_t @-> returning E.cu_result)
+
+  let cu_memcpy_D_to_D =
+    F.foreign "cuMemcpyDtoD" F.(cu_deviceptr @-> cu_deviceptr @-> size_t @-> returning E.cu_result)
+
+  let cu_ctx_disable_peer_access = F.foreign "cuCtxDisablePeerAccess" F.(cu_context @-> returning E.cu_result)
+
+  let cu_ctx_enable_peer_access =
+    F.foreign "cuCtxEnablePeerAccess" F.(cu_context @-> uint @-> returning E.cu_result)
+
+  let cu_device_can_access_peer =
+    F.foreign "cuDeviceCanAccessPeer" F.(ptr int @-> cu_deviceptr @-> cu_deviceptr @-> returning E.cu_result)
+
+  let cu_device_get_p2p_attribute =
+    F.foreign "cuDeviceGetP2PAttribute"
+      F.(ptr int @-> cu_deviceptr @-> cu_deviceptr @-> E.cu_device_p2p_attribute @-> returning E.cu_result)
 
   let cu_mem_free = F.foreign "cuMemFree" F.(cu_deviceptr @-> returning E.cu_result)
   let cu_module_unload = F.foreign "cuModuleUnload" F.(cu_module @-> returning E.cu_result)

@@ -80,6 +80,8 @@ let device_get ~ordinal =
   check "cu_device_get" @@ Cuda.cu_device_get device ordinal;
   !@device
 
+
+(* FIXME: handle [flags]! Introduce the ctx_flag type (not native to CUDA API), [flags] is a list. *)
 let ctx_create ~flags device =
   let open Ctypes in
   let ctx = allocate_n cu_context ~count:1 in
@@ -329,6 +331,60 @@ let memcpy_D_to_H ?host_offset ?length ~dst ~src:(Deviceptr src) () =
   check "cu_memcpy_D_to_H"
   @@ Cuda.cu_memcpy_D_to_H (coerce (ptr c_typ) (ptr void) host) src
   @@ Unsigned.Size_t.of_int byte_size
+
+(** Provide either both [kind] and [length], or just [byte_size]. *)
+let memcpy_D_to_D ?kind ?length ?byte_size ~dst:(Deviceptr dst) ~src:(Deviceptr src) () =
+  let byte_size =
+    match (byte_size, kind, length) with
+    | Some size, None, None -> size
+    | None, Some kind, Some length ->
+        let c_typ = Ctypes.typ_of_bigarray_kind kind in
+        let elem_bytes = Ctypes.sizeof c_typ in
+        elem_bytes * length
+    | Some _, Some _, Some _ ->
+        invalid_arg
+          "memcpy_D_to_D: Too many arguments, provide either both [kind] and [length], or just [byte_size]."
+    | _ ->
+        invalid_arg
+          "memcpy_D_to_D: Too few arguments, provide either both [kind] and [length], or just [byte_size]."
+  in
+  check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src @@ Unsigned.Size_t.of_int byte_size
+
+(** Disables peer access between the current context and the given context. *)
+let ctx_disable_peer_access ctx = check "cu_ctx_disable_peer_access" @@ Cuda.cu_ctx_disable_peer_access ctx
+
+let ctx_enable_peer_access ?(flags = Unsigned.UInt.zero) ctx =
+  check "cu_ctx_enable_peer_access" @@ Cuda.cu_ctx_enable_peer_access ctx flags
+
+let device_can_access_peer ~dst:(Deviceptr dst) ~src:(Deviceptr src) =
+  let open Ctypes in
+  let can_access_peer = allocate int 0 in
+  check "cu_device_can_access_peer" @@ Cuda.cu_device_can_access_peer can_access_peer dst src;
+  !@can_access_peer <> 0
+
+type p2p_attribute =
+  | PERFORMANCE_RANK of int
+  | ACCESS_SUPPORTED of bool
+  | NATIVE_ATOMIC_SUPPORTED of bool
+  | CUDA_ARRAY_ACCESS_SUPPORTED of bool
+
+let device_get_p2p_attributes ~dst:(Deviceptr dst) ~src:(Deviceptr src) =
+  let open Ctypes in
+  let result = ref [] in
+  let value = allocate int 0 in
+  check "cu_device_get_p2p_attribute"
+  @@ Cuda.cu_device_get_p2p_attribute value dst src CU_DEVICE_P2P_ATTRIBUTE_PERFORMANCE_RANK;
+  result := PERFORMANCE_RANK !@value :: !result;
+  check "cu_device_get_p2p_attribute"
+  @@ Cuda.cu_device_get_p2p_attribute value dst src CU_DEVICE_P2P_ATTRIBUTE_ACCESS_SUPPORTED;
+  result := ACCESS_SUPPORTED (!@value = 1) :: !result;
+  check "cu_device_get_p2p_attribute"
+  @@ Cuda.cu_device_get_p2p_attribute value dst src CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED;
+  result := NATIVE_ATOMIC_SUPPORTED (!@value = 1) :: !result;
+  check "cu_device_get_p2p_attribute"
+  @@ Cuda.cu_device_get_p2p_attribute value dst src CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED;
+  result := CUDA_ARRAY_ACCESS_SUPPORTED (!@value = 1) :: !result;
+  !result
 
 let mem_free (Deviceptr dev) = check "cu_mem_free" @@ Cuda.cu_mem_free dev
 let module_unload cu_mod = check "cu_module_unload" @@ Cuda.cu_module_unload cu_mod

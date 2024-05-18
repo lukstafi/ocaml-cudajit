@@ -325,6 +325,15 @@ type cu_device_attribute =
   | CU_DEVICE_ATTRIBUTE_UNCATEGORIZED of int64
 [@@deriving sexp]
 
+type cu_device_p2p_attribute =
+  | CU_DEVICE_P2P_ATTRIBUTE_PERFORMANCE_RANK
+  | CU_DEVICE_P2P_ATTRIBUTE_ACCESS_SUPPORTED
+  | CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED
+  | CU_DEVICE_P2P_ATTRIBUTE_ACCESS_ACCESS_SUPPORTED
+  | CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED
+  | CU_DEVICE_P2P_ATTRIBUTE_UNCATEGORIZED of int64
+[@@deriving sexp]
+
 type cu_computemode =
   | CU_COMPUTEMODE_DEFAULT
   | CU_COMPUTEMODE_PROHIBITED
@@ -1230,6 +1239,34 @@ module Types (T : Ctypes.TYPE) = struct
         (* (CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS, cu_device_attribute_unified_function_pointers); *)
         (* (CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED, cu_device_attribute_multicast_supported); *)
         (CU_DEVICE_ATTRIBUTE_MAX, cu_device_attribute_max);
+      ]
+
+  let cu_device_p2p_attribute_performance_rank =
+    T.constant "CU_DEVICE_P2P_ATTRIBUTE_PERFORMANCE_RANK" T.int64_t
+
+  let cu_device_p2p_attribute_access_supported =
+    T.constant "CU_DEVICE_P2P_ATTRIBUTE_ACCESS_SUPPORTED" T.int64_t
+
+  let cu_device_p2p_attribute_native_atomic_supported =
+    T.constant "CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED" T.int64_t
+
+  let cu_device_p2p_attribute_access_access_supported =
+    T.constant "CU_DEVICE_P2P_ATTRIBUTE_ACCESS_ACCESS_SUPPORTED" T.int64_t
+
+  let cu_device_p2p_attribute_cuda_array_access_supported =
+    T.constant "CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED" T.int64_t
+
+  let cu_device_p2p_attribute =
+    T.enum ~typedef:true
+      ~unexpected:(fun error_code -> CU_DEVICE_P2P_ATTRIBUTE_UNCATEGORIZED error_code)
+      "CUdevice_attribute"
+      [
+        (CU_DEVICE_P2P_ATTRIBUTE_PERFORMANCE_RANK, cu_device_p2p_attribute_performance_rank);
+        (CU_DEVICE_P2P_ATTRIBUTE_ACCESS_SUPPORTED, cu_device_p2p_attribute_access_supported);
+        (CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED, cu_device_p2p_attribute_native_atomic_supported);
+        (CU_DEVICE_P2P_ATTRIBUTE_ACCESS_ACCESS_SUPPORTED, cu_device_p2p_attribute_access_access_supported);
+        ( CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED,
+          cu_device_p2p_attribute_cuda_array_access_supported );
       ]
 
   let cu_computemode_default = T.constant "CU_COMPUTEMODE_DEFAULT" T.int64_t
