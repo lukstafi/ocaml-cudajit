@@ -1,5 +1,6 @@
-# We depend on system-level cuda-toolkit. This is somewhat safe because it does not contain drivers.
-# But see:
-# https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-wsl
-# and all the others: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#overview
-depexts: [ "cuda-toolkit" ]
+post-messages: [
+  "NOTE: CUDA drivers are outside the scope of system packages and might need to be installed manually."
+  {failure & !conf-cuda-config:is_wsl}
+  "NOTE: double-check if CUDA drivers for Windows are installed and Linux libraries don't hide WSL stubs; see: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-wsl"
+  {failure & conf-cuda-config:is_wsl}
+]
