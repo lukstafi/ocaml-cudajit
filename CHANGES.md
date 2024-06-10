@@ -1,3 +1,10 @@
+## [0.3.0] current
+
+### Added
+
+- TODO: Support for streams.
+- TODO: Support for asynchronous copying.
+
 ## [0.2.0] 2024-05-18
 
 ### Added
