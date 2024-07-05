@@ -99,4 +99,20 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let cu_ctx_set_limit = F.foreign "cuCtxSetLimit" F.(E.cu_limit @-> size_t @-> returning E.cu_result)
   let cu_ctx_get_limit = F.foreign "cuCtxGetLimit" F.(ptr size_t @-> E.cu_limit @-> returning E.cu_result)
+
+  let cu_stream_attach_mem_async =
+    F.foreign "cuStreamAttachMemAsync"
+      F.(cu_stream @-> cu_deviceptr @-> size_t @-> uint @-> returning E.cu_result)
+
+  let cu_stream_create_with_priority =
+    F.foreign "cuStreamCreateWithPriority" F.(ptr cu_stream @-> uint @-> int @-> returning E.cu_result)
+
+  let cu_stream_destroy = F.foreign "cuStreamDestroy" F.(cu_stream @-> returning E.cu_result)
+
+  let cu_stream_get_ctx =
+    F.foreign "cuStreamGetCtx" F.(cu_stream @-> ptr cu_context @-> returning E.cu_result)
+
+  let cu_stream_get_id = F.foreign "cuStreamGetId" F.(cu_stream @-> ptr uint64_t @-> returning E.cu_result)
+  let cu_stream_query = F.foreign "cuStreamQuery" F.(cu_stream @-> returning E.cu_result)
+  let cu_stream_synchronize = F.foreign "cuStreamSynchronize" F.(cu_stream @-> returning E.cu_result)
 end

@@ -1,8 +1,8 @@
-## [0.3.0] current
+## [0.3.0] 2024-07-05
 
 ### Added
 
-- TODO: Support for streams.
+- Support for streams (except `cuStreamWaitEvent` and graph capture).
 - TODO: Support for asynchronous copying.
 
 ## [0.2.0] 2024-05-18

@@ -1279,6 +1279,56 @@ let ctx_get_limit limit =
   check "cu_ctx_set_limit" @@ Cuda.cu_ctx_get_limit value limit;
   !@value
 
+type attach_mem = Mem_global | Mem_host | Mem_single_stream [@@deriving sexp]
+
+let uint_of_attach_mem f =
+  let open Cuda_ffi.Types_generated in
+  match f with
+  | Mem_global -> Unsigned.UInt.of_int64 cu_mem_attach_global
+  | Mem_host -> Unsigned.UInt.of_int64 cu_mem_attach_host
+  | Mem_single_stream -> Unsigned.UInt.of_int64 cu_mem_attach_single
+
+let stream_attach_mem_async stream device length flag =
+  check "cu_stream_attach_mem_async"
+  @@ Cuda.cu_stream_attach_mem_async stream device (Unsigned.Size_t.of_int length)
+  @@ uint_of_attach_mem flag
+
+let uint_of_cu_stream_flags ~non_blocking =
+  let open Cuda_ffi.Types_generated in
+  match non_blocking with
+  | false -> Unsigned.UInt.of_int64 cu_stream_default
+  | true -> Unsigned.UInt.of_int64 cu_stream_non_blocking
+
+let stream_create ?(non_blocking = false) ?(lower_priority = 0) () =
+  let open Ctypes in
+  let stream = allocate_n cu_stream ~count:1 in
+  check "cu_stream_create_with_priority"
+  @@ Cuda.cu_stream_create_with_priority stream (uint_of_cu_stream_flags ~non_blocking) lower_priority;
+  !@stream
+
+let stream_destroy stream = check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream
+
+let stream_get_context stream =
+  let open Ctypes in
+  let ctx = allocate_n cu_context ~count:1 in
+  check "cu_stream_get_ctx" @@ Cuda.cu_stream_get_ctx stream ctx;
+  !@ctx
+
+let stream_get_id stream =
+  let open Ctypes in
+  let id = allocate uint64_t Unsigned.UInt64.zero in
+  check "cu_stream_get_id" @@ Cuda.cu_stream_get_id stream id;
+  !@id
+
+let stream_is_ready stream =
+  match Cuda.cu_stream_query stream with
+  | CUDA_ERROR_NOT_READY -> false
+  | e ->
+      check "cu_stream_query" e;
+      true
+
+let stream_synchronize stream = check "cu_stream_synchronize" @@ Cuda.cu_stream_synchronize stream
+
 type context = cu_context
 type func = cu_function
 type stream = cu_stream

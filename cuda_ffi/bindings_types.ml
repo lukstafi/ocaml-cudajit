@@ -374,6 +374,16 @@ type cu_ctx_flags =
   | CU_CTX_FLAGS_UNCATEGORIZED of int64
 [@@deriving sexp]
 
+type cu_mem_attach_flags =
+  | CU_MEM_ATTACH_GLOBAL
+  | CU_MEM_ATTACH_HOST
+  | CU_MEM_ATTACH_SINGLE
+  | CU_MEM_ATTACH_FLAGS_UNCATEGORIZED of int64
+[@@deriving sexp]
+
+type cu_stream_flags = CU_STREAM_DEFAULT | CU_STREAM_NON_BLOCKING | CU_STREAM_FLAGS_UNCATEGORIZED of int64
+[@@deriving sexp]
+
 module Types (T : Ctypes.TYPE) = struct
   let cu_device_v1 = T.typedef T.int "CUdevice_v1"
   let cu_device_t = T.typedef cu_device_v1 "CUdevice"
@@ -1369,4 +1379,27 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_CTX_SYNC_MEMOPS, cu_ctx_sync_memops);
         (CU_CTX_FLAGS_MASK, cu_ctx_flags_mask);
       ]
+
+  let cu_mem_attach_global = T.constant "CU_MEM_ATTACH_GLOBAL" T.int64_t
+  let cu_mem_attach_host = T.constant "CU_MEM_ATTACH_HOST" T.int64_t
+  let cu_mem_attach_single = T.constant "CU_MEM_ATTACH_SINGLE" T.int64_t
+
+  let cu_mem_attach_flags =
+    T.enum ~typedef:true
+      ~unexpected:(fun error_code -> CU_MEM_ATTACH_FLAGS_UNCATEGORIZED error_code)
+      "CUmemAttach_flags"
+      [
+        (CU_MEM_ATTACH_GLOBAL, cu_mem_attach_global);
+        (CU_MEM_ATTACH_HOST, cu_mem_attach_host);
+        (CU_MEM_ATTACH_SINGLE, cu_mem_attach_single);
+      ]
+
+  let cu_stream_default = T.constant "CU_STREAM_DEFAULT" T.int64_t
+  let cu_stream_non_blocking = T.constant "CU_STREAM_NON_BLOCKING" T.int64_t
+
+  let cu_stream_flags =
+    T.enum ~typedef:true
+      ~unexpected:(fun error_code -> CU_STREAM_FLAGS_UNCATEGORIZED error_code)
+      "CUstream_flags"
+      [ (CU_STREAM_DEFAULT, cu_stream_default); (CU_STREAM_NON_BLOCKING, cu_stream_non_blocking) ]
 end
