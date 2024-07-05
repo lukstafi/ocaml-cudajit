@@ -311,10 +311,10 @@ let module_get_function module_ ~name =
 type deviceptr =
   | Deviceptr of Unsigned.uint64  (** A pointer to an array on a device. (Not a pointer to a device!) *)
 
-let mem_alloc ~byte_size =
+let mem_alloc ~size_in_bytes =
   let open Ctypes in
   let deviceptr = allocate_n cu_deviceptr ~count:1 in
-  check "cu_mem_alloc" @@ Cuda.cu_mem_alloc deviceptr @@ Unsigned.Size_t.of_int byte_size;
+  check "cu_mem_alloc" @@ Cuda.cu_mem_alloc deviceptr @@ Unsigned.Size_t.of_int size_in_bytes;
   Deviceptr !@deviceptr
 
 let memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy =
@@ -338,8 +338,8 @@ let memcpy_H_to_D ?host_offset ?length ~dst:(Deviceptr dst) ~src () =
   memcpy_H_to_D_impl ?host_offset ?length ~dst:(Deviceptr dst) ~src memcpy_H_to_D_unsafe
 
 let alloc_and_memcpy src =
-  let byte_size = Bigarray.Genarray.size_in_bytes src in
-  let dst = mem_alloc ~byte_size in
+  let size_in_bytes = Bigarray.Genarray.size_in_bytes src in
+  let dst = mem_alloc ~size_in_bytes in
   memcpy_H_to_D ~dst ~src ();
   dst
 
@@ -411,44 +411,44 @@ let memcpy_D_to_H_async_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr src) ~si
 let memcpy_D_to_H_async ?host_offset ?length ~dst ~src =
   memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy_D_to_H_async_unsafe
 
-(** Provide either both [kind] and [length], or just [byte_size]. *)
-let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) () =
-  let byte_size =
-    match (size_in_bytes, kind, length) with
-    | Some size, None, None -> size
-    | None, Some kind, Some length ->
-        let c_typ = Ctypes.typ_of_bigarray_kind kind in
-        let elem_bytes = Ctypes.sizeof c_typ in
-        elem_bytes * length
-    | Some _, Some _, Some _ ->
-        invalid_arg
-          "memcpy_D_to_D: Too many arguments, provide either both [kind] and [length], or just [byte_size]."
-    | _ ->
-        invalid_arg
-          "memcpy_D_to_D: Too few arguments, provide either both [kind] and [length], or just [byte_size]."
-  in
-  check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src @@ Unsigned.Size_t.of_int byte_size
+let get_size_in_bytes ?kind ?length ?size_in_bytes provenance =
+  match (size_in_bytes, kind, length) with
+  | Some size, None, None -> size
+  | None, Some kind, Some length ->
+      let c_typ = Ctypes.typ_of_bigarray_kind kind in
+      let elem_bytes = Ctypes.sizeof c_typ in
+      elem_bytes * length
+  | Some _, Some _, Some _ ->
+      invalid_arg @@ provenance
+      ^ ": Too many arguments, provide either both [kind] and [length], or just [size_in_bytes]."
+  | _ ->
+      invalid_arg @@ provenance
+      ^ ": Too few arguments, provide either both [kind] and [length], or just [size_in_bytes]."
 
-(** Provide either both [kind] and [length], or just [byte_size]. *)
+(** Provide either both [kind] and [length], or just [size_in_bytes]. *)
+let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) () =
+  let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D" in
+  check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src @@ Unsigned.Size_t.of_int size_in_bytes
+
+(** Provide either both [kind] and [length], or just [size_in_bytes]. *)
 let memcpy_D_to_D_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) stream =
-  let byte_size =
-    match (size_in_bytes, kind, length) with
-    | Some size, None, None -> size
-    | None, Some kind, Some length ->
-        let c_typ = Ctypes.typ_of_bigarray_kind kind in
-        let elem_bytes = Ctypes.sizeof c_typ in
-        elem_bytes * length
-    | Some _, Some _, Some _ ->
-        invalid_arg
-          "memcpy_D_to_D_async: Too many arguments, provide either both [kind] and [length], or just \
-           [byte_size]."
-    | _ ->
-        invalid_arg
-          "memcpy_D_to_D_async: Too few arguments, provide either both [kind] and [length], or just \
-           [byte_size]."
-  in
+  let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D_async" in
   check "cu_memcpy_D_to_D_async"
-  @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int byte_size) stream
+  @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream
+
+(** Provide either both [kind] and [length], or just [size_in_bytes]. *)
+let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src) ~src_ctx () =
+  let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer" in
+  check "cu_memcpy_peer"
+  @@ Cuda.cu_memcpy_peer dst dst_ctx src src_ctx
+  @@ Unsigned.Size_t.of_int size_in_bytes
+
+(** Provide either both [kind] and [length], or just [size_in_bytes]. *)
+let memcpy_peer_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src) ~src_ctx
+    stream =
+  let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer_async" in
+  check "cu_memcpy_peer_async"
+  @@ Cuda.cu_memcpy_peer_async dst dst_ctx src src_ctx (Unsigned.Size_t.of_int size_in_bytes) stream
 
 (** Disables peer access between the current context and the given context. *)
 let ctx_disable_peer_access ctx = check "cu_ctx_disable_peer_access" @@ Cuda.cu_ctx_disable_peer_access ctx
@@ -502,9 +502,9 @@ let memset_d32 (Deviceptr dev) v ~length =
 let module_get_global module_ ~name =
   let open Ctypes in
   let device = allocate_n cu_deviceptr ~count:1 in
-  let byte_size = allocate size_t Unsigned.Size_t.zero in
-  check "cu_module_get_global" @@ Cuda.cu_module_get_global device byte_size module_ name;
-  (Deviceptr !@device, !@byte_size)
+  let size_in_bytes = allocate size_t Unsigned.Size_t.zero in
+  check "cu_module_get_global" @@ Cuda.cu_module_get_global device size_in_bytes module_ name;
+  (Deviceptr !@device, !@size_in_bytes)
 
 type device_attributes = {
   name : string;

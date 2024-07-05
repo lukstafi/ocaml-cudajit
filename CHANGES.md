@@ -3,7 +3,11 @@
 ### Added
 
 - Support for streams (except `cuStreamWaitEvent` and graph capture).
-- Support for asynchronous copying.
+- Support for asynchronous copying, including `cuMemcpyPeerAsync`.
+
+### Changed
+
+- Renamed `byte_size` to `size_in_bytes`.
 
 ## [0.2.0] 2024-05-18
 

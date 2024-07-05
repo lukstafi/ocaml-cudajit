@@ -71,6 +71,16 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "cuMemcpyDtoDAsync"
       F.(cu_deviceptr @-> cu_deviceptr @-> size_t @-> cu_stream @-> returning E.cu_result)
 
+  let cu_memcpy_peer =
+    F.foreign "cuMemcpyPeer"
+      F.(cu_deviceptr @-> cu_context @-> cu_deviceptr @-> cu_context @-> size_t @-> returning E.cu_result)
+
+  let cu_memcpy_peer_async =
+    F.foreign "cuMemcpyPeerAsync"
+      F.(
+        cu_deviceptr @-> cu_context @-> cu_deviceptr @-> cu_context @-> size_t @-> cu_stream
+        @-> returning E.cu_result)
+
   let cu_ctx_disable_peer_access = F.foreign "cuCtxDisablePeerAccess" F.(cu_context @-> returning E.cu_result)
 
   let cu_ctx_enable_peer_access =
