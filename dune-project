@@ -4,7 +4,7 @@
 
 (name cudajit)
 
-(version 0.2.0)
+(version 0.3.0)
 
 (generate_opam_files true)
 
@@ -34,7 +34,6 @@
   sexplib0
   ppx_sexp_conv
   ppx_expect
-  ; cuda-conf
-  )
+  cuda-conf)
  (tags
   (cuda jit nvrtc)))
