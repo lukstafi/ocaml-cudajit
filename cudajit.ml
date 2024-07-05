@@ -317,22 +317,25 @@ let mem_alloc ~byte_size =
   check "cu_mem_alloc" @@ Cuda.cu_mem_alloc deviceptr @@ Unsigned.Size_t.of_int byte_size;
   Deviceptr !@deviceptr
 
-let memcpy_H_to_D ?host_offset ?length ~dst:(Deviceptr dst) ~src () =
+let memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy =
   let full_size = Bigarray.Genarray.size_in_bytes src in
   let c_typ = Ctypes.typ_of_bigarray_kind @@ Bigarray.Genarray.kind src in
-  let elem_bytes = Ctypes.sizeof c_typ in
-  let byte_size =
+  let size_in_bytes =
     match (host_offset, length) with
     | None, None -> full_size
     | Some _, None -> invalid_arg "Cudajit.memcpy_H_to_D: providing offset requires providing length"
-    | _, Some length -> elem_bytes * length
+    | _, Some length -> Ctypes.sizeof c_typ * length
   in
   let open Ctypes in
   let host = bigarray_start genarray src in
   let host = match host_offset with None -> host | Some offset -> host +@ offset in
-  check "cu_memcpy_H_to_D"
-  @@ Cuda.cu_memcpy_H_to_D dst (coerce (ptr c_typ) (ptr void) host)
-  @@ Unsigned.Size_t.of_int byte_size
+  memcpy ~dst ~src:(coerce (ptr c_typ) (ptr void) host) ~size_in_bytes
+
+let memcpy_H_to_D_unsafe ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) ~size_in_bytes =
+  check "cu_memcpy_H_to_D" @@ Cuda.cu_memcpy_H_to_D dst src @@ Unsigned.Size_t.of_int size_in_bytes
+
+let memcpy_H_to_D ?host_offset ?length ~dst:(Deviceptr dst) ~src () =
+  memcpy_H_to_D_impl ?host_offset ?length ~dst:(Deviceptr dst) ~src memcpy_H_to_D_unsafe
 
 let alloc_and_memcpy src =
   let byte_size = Bigarray.Genarray.size_in_bytes src in
@@ -340,8 +343,12 @@ let alloc_and_memcpy src =
   memcpy_H_to_D ~dst ~src ();
   dst
 
-let memcpy_H_to_D_unsafe ~size_in_bytes ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) () =
-  check "cu_memcpy_H_to_D" @@ Cuda.cu_memcpy_H_to_D dst src @@ Unsigned.Size_t.of_int size_in_bytes
+let memcpy_H_to_D_async_unsafe ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) ~size_in_bytes stream =
+  check "cu_memcpy_H_to_D_async"
+  @@ Cuda.cu_memcpy_H_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream
+
+let memcpy_H_to_D_async ?host_offset ?length ~dst:(Deviceptr dst) ~src =
+  memcpy_H_to_D_impl ?host_offset ?length ~dst:(Deviceptr dst) ~src memcpy_H_to_D_async_unsafe
 
 type kernel_param =
   | Tensor of deviceptr
@@ -375,11 +382,11 @@ let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_di
 
 let ctx_synchronize () = check "cu_ctx_synchronize" @@ Cuda.cu_ctx_synchronize ()
 
-let memcpy_D_to_H ?host_offset ?length ~dst ~src:(Deviceptr src) () =
+let memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy =
   let full_size = Bigarray.Genarray.size_in_bytes dst in
   let c_typ = Ctypes.typ_of_bigarray_kind @@ Bigarray.Genarray.kind dst in
   let elem_bytes = Ctypes.sizeof c_typ in
-  let byte_size =
+  let size_in_bytes =
     match (host_offset, length) with
     | None, None -> full_size
     | Some offset, None -> full_size - (elem_bytes * offset)
@@ -389,14 +396,25 @@ let memcpy_D_to_H ?host_offset ?length ~dst ~src:(Deviceptr src) () =
   let open Ctypes in
   let host = bigarray_start genarray dst in
   let host = match host_offset with None -> host | Some offset -> host +@ offset in
-  check "cu_memcpy_D_to_H"
-  @@ Cuda.cu_memcpy_D_to_H (coerce (ptr c_typ) (ptr void) host) src
-  @@ Unsigned.Size_t.of_int byte_size
+  memcpy ~dst:(coerce (ptr c_typ) (ptr void) host) ~src ~size_in_bytes
+
+let memcpy_D_to_H_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr src) ~size_in_bytes =
+  check "cu_memcpy_D_to_H" @@ Cuda.cu_memcpy_D_to_H dst src @@ Unsigned.Size_t.of_int size_in_bytes
+
+let memcpy_D_to_H ?host_offset ?length ~dst ~src () =
+  memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy_D_to_H_unsafe
+
+let memcpy_D_to_H_async_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr src) ~size_in_bytes stream =
+  check "cu_memcpy_D_to_H_async"
+  @@ Cuda.cu_memcpy_D_to_H_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream
+
+let memcpy_D_to_H_async ?host_offset ?length ~dst ~src =
+  memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy_D_to_H_async_unsafe
 
 (** Provide either both [kind] and [length], or just [byte_size]. *)
-let memcpy_D_to_D ?kind ?length ?byte_size ~dst:(Deviceptr dst) ~src:(Deviceptr src) () =
+let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) () =
   let byte_size =
-    match (byte_size, kind, length) with
+    match (size_in_bytes, kind, length) with
     | Some size, None, None -> size
     | None, Some kind, Some length ->
         let c_typ = Ctypes.typ_of_bigarray_kind kind in
@@ -410,6 +428,27 @@ let memcpy_D_to_D ?kind ?length ?byte_size ~dst:(Deviceptr dst) ~src:(Deviceptr 
           "memcpy_D_to_D: Too few arguments, provide either both [kind] and [length], or just [byte_size]."
   in
   check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src @@ Unsigned.Size_t.of_int byte_size
+
+(** Provide either both [kind] and [length], or just [byte_size]. *)
+let memcpy_D_to_D_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) stream =
+  let byte_size =
+    match (size_in_bytes, kind, length) with
+    | Some size, None, None -> size
+    | None, Some kind, Some length ->
+        let c_typ = Ctypes.typ_of_bigarray_kind kind in
+        let elem_bytes = Ctypes.sizeof c_typ in
+        elem_bytes * length
+    | Some _, Some _, Some _ ->
+        invalid_arg
+          "memcpy_D_to_D_async: Too many arguments, provide either both [kind] and [length], or just \
+           [byte_size]."
+    | _ ->
+        invalid_arg
+          "memcpy_D_to_D_async: Too few arguments, provide either both [kind] and [length], or just \
+           [byte_size]."
+  in
+  check "cu_memcpy_D_to_D_async"
+  @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int byte_size) stream
 
 (** Disables peer access between the current context and the given context. *)
 let ctx_disable_peer_access ctx = check "cu_ctx_disable_peer_access" @@ Cuda.cu_ctx_disable_peer_access ctx

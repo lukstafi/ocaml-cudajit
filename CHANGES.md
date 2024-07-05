@@ -3,7 +3,7 @@
 ### Added
 
 - Support for streams (except `cuStreamWaitEvent` and graph capture).
-- TODO: Support for asynchronous copying.
+- Support for asynchronous copying.
 
 ## [0.2.0] 2024-05-18
 

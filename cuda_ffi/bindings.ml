@@ -43,6 +43,10 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let cu_memcpy_H_to_D =
     F.foreign "cuMemcpyHtoD" F.(cu_deviceptr @-> ptr void @-> size_t @-> returning E.cu_result)
 
+  let cu_memcpy_H_to_D_async =
+    F.foreign "cuMemcpyHtoDAsync"
+      F.(cu_deviceptr @-> ptr void @-> size_t @-> cu_stream @-> returning E.cu_result)
+
   let cu_launch_kernel =
     F.foreign "cuLaunchKernel"
       F.(
@@ -56,8 +60,16 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let cu_memcpy_D_to_H =
     F.foreign "cuMemcpyDtoH" F.(ptr void @-> cu_deviceptr @-> size_t @-> returning E.cu_result)
 
+  let cu_memcpy_D_to_H_async =
+    F.foreign "cuMemcpyDtoHAsync"
+      F.(ptr void @-> cu_deviceptr @-> size_t @-> cu_stream @-> returning E.cu_result)
+
   let cu_memcpy_D_to_D =
     F.foreign "cuMemcpyDtoD" F.(cu_deviceptr @-> cu_deviceptr @-> size_t @-> returning E.cu_result)
+
+  let cu_memcpy_D_to_D_async =
+    F.foreign "cuMemcpyDtoDAsync"
+      F.(cu_deviceptr @-> cu_deviceptr @-> size_t @-> cu_stream @-> returning E.cu_result)
 
   let cu_ctx_disable_peer_access = F.foreign "cuCtxDisablePeerAccess" F.(cu_context @-> returning E.cu_result)
 
