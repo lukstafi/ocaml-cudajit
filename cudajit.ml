@@ -499,6 +499,15 @@ let memset_d16 (Deviceptr dev) v ~length =
 let memset_d32 (Deviceptr dev) v ~length =
   check "cu_memset_d32" @@ Cuda.cu_memset_d32 dev v @@ Unsigned.Size_t.of_int length
 
+let memset_d8_async (Deviceptr dev) v ~length stream =
+  check "cu_memset_d8_async" @@ Cuda.cu_memset_d8_async dev v (Unsigned.Size_t.of_int length) stream
+
+let memset_d16_async (Deviceptr dev) v ~length stream =
+  check "cu_memset_d16_async" @@ Cuda.cu_memset_d16_async dev v (Unsigned.Size_t.of_int length) stream
+
+let memset_d32_async (Deviceptr dev) v ~length stream =
+  check "cu_memset_d32_async" @@ Cuda.cu_memset_d32_async dev v (Unsigned.Size_t.of_int length) stream
+
 let module_get_global module_ ~name =
   let open Ctypes in
   let device = allocate_n cu_deviceptr ~count:1 in
