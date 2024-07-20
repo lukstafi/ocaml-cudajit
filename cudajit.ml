@@ -308,8 +308,6 @@ let module_get_function module_ ~name =
   check "cu_module_get_function" @@ Cuda.cu_module_get_function func module_ name;
   !@func
 
-type lifetime = Remember : 'a -> lifetime
-
 type deviceptr =
   | Deviceptr of Unsigned.uint64  (** A pointer to an array on a device. (Not a pointer to a device!) *)
 
@@ -345,9 +343,12 @@ let alloc_and_memcpy src =
   memcpy_H_to_D ~dst ~src ();
   dst
 
+type lifetime = Remember : 'a -> lifetime
+type stream = { mutable args_lifetimes : lifetime list; stream : cu_stream }
+
 let memcpy_H_to_D_async_unsafe ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) ~size_in_bytes stream =
   check "cu_memcpy_H_to_D_async"
-  @@ Cuda.cu_memcpy_H_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream
+  @@ Cuda.cu_memcpy_H_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
 let memcpy_H_to_D_async ?host_offset ?length ~dst:(Deviceptr dst) ~src =
   memcpy_H_to_D_impl ?host_offset ?length ~dst:(Deviceptr dst) ~src memcpy_H_to_D_async_unsafe
@@ -359,7 +360,7 @@ type kernel_param =
   | Single of float
   | Double of float
 
-let no_stream = Ctypes.(coerce (ptr void) cu_stream null)
+let no_stream = { args_lifetimes = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
 let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x ?(block_dim_y = 1)
     ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
@@ -378,11 +379,13 @@ let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_di
   let c_kernel_params = kernel_params |> CArray.of_list (ptr void) in
   check "cu_launch_kernel"
   @@ Cuda.cu_launch_kernel func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z) (i2u block_dim_x)
-       (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream (CArray.start c_kernel_params)
+       (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream.stream (CArray.start c_kernel_params)
   @@ coerce (ptr void) (ptr @@ ptr void) null;
-  Remember (kernel_params, c_kernel_params)
+  stream.args_lifetimes <- Remember (kernel_params, c_kernel_params) :: stream.args_lifetimes
 
-let ctx_synchronize () = check "cu_ctx_synchronize" @@ Cuda.cu_ctx_synchronize ()
+let ctx_synchronize () =
+  check "cu_ctx_synchronize" @@ Cuda.cu_ctx_synchronize ();
+  no_stream.args_lifetimes <- []
 
 let memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy =
   let full_size = Bigarray.Genarray.size_in_bytes dst in
@@ -408,7 +411,7 @@ let memcpy_D_to_H ?host_offset ?length ~dst ~src () =
 
 let memcpy_D_to_H_async_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr src) ~size_in_bytes stream =
   check "cu_memcpy_D_to_H_async"
-  @@ Cuda.cu_memcpy_D_to_H_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream
+  @@ Cuda.cu_memcpy_D_to_H_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
 let memcpy_D_to_H_async ?host_offset ?length ~dst ~src =
   memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy_D_to_H_async_unsafe
@@ -436,7 +439,7 @@ let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Device
 let memcpy_D_to_D_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) stream =
   let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D_async" in
   check "cu_memcpy_D_to_D_async"
-  @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream
+  @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
 (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
 let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src) ~src_ctx () =
@@ -450,7 +453,7 @@ let memcpy_peer_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx
     stream =
   let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer_async" in
   check "cu_memcpy_peer_async"
-  @@ Cuda.cu_memcpy_peer_async dst dst_ctx src src_ctx (Unsigned.Size_t.of_int size_in_bytes) stream
+  @@ Cuda.cu_memcpy_peer_async dst dst_ctx src src_ctx (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
 (** Disables peer access between the current context and the given context. *)
 let ctx_disable_peer_access ctx = check "cu_ctx_disable_peer_access" @@ Cuda.cu_ctx_disable_peer_access ctx
@@ -512,7 +515,6 @@ let memset_d32_async (Deviceptr dev) v ~length stream =
 
 let module_get_global module_ ~name =
   let open Ctypes in
-  (* FIXME: here and elsewhere -- we are leaking memory from [allocate_n] and [allocate] I think? *)
   let device = allocate_n cu_deviceptr ~count:1 in
   let size_in_bytes = allocate size_t Unsigned.Size_t.zero in
   check "cu_module_get_global" @@ Cuda.cu_module_get_global device size_in_bytes module_ name;
@@ -1355,9 +1357,11 @@ let stream_create ?(non_blocking = false) ?(lower_priority = 0) () =
   let stream = allocate_n cu_stream ~count:1 in
   check "cu_stream_create_with_priority"
   @@ Cuda.cu_stream_create_with_priority stream (uint_of_cu_stream_flags ~non_blocking) lower_priority;
-  !@stream
+  { args_lifetimes = []; stream = !@stream }
 
-let stream_destroy stream = check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream
+let stream_destroy stream =
+  stream.args_lifetimes <- [];
+  check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream
 
 let stream_get_context stream =
   let open Ctypes in
@@ -1372,17 +1376,19 @@ let stream_get_id stream =
   !@id
 
 let stream_is_ready stream =
-  match Cuda.cu_stream_query stream with
+  match Cuda.cu_stream_query stream.stream with
   | CUDA_ERROR_NOT_READY -> false
   | e ->
       check "cu_stream_query" e;
+      stream.args_lifetimes <- [];
       true
 
-let stream_synchronize stream = check "cu_stream_synchronize" @@ Cuda.cu_stream_synchronize stream
+let stream_synchronize stream =
+  check "cu_stream_synchronize" @@ Cuda.cu_stream_synchronize stream.stream;
+  stream.args_lifetimes <- []
 
 type context = cu_context
 type func = cu_function
-type stream = cu_stream
 type module_ = cu_module
 type limit = cu_limit
 type device = cu_device
