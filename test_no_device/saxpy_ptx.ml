@@ -14,7 +14,8 @@ extern "C" __global__ void saxpy(float a, float *x, float *y, float *out, size_t
 
 let%expect_test "SAXPY compilation" =
   let prog =
-    Cudajit.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ] ~with_debug:true
+    Cudajit.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
+      ~with_debug:true
   in
   (match prog.log with None -> () | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
   [%expect {| CUDA Compile log: |}];

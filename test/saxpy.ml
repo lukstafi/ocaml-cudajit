@@ -16,7 +16,9 @@ let%expect_test "SAXPY" =
   let num_blocks = 32 in
   let num_threads = 128 in
   let module Cu = Cudajit in
-  let prog = Cu.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ] ~with_debug:true in
+  let prog =
+    Cu.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ] ~with_debug:true
+  in
   Cu.init ();
   if Cu.device_get_count () > 0 then (
     let device = Cu.device_get ~ordinal:0 in
@@ -26,15 +28,19 @@ let%expect_test "SAXPY" =
     let size = num_threads * num_blocks in
     let module Host = Bigarray.Genarray in
     let a = 5.1 in
-    let hX = Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx -> Float.of_int idx.(0)) in
+    let hX =
+      Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx -> Float.of_int idx.(0))
+    in
     let dX = Cu.alloc_and_memcpy hX in
     let hY =
-      Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx -> Float.of_int @@ (idx.(0) * 2))
+      Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx ->
+          Float.of_int @@ (idx.(0) * 2))
     in
     let dY = Cu.alloc_and_memcpy hY in
     let hOut = Host.create Bigarray.Float32 Bigarray.C_layout [| size |] in
     let dOut = Cu.alloc_and_memcpy hOut in
-    Cu.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads ~shared_mem_bytes:0 Cu.no_stream
+    Cu.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads ~shared_mem_bytes:0
+      Cu.no_stream
       [
         Single a;
         Tensor dX;

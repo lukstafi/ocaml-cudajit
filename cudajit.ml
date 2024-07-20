@@ -11,7 +11,8 @@ exception Error of { status : error_code; message : string }
 let error_printer = function
   | Error { status; message } ->
       ignore @@ Format.flush_str_formatter ();
-      Format.fprintf Format.str_formatter "%s:@ %a" message Sexplib0.Sexp.pp_hum (sexp_of_error_code status);
+      Format.fprintf Format.str_formatter "%s:@ %a" message Sexplib0.Sexp.pp_hum
+        (sexp_of_error_code status);
       Some (Format.flush_str_formatter ())
   | _ -> None
 
@@ -36,7 +37,8 @@ let compile_to_ptx ~cu_src ~name ~options ~with_debug =
   let log_msg log = Option.value log ~default:"no compilation log" in
   let error prefix status log =
     ignore @@ Nvrtc.nvrtc_destroy_program prog;
-    raise @@ Error { status = Nvrtc_error status; message = prefix ^ " " ^ name ^ ": " ^ log_msg log }
+    raise
+    @@ Error { status = Nvrtc_error status; message = prefix ^ " " ^ name ^ ": " ^ log_msg log }
   in
   let log =
     if status = NVRTC_SUCCESS && not with_debug then None
@@ -113,7 +115,9 @@ let ctx_create (flags : ctx_flags) device =
   let open Ctypes in
   let ctx = allocate_n cu_context ~count:1 in
   let open Unsigned.UInt in
-  let flags = List.fold_left (fun flags flag -> Infix.(flags lor uint_of_ctx_flag flag)) zero flags in
+  let flags =
+    List.fold_left (fun flags flag -> Infix.(flags lor uint_of_ctx_flag flag)) zero flags
+  in
   check "cu_ctx_create" @@ Cuda.cu_ctx_create ctx flags device;
   !@ctx
 
@@ -126,7 +130,8 @@ let ctx_get_flags () : ctx_flags =
   let rec unfold flags remaining =
     match remaining with
     | [] ->
-        if not (equal flags zero) then failwith @@ "ctx_get_flags: unknown flag " ^ to_string flags else []
+        if not (equal flags zero) then failwith @@ "ctx_get_flags: unknown flag " ^ to_string flags
+        else []
     | flag :: remaining ->
         if equal flags zero then []
         else
@@ -253,7 +258,8 @@ let module_load_data_ex ptx options =
            | JIT_THREADS_PER_BLOCK _ -> [ CU_JIT_THREADS_PER_BLOCK ]
            | JIT_WALL_TIME _ -> [ CU_JIT_WALL_TIME ]
            | JIT_INFO_LOG_BUFFER _ -> [ CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES; CU_JIT_INFO_LOG_BUFFER ]
-           | JIT_ERROR_LOG_BUFFER _ -> [ CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES; CU_JIT_ERROR_LOG_BUFFER ]
+           | JIT_ERROR_LOG_BUFFER _ ->
+               [ CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES; CU_JIT_ERROR_LOG_BUFFER ]
            | JIT_OPTIMIZATION_LEVEL _ -> [ CU_JIT_OPTIMIZATION_LEVEL ]
            | JIT_TARGET_FROM_CUCONTEXT -> [ CU_JIT_TARGET_FROM_CUCONTEXT ]
            | JIT_TARGET _ -> [ CU_JIT_TARGET ]
@@ -293,12 +299,15 @@ let module_load_data_ex ptx options =
            | JIT_LOG_VERBOSE c -> [ bi2vp c ]
            | JIT_GENERATE_LINE_INFO c -> [ bi2vp c ]
            | JIT_CACHE_MODE t ->
-               [ u2vp @@ uint_of_cu_jit_cache_mode t ] (* | JIT_POSITION_INDEPENDENT_CODE c -> [ bi2vp c ] *))
+               [ u2vp @@ uint_of_cu_jit_cache_mode t ]
+               (* | JIT_POSITION_INDEPENDENT_CODE c -> [ bi2vp c ] *))
          options
   in
   (* allocate_n Cuda_ffi.Types_generated.cu_jit_option ~count:n_opts in *)
   check "cu_module_load_data_ex"
-  @@ Cuda.cu_module_load_data_ex cu_mod (coerce (ptr char) (ptr void) ptx.ptx) n_opts (CArray.start c_options)
+  @@ Cuda.cu_module_load_data_ex cu_mod
+       (coerce (ptr char) (ptr void) ptx.ptx)
+       n_opts (CArray.start c_options)
   @@ CArray.start c_opts_args;
   !@cu_mod
 
@@ -309,7 +318,8 @@ let module_get_function module_ ~name =
   !@func
 
 type deviceptr =
-  | Deviceptr of Unsigned.uint64  (** A pointer to an array on a device. (Not a pointer to a device!) *)
+  | Deviceptr of Unsigned.uint64
+      (** A pointer to an array on a device. (Not a pointer to a device!) *)
 
 let mem_alloc ~size_in_bytes =
   let open Ctypes in
@@ -323,7 +333,8 @@ let memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy =
   let size_in_bytes =
     match (host_offset, length) with
     | None, None -> full_size
-    | Some _, None -> invalid_arg "Cudajit.memcpy_H_to_D: providing offset requires providing length"
+    | Some _, None ->
+        invalid_arg "Cudajit.memcpy_H_to_D: providing offset requires providing length"
     | _, Some length -> Ctypes.sizeof c_typ * length
   in
   let open Ctypes in
@@ -362,8 +373,8 @@ type kernel_param =
 
 let no_stream = { args_lifetimes = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
-let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x ?(block_dim_y = 1)
-    ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
+let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
+    ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
   let i2u = Unsigned.UInt.of_int in
   let open Ctypes in
   let kernel_params =
@@ -379,7 +390,8 @@ let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_di
   let c_kernel_params = kernel_params |> CArray.of_list (ptr void) in
   check "cu_launch_kernel"
   @@ Cuda.cu_launch_kernel func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z) (i2u block_dim_x)
-       (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream.stream (CArray.start c_kernel_params)
+       (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream.stream
+       (CArray.start c_kernel_params)
   @@ coerce (ptr void) (ptr @@ ptr void) null;
   stream.args_lifetimes <- Remember (kernel_params, c_kernel_params) :: stream.args_lifetimes
 
@@ -436,27 +448,32 @@ let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Device
   check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src @@ Unsigned.Size_t.of_int size_in_bytes
 
 (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
-let memcpy_D_to_D_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) stream =
+let memcpy_D_to_D_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src)
+    stream =
   let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D_async" in
   check "cu_memcpy_D_to_D_async"
   @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
 (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
-let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src) ~src_ctx () =
+let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src)
+    ~src_ctx () =
   let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer" in
   check "cu_memcpy_peer"
   @@ Cuda.cu_memcpy_peer dst dst_ctx src src_ctx
   @@ Unsigned.Size_t.of_int size_in_bytes
 
 (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
-let memcpy_peer_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src) ~src_ctx
-    stream =
+let memcpy_peer_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx
+    ~src:(Deviceptr src) ~src_ctx stream =
   let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer_async" in
   check "cu_memcpy_peer_async"
-  @@ Cuda.cu_memcpy_peer_async dst dst_ctx src src_ctx (Unsigned.Size_t.of_int size_in_bytes) stream.stream
+  @@ Cuda.cu_memcpy_peer_async dst dst_ctx src src_ctx
+       (Unsigned.Size_t.of_int size_in_bytes)
+       stream.stream
 
 (** Disables peer access between the current context and the given context. *)
-let ctx_disable_peer_access ctx = check "cu_ctx_disable_peer_access" @@ Cuda.cu_ctx_disable_peer_access ctx
+let ctx_disable_peer_access ctx =
+  check "cu_ctx_disable_peer_access" @@ Cuda.cu_ctx_disable_peer_access ctx
 
 let ctx_enable_peer_access ?(flags = Unsigned.UInt.zero) ctx =
   check "cu_ctx_enable_peer_access" @@ Cuda.cu_ctx_enable_peer_access ctx flags
@@ -487,7 +504,8 @@ let device_get_p2p_attributes ~dst:(Deviceptr dst) ~src:(Deviceptr src) =
   @@ Cuda.cu_device_get_p2p_attribute value dst src CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED;
   result := NATIVE_ATOMIC_SUPPORTED (!@value = 1) :: !result;
   check "cu_device_get_p2p_attribute"
-  @@ Cuda.cu_device_get_p2p_attribute value dst src CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED;
+  @@ Cuda.cu_device_get_p2p_attribute value dst src
+       CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED;
   result := CUDA_ARRAY_ACCESS_SUPPORTED (!@value = 1) :: !result;
   !result
 
@@ -508,10 +526,12 @@ let memset_d8_async (Deviceptr dev) v ~length stream =
   check "cu_memset_d8_async" @@ Cuda.cu_memset_d8_async dev v (Unsigned.Size_t.of_int length) stream
 
 let memset_d16_async (Deviceptr dev) v ~length stream =
-  check "cu_memset_d16_async" @@ Cuda.cu_memset_d16_async dev v (Unsigned.Size_t.of_int length) stream
+  check "cu_memset_d16_async"
+  @@ Cuda.cu_memset_d16_async dev v (Unsigned.Size_t.of_int length) stream
 
 let memset_d32_async (Deviceptr dev) v ~length stream =
-  check "cu_memset_d32_async" @@ Cuda.cu_memset_d32_async dev v (Unsigned.Size_t.of_int length) stream
+  check "cu_memset_d32_async"
+  @@ Cuda.cu_memset_d32_async dev v (Unsigned.Size_t.of_int length) stream
 
 let module_get_global module_ ~name =
   let open Ctypes in
@@ -655,7 +675,8 @@ let device_get_attributes device =
   let name = coerce (ptr char) string name in
   let max_threads_per_block = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute max_threads_per_block CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK device;
+  @@ Cuda.cu_device_get_attribute max_threads_per_block CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK
+       device;
   let max_threads_per_block = !@max_threads_per_block in
   let max_block_dim_x = allocate int 0 in
   check "cu_device_get_attribute"
@@ -683,12 +704,13 @@ let device_get_attributes device =
   let max_grid_dim_z = !@max_grid_dim_z in
   let max_shared_memory_per_block = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute max_shared_memory_per_block CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK
-       device;
+  @@ Cuda.cu_device_get_attribute max_shared_memory_per_block
+       CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK device;
   let max_shared_memory_per_block = !@max_shared_memory_per_block in
   let total_constant_memory = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute total_constant_memory CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY device;
+  @@ Cuda.cu_device_get_attribute total_constant_memory CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY
+       device;
   let total_constant_memory = !@total_constant_memory in
   let warp_size = allocate int 0 in
   check "cu_device_get_attribute"
@@ -700,7 +722,8 @@ let device_get_attributes device =
   let max_pitch = !@max_pitch in
   let max_registers_per_block = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute max_registers_per_block CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK device;
+  @@ Cuda.cu_device_get_attribute max_registers_per_block
+       CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK device;
   let max_registers_per_block = !@max_registers_per_block in
   let clock_rate = allocate int 0 in
   check "cu_device_get_attribute"
@@ -712,7 +735,8 @@ let device_get_attributes device =
   let texture_alignment = !@texture_alignment in
   let multiprocessor_count = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute multiprocessor_count CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT device;
+  @@ Cuda.cu_device_get_attribute multiprocessor_count CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT
+       device;
   let multiprocessor_count = !@multiprocessor_count in
   let kernel_exec_timeout = allocate int 0 in
   check "cu_device_get_attribute"
@@ -732,27 +756,33 @@ let device_get_attributes device =
   let compute_mode = Cuda.cu_computemode_of_int !@compute_mode in
   let maximum_texture1d_width = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_texture1d_width CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_WIDTH device;
+  @@ Cuda.cu_device_get_attribute maximum_texture1d_width
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_WIDTH device;
   let maximum_texture1d_width = !@maximum_texture1d_width in
   let maximum_texture2d_width = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_texture2d_width CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_WIDTH device;
+  @@ Cuda.cu_device_get_attribute maximum_texture2d_width
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_WIDTH device;
   let maximum_texture2d_width = !@maximum_texture2d_width in
   let maximum_texture2d_height = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_texture2d_height CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_HEIGHT device;
+  @@ Cuda.cu_device_get_attribute maximum_texture2d_height
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_HEIGHT device;
   let maximum_texture2d_height = !@maximum_texture2d_height in
   let maximum_texture3d_width = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_texture3d_width CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE3D_WIDTH device;
+  @@ Cuda.cu_device_get_attribute maximum_texture3d_width
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE3D_WIDTH device;
   let maximum_texture3d_width = !@maximum_texture3d_width in
   let maximum_texture3d_height = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_texture3d_height CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE3D_HEIGHT device;
+  @@ Cuda.cu_device_get_attribute maximum_texture3d_height
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE3D_HEIGHT device;
   let maximum_texture3d_height = !@maximum_texture3d_height in
   let maximum_texture3d_depth = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_texture3d_depth CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE3D_DEPTH device;
+  @@ Cuda.cu_device_get_attribute maximum_texture3d_depth
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE3D_DEPTH device;
   let maximum_texture3d_depth = !@maximum_texture3d_depth in
   let maximum_texture2d_layered_width = allocate int 0 in
   check "cu_device_get_attribute"
@@ -799,7 +829,8 @@ let device_get_attributes device =
   let memory_clock_rate = !@memory_clock_rate in
   let global_memory_bus_width = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute global_memory_bus_width CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH device;
+  @@ Cuda.cu_device_get_attribute global_memory_bus_width
+       CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH device;
   let global_memory_bus_width = !@global_memory_bus_width in
   let l2_cache_size = allocate int 0 in
   check "cu_device_get_attribute"
@@ -859,7 +890,8 @@ let device_get_attributes device =
   let pci_domain_id = !@pci_domain_id in
   let texture_pitch_alignment = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute texture_pitch_alignment CU_DEVICE_ATTRIBUTE_TEXTURE_PITCH_ALIGNMENT device;
+  @@ Cuda.cu_device_get_attribute texture_pitch_alignment
+       CU_DEVICE_ATTRIBUTE_TEXTURE_PITCH_ALIGNMENT device;
   let texture_pitch_alignment = !@texture_pitch_alignment in
   let maximum_texturecubemap_width = allocate int 0 in
   check "cu_device_get_attribute"
@@ -878,27 +910,33 @@ let device_get_attributes device =
   let maximum_texturecubemap_layered_layers = !@maximum_texturecubemap_layered_layers in
   let maximum_surface1d_width = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_surface1d_width CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE1D_WIDTH device;
+  @@ Cuda.cu_device_get_attribute maximum_surface1d_width
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE1D_WIDTH device;
   let maximum_surface1d_width = !@maximum_surface1d_width in
   let maximum_surface2d_width = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_surface2d_width CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE2D_WIDTH device;
+  @@ Cuda.cu_device_get_attribute maximum_surface2d_width
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE2D_WIDTH device;
   let maximum_surface2d_width = !@maximum_surface2d_width in
   let maximum_surface2d_height = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_surface2d_height CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE2D_HEIGHT device;
+  @@ Cuda.cu_device_get_attribute maximum_surface2d_height
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE2D_HEIGHT device;
   let maximum_surface2d_height = !@maximum_surface2d_height in
   let maximum_surface3d_width = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_surface3d_width CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE3D_WIDTH device;
+  @@ Cuda.cu_device_get_attribute maximum_surface3d_width
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE3D_WIDTH device;
   let maximum_surface3d_width = !@maximum_surface3d_width in
   let maximum_surface3d_height = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_surface3d_height CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE3D_HEIGHT device;
+  @@ Cuda.cu_device_get_attribute maximum_surface3d_height
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE3D_HEIGHT device;
   let maximum_surface3d_height = !@maximum_surface3d_height in
   let maximum_surface3d_depth = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute maximum_surface3d_depth CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE3D_DEPTH device;
+  @@ Cuda.cu_device_get_attribute maximum_surface3d_depth
+       CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE3D_DEPTH device;
   let maximum_surface3d_depth = !@maximum_surface3d_depth in
   let maximum_surface1d_layered_width = allocate int 0 in
   check "cu_device_get_attribute"
@@ -967,11 +1005,13 @@ let device_get_attributes device =
   let maximum_texture2d_mipmapped_height = !@maximum_texture2d_mipmapped_height in
   let compute_capability_major = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute compute_capability_major CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR device;
+  @@ Cuda.cu_device_get_attribute compute_capability_major
+       CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR device;
   let compute_capability_major = !@compute_capability_major in
   let compute_capability_minor = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute compute_capability_minor CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR device;
+  @@ Cuda.cu_device_get_attribute compute_capability_minor
+       CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR device;
   let compute_capability_minor = !@compute_capability_minor in
   let maximum_texture1d_mipmapped_width = allocate int 0 in
   check "cu_device_get_attribute"
@@ -980,17 +1020,18 @@ let device_get_attributes device =
   let maximum_texture1d_mipmapped_width = !@maximum_texture1d_mipmapped_width in
   let stream_priorities_supported = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute stream_priorities_supported CU_DEVICE_ATTRIBUTE_STREAM_PRIORITIES_SUPPORTED
-       device;
+  @@ Cuda.cu_device_get_attribute stream_priorities_supported
+       CU_DEVICE_ATTRIBUTE_STREAM_PRIORITIES_SUPPORTED device;
   let stream_priorities_supported = 0 <> !@stream_priorities_supported in
   let global_l1_cache_supported = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute global_l1_cache_supported CU_DEVICE_ATTRIBUTE_GLOBAL_L1_CACHE_SUPPORTED
-       device;
+  @@ Cuda.cu_device_get_attribute global_l1_cache_supported
+       CU_DEVICE_ATTRIBUTE_GLOBAL_L1_CACHE_SUPPORTED device;
   let global_l1_cache_supported = 0 <> !@global_l1_cache_supported in
   let local_l1_cache_supported = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute local_l1_cache_supported CU_DEVICE_ATTRIBUTE_LOCAL_L1_CACHE_SUPPORTED device;
+  @@ Cuda.cu_device_get_attribute local_l1_cache_supported
+       CU_DEVICE_ATTRIBUTE_LOCAL_L1_CACHE_SUPPORTED device;
   let local_l1_cache_supported = 0 <> !@local_l1_cache_supported in
   let max_shared_memory_per_multiprocessor = allocate int 0 in
   check "cu_device_get_attribute"
@@ -1012,7 +1053,8 @@ let device_get_attributes device =
   let multi_gpu_board = 0 <> !@multi_gpu_board in
   let multi_gpu_board_group_id = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute multi_gpu_board_group_id CU_DEVICE_ATTRIBUTE_MULTI_GPU_BOARD_GROUP_ID device;
+  @@ Cuda.cu_device_get_attribute multi_gpu_board_group_id
+       CU_DEVICE_ATTRIBUTE_MULTI_GPU_BOARD_GROUP_ID device;
   let multi_gpu_board_group_id = !@multi_gpu_board_group_id in
   let host_native_atomic_supported = allocate int 0 in
   check "cu_device_get_attribute"
@@ -1026,12 +1068,13 @@ let device_get_attributes device =
   let single_to_double_precision_perf_ratio = !@single_to_double_precision_perf_ratio in
   let pageable_memory_access = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute pageable_memory_access CU_DEVICE_ATTRIBUTE_PAGEABLE_MEMORY_ACCESS device;
+  @@ Cuda.cu_device_get_attribute pageable_memory_access CU_DEVICE_ATTRIBUTE_PAGEABLE_MEMORY_ACCESS
+       device;
   let pageable_memory_access = 0 <> !@pageable_memory_access in
   let concurrent_managed_access = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute concurrent_managed_access CU_DEVICE_ATTRIBUTE_CONCURRENT_MANAGED_ACCESS
-       device;
+  @@ Cuda.cu_device_get_attribute concurrent_managed_access
+       CU_DEVICE_ATTRIBUTE_CONCURRENT_MANAGED_ACCESS device;
   let concurrent_managed_access = 0 <> !@concurrent_managed_access in
   let compute_preemption_supported = allocate int 0 in
   check "cu_device_get_attribute"
@@ -1054,17 +1097,21 @@ let device_get_attributes device =
   let max_shared_memory_per_block_optin = !@max_shared_memory_per_block_optin in
   let can_flush_remote_writes = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute can_flush_remote_writes CU_DEVICE_ATTRIBUTE_CAN_FLUSH_REMOTE_WRITES device;
+  @@ Cuda.cu_device_get_attribute can_flush_remote_writes
+       CU_DEVICE_ATTRIBUTE_CAN_FLUSH_REMOTE_WRITES device;
   let can_flush_remote_writes = 0 <> !@can_flush_remote_writes in
   let host_register_supported = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute host_register_supported CU_DEVICE_ATTRIBUTE_HOST_REGISTER_SUPPORTED device;
+  @@ Cuda.cu_device_get_attribute host_register_supported
+       CU_DEVICE_ATTRIBUTE_HOST_REGISTER_SUPPORTED device;
   let host_register_supported = 0 <> !@host_register_supported in
   let pageable_memory_access_uses_host_page_tables = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute pageable_memory_access_uses_host_page_tables
        CU_DEVICE_ATTRIBUTE_PAGEABLE_MEMORY_ACCESS_USES_HOST_PAGE_TABLES device;
-  let pageable_memory_access_uses_host_page_tables = 0 <> !@pageable_memory_access_uses_host_page_tables in
+  let pageable_memory_access_uses_host_page_tables =
+    0 <> !@pageable_memory_access_uses_host_page_tables
+  in
   let direct_managed_mem_access_from_host = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute direct_managed_mem_access_from_host
@@ -1079,7 +1126,9 @@ let device_get_attributes device =
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute handle_type_posix_file_descriptor_supported
        CU_DEVICE_ATTRIBUTE_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR_SUPPORTED device;
-  let handle_type_posix_file_descriptor_supported = 0 <> !@handle_type_posix_file_descriptor_supported in
+  let handle_type_posix_file_descriptor_supported =
+    0 <> !@handle_type_posix_file_descriptor_supported
+  in
   let handle_type_win32_handle_supported = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute handle_type_win32_handle_supported
@@ -1122,8 +1171,8 @@ let device_get_attributes device =
   let reserved_shared_memory_per_block = !@reserved_shared_memory_per_block in
   let sparse_cuda_array_supported = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute sparse_cuda_array_supported CU_DEVICE_ATTRIBUTE_SPARSE_CUDA_ARRAY_SUPPORTED
-       device;
+  @@ Cuda.cu_device_get_attribute sparse_cuda_array_supported
+       CU_DEVICE_ATTRIBUTE_SPARSE_CUDA_ARRAY_SUPPORTED device;
   let sparse_cuda_array_supported = 0 <> !@sparse_cuda_array_supported in
   let read_only_host_register_supported = allocate int 0 in
   check "cu_device_get_attribute"
@@ -1141,8 +1190,8 @@ let device_get_attributes device =
      let memory_pools_supported = 0 <> !@memory_pools_supported in *)
   let gpu_direct_rdma_supported = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute gpu_direct_rdma_supported CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED
-       device;
+  @@ Cuda.cu_device_get_attribute gpu_direct_rdma_supported
+       CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED device;
   let gpu_direct_rdma_supported = 0 <> !@gpu_direct_rdma_supported in
   let gpu_direct_rdma_flush_writes_options = [] in
   let gpu_direct_rdma_writes_ordering = allocate int 0 in
@@ -1356,7 +1405,9 @@ let stream_create ?(non_blocking = false) ?(lower_priority = 0) () =
   let open Ctypes in
   let stream = allocate_n cu_stream ~count:1 in
   check "cu_stream_create_with_priority"
-  @@ Cuda.cu_stream_create_with_priority stream (uint_of_cu_stream_flags ~non_blocking) lower_priority;
+  @@ Cuda.cu_stream_create_with_priority stream
+       (uint_of_cu_stream_flags ~non_blocking)
+       lower_priority;
   { args_lifetimes = []; stream = !@stream }
 
 let stream_destroy stream =

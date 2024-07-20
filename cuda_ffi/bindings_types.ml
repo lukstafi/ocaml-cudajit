@@ -185,7 +185,8 @@ type cu_jit_target =
   | CU_TARGET_UNCATEGORIZED of int64
 [@@deriving sexp]
 
-type cu_jit_fallback = CU_PREFER_PTX | CU_PREFER_BINARY | CU_PREFER_UNCATEGORIZED of int64 [@@deriving sexp]
+type cu_jit_fallback = CU_PREFER_PTX | CU_PREFER_BINARY | CU_PREFER_UNCATEGORIZED of int64
+[@@deriving sexp]
 
 type cu_jit_cache_mode =
   | CU_JIT_CACHE_OPTION_NONE
@@ -381,22 +382,35 @@ type cu_mem_attach_flags =
   | CU_MEM_ATTACH_FLAGS_UNCATEGORIZED of int64
 [@@deriving sexp]
 
-type cu_stream_flags = CU_STREAM_DEFAULT | CU_STREAM_NON_BLOCKING | CU_STREAM_FLAGS_UNCATEGORIZED of int64
+type cu_stream_flags =
+  | CU_STREAM_DEFAULT
+  | CU_STREAM_NON_BLOCKING
+  | CU_STREAM_FLAGS_UNCATEGORIZED of int64
 [@@deriving sexp]
 
 module Types (T : Ctypes.TYPE) = struct
   let cu_device_v1 = T.typedef T.int "CUdevice_v1"
   let cu_device_t = T.typedef cu_device_v1 "CUdevice"
-  let cu_device = T.view ~read:(fun i -> Cu_device i) ~write:(function Cu_device i -> i) cu_device_t
+
+  let cu_device =
+    T.view ~read:(fun i -> Cu_device i) ~write:(function Cu_device i -> i) cu_device_t
+
   let cuda_success = T.constant "CUDA_SUCCESS" T.int64_t
   let cuda_error_invalid_value = T.constant "CUDA_ERROR_INVALID_VALUE" T.int64_t
   let cuda_error_out_of_memory = T.constant "CUDA_ERROR_OUT_OF_MEMORY" T.int64_t
   let cuda_error_not_initialized = T.constant "CUDA_ERROR_NOT_INITIALIZED" T.int64_t
   let cuda_error_deinitialized = T.constant "CUDA_ERROR_DEINITIALIZED" T.int64_t
   let cuda_error_profiler_disabled = T.constant "CUDA_ERROR_PROFILER_DISABLED" T.int64_t
-  let cuda_error_profiler_not_initialized = T.constant "CUDA_ERROR_PROFILER_NOT_INITIALIZED" T.int64_t
-  let cuda_error_profiler_already_started = T.constant "CUDA_ERROR_PROFILER_ALREADY_STARTED" T.int64_t
-  let cuda_error_profiler_already_stopped = T.constant "CUDA_ERROR_PROFILER_ALREADY_STOPPED" T.int64_t
+
+  let cuda_error_profiler_not_initialized =
+    T.constant "CUDA_ERROR_PROFILER_NOT_INITIALIZED" T.int64_t
+
+  let cuda_error_profiler_already_started =
+    T.constant "CUDA_ERROR_PROFILER_ALREADY_STARTED" T.int64_t
+
+  let cuda_error_profiler_already_stopped =
+    T.constant "CUDA_ERROR_PROFILER_ALREADY_STOPPED" T.int64_t
+
   let cuda_error_stub_library = T.constant "CUDA_ERROR_STUB_LIBRARY" T.int64_t
 
   (* let cuda_error_device_unavailable = T.constant "CUDA_ERROR_DEVICE_UNAVAILABLE" T.int64_t *)
@@ -420,12 +434,19 @@ module Types (T : Ctypes.TYPE) = struct
   let cuda_error_context_already_in_use = T.constant "CUDA_ERROR_CONTEXT_ALREADY_IN_USE" T.int64_t
   let cuda_error_peer_access_unsupported = T.constant "CUDA_ERROR_PEER_ACCESS_UNSUPPORTED" T.int64_t
   let cuda_error_invalid_ptx = T.constant "CUDA_ERROR_INVALID_PTX" T.int64_t
-  let cuda_error_invalid_graphics_context = T.constant "CUDA_ERROR_INVALID_GRAPHICS_CONTEXT" T.int64_t
+
+  let cuda_error_invalid_graphics_context =
+    T.constant "CUDA_ERROR_INVALID_GRAPHICS_CONTEXT" T.int64_t
+
   let cuda_error_nvlink_uncorrectable = T.constant "CUDA_ERROR_NVLINK_UNCORRECTABLE" T.int64_t
   let cuda_error_jit_compiler_not_found = T.constant "CUDA_ERROR_JIT_COMPILER_NOT_FOUND" T.int64_t
   let cuda_error_unsupported_ptx_version = T.constant "CUDA_ERROR_UNSUPPORTED_PTX_VERSION" T.int64_t
-  let cuda_error_jit_compilation_disabled = T.constant "CUDA_ERROR_JIT_COMPILATION_DISABLED" T.int64_t
-  let cuda_error_unsupported_exec_affinity = T.constant "CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY" T.int64_t
+
+  let cuda_error_jit_compilation_disabled =
+    T.constant "CUDA_ERROR_JIT_COMPILATION_DISABLED" T.int64_t
+
+  let cuda_error_unsupported_exec_affinity =
+    T.constant "CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY" T.int64_t
 
   (* let cuda_error_unsupported_devside_sync = T.constant "CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC" T.int64_t *)
   let cuda_error_invalid_source = T.constant "CUDA_ERROR_INVALID_SOURCE" T.int64_t
@@ -434,7 +455,9 @@ module Types (T : Ctypes.TYPE) = struct
   let cuda_error_shared_object_symbol_not_found =
     T.constant "CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND" T.int64_t
 
-  let cuda_error_shared_object_init_failed = T.constant "CUDA_ERROR_SHARED_OBJECT_INIT_FAILED" T.int64_t
+  let cuda_error_shared_object_init_failed =
+    T.constant "CUDA_ERROR_SHARED_OBJECT_INIT_FAILED" T.int64_t
+
   let cuda_error_operating_system = T.constant "CUDA_ERROR_OPERATING_SYSTEM" T.int64_t
   let cuda_error_invalid_handle = T.constant "CUDA_ERROR_INVALID_HANDLE" T.int64_t
   let cuda_error_illegal_state = T.constant "CUDA_ERROR_ILLEGAL_STATE" T.int64_t
@@ -447,7 +470,9 @@ module Types (T : Ctypes.TYPE) = struct
   let cuda_error_launch_incompatible_texturing =
     T.constant "CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING" T.int64_t
 
-  let cuda_error_peer_access_already_enabled = T.constant "CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED" T.int64_t
+  let cuda_error_peer_access_already_enabled =
+    T.constant "CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED" T.int64_t
+
   let cuda_error_peer_access_not_enabled = T.constant "CUDA_ERROR_PEER_ACCESS_NOT_ENABLED" T.int64_t
   let cuda_error_primary_context_active = T.constant "CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE" T.int64_t
   let cuda_error_context_is_destroyed = T.constant "CUDA_ERROR_CONTEXT_IS_DESTROYED" T.int64_t
@@ -457,14 +482,19 @@ module Types (T : Ctypes.TYPE) = struct
   let cuda_error_host_memory_already_registered =
     T.constant "CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED" T.int64_t
 
-  let cuda_error_host_memory_not_registered = T.constant "CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED" T.int64_t
+  let cuda_error_host_memory_not_registered =
+    T.constant "CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED" T.int64_t
+
   let cuda_error_hardware_stack_error = T.constant "CUDA_ERROR_HARDWARE_STACK_ERROR" T.int64_t
   let cuda_error_illegal_instruction = T.constant "CUDA_ERROR_ILLEGAL_INSTRUCTION" T.int64_t
   let cuda_error_misaligned_address = T.constant "CUDA_ERROR_MISALIGNED_ADDRESS" T.int64_t
   let cuda_error_invalid_address_space = T.constant "CUDA_ERROR_INVALID_ADDRESS_SPACE" T.int64_t
   let cuda_error_invalid_pc = T.constant "CUDA_ERROR_INVALID_PC" T.int64_t
   let cuda_error_launch_failed = T.constant "CUDA_ERROR_LAUNCH_FAILED" T.int64_t
-  let cuda_error_cooperative_launch_too_large = T.constant "CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE" T.int64_t
+
+  let cuda_error_cooperative_launch_too_large =
+    T.constant "CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE" T.int64_t
+
   let cuda_error_not_permitted = T.constant "CUDA_ERROR_NOT_PERMITTED" T.int64_t
   let cuda_error_not_supported = T.constant "CUDA_ERROR_NOT_SUPPORTED" T.int64_t
   let cuda_error_system_not_ready = T.constant "CUDA_ERROR_SYSTEM_NOT_READY" T.int64_t
@@ -477,22 +507,40 @@ module Types (T : Ctypes.TYPE) = struct
   let cuda_error_mps_rpc_failure = T.constant "CUDA_ERROR_MPS_RPC_FAILURE" T.int64_t
   let cuda_error_mps_server_not_ready = T.constant "CUDA_ERROR_MPS_SERVER_NOT_READY" T.int64_t
   let cuda_error_mps_max_clients_reached = T.constant "CUDA_ERROR_MPS_MAX_CLIENTS_REACHED" T.int64_t
-  let cuda_error_mps_max_connections_reached = T.constant "CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED" T.int64_t
+
+  let cuda_error_mps_max_connections_reached =
+    T.constant "CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED" T.int64_t
 
   (* let cuda_error_mps_client_terminated = T.constant "CUDA_ERROR_MPS_CLIENT_TERMINATED" T.int64_t *)
   (* let cuda_error_cdp_not_supported = T.constant "CUDA_ERROR_CDP_NOT_SUPPORTED" T.int64_t *)
   (* let cuda_error_cdp_version_mismatch = T.constant "CUDA_ERROR_CDP_VERSION_MISMATCH" T.int64_t *)
-  let cuda_error_stream_capture_unsupported = T.constant "CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED" T.int64_t
-  let cuda_error_stream_capture_invalidated = T.constant "CUDA_ERROR_STREAM_CAPTURE_INVALIDATED" T.int64_t
+  let cuda_error_stream_capture_unsupported =
+    T.constant "CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED" T.int64_t
+
+  let cuda_error_stream_capture_invalidated =
+    T.constant "CUDA_ERROR_STREAM_CAPTURE_INVALIDATED" T.int64_t
+
   let cuda_error_stream_capture_merge = T.constant "CUDA_ERROR_STREAM_CAPTURE_MERGE" T.int64_t
-  let cuda_error_stream_capture_unmatched = T.constant "CUDA_ERROR_STREAM_CAPTURE_UNMATCHED" T.int64_t
+
+  let cuda_error_stream_capture_unmatched =
+    T.constant "CUDA_ERROR_STREAM_CAPTURE_UNMATCHED" T.int64_t
+
   let cuda_error_stream_capture_unjoined = T.constant "CUDA_ERROR_STREAM_CAPTURE_UNJOINED" T.int64_t
-  let cuda_error_stream_capture_isolation = T.constant "CUDA_ERROR_STREAM_CAPTURE_ISOLATION" T.int64_t
+
+  let cuda_error_stream_capture_isolation =
+    T.constant "CUDA_ERROR_STREAM_CAPTURE_ISOLATION" T.int64_t
+
   let cuda_error_stream_capture_implicit = T.constant "CUDA_ERROR_STREAM_CAPTURE_IMPLICIT" T.int64_t
   let cuda_error_captured_event = T.constant "CUDA_ERROR_CAPTURED_EVENT" T.int64_t
-  let cuda_error_stream_capture_wrong_thread = T.constant "CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD" T.int64_t
+
+  let cuda_error_stream_capture_wrong_thread =
+    T.constant "CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD" T.int64_t
+
   let cuda_error_timeout = T.constant "CUDA_ERROR_TIMEOUT" T.int64_t
-  let cuda_error_graph_exec_update_failure = T.constant "CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE" T.int64_t
+
+  let cuda_error_graph_exec_update_failure =
+    T.constant "CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE" T.int64_t
+
   let cuda_error_external_device = T.constant "CUDA_ERROR_EXTERNAL_DEVICE" T.int64_t
 
   (* let cuda_error_invalid_cluster_size = T.constant "CUDA_ERROR_INVALID_CLUSTER_SIZE" T.int64_t *)
@@ -743,9 +791,15 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_device_attribute_max_threads_per_block =
     T.constant "CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK" T.int64_t
 
-  let cu_device_attribute_max_block_dim_x = T.constant "CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X" T.int64_t
-  let cu_device_attribute_max_block_dim_y = T.constant "CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y" T.int64_t
-  let cu_device_attribute_max_block_dim_z = T.constant "CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z" T.int64_t
+  let cu_device_attribute_max_block_dim_x =
+    T.constant "CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X" T.int64_t
+
+  let cu_device_attribute_max_block_dim_y =
+    T.constant "CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y" T.int64_t
+
+  let cu_device_attribute_max_block_dim_z =
+    T.constant "CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z" T.int64_t
+
   let cu_device_attribute_max_grid_dim_x = T.constant "CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X" T.int64_t
   let cu_device_attribute_max_grid_dim_y = T.constant "CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y" T.int64_t
   let cu_device_attribute_max_grid_dim_z = T.constant "CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z" T.int64_t
@@ -766,15 +820,23 @@ module Types (T : Ctypes.TYPE) = struct
     T.constant "CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK" T.int64_t
 
   let cu_device_attribute_clock_rate = T.constant "CU_DEVICE_ATTRIBUTE_CLOCK_RATE" T.int64_t
-  let cu_device_attribute_texture_alignment = T.constant "CU_DEVICE_ATTRIBUTE_TEXTURE_ALIGNMENT" T.int64_t
+
+  let cu_device_attribute_texture_alignment =
+    T.constant "CU_DEVICE_ATTRIBUTE_TEXTURE_ALIGNMENT" T.int64_t
+
   let cu_device_attribute_gpu_overlap = T.constant "CU_DEVICE_ATTRIBUTE_GPU_OVERLAP" T.int64_t
 
   let cu_device_attribute_multiprocessor_count =
     T.constant "CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT" T.int64_t
 
-  let cu_device_attribute_kernel_exec_timeout = T.constant "CU_DEVICE_ATTRIBUTE_KERNEL_EXEC_TIMEOUT" T.int64_t
+  let cu_device_attribute_kernel_exec_timeout =
+    T.constant "CU_DEVICE_ATTRIBUTE_KERNEL_EXEC_TIMEOUT" T.int64_t
+
   let cu_device_attribute_integrated = T.constant "CU_DEVICE_ATTRIBUTE_INTEGRATED" T.int64_t
-  let cu_device_attribute_can_map_host_memory = T.constant "CU_DEVICE_ATTRIBUTE_CAN_MAP_HOST_MEMORY" T.int64_t
+
+  let cu_device_attribute_can_map_host_memory =
+    T.constant "CU_DEVICE_ATTRIBUTE_CAN_MAP_HOST_MEMORY" T.int64_t
+
   let cu_device_attribute_compute_mode = T.constant "CU_DEVICE_ATTRIBUTE_COMPUTE_MODE" T.int64_t
 
   let cu_device_attribute_maximum_texture1d_width =
@@ -813,13 +875,19 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_device_attribute_maximum_texture2d_array_numslices =
     T.constant "CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_ARRAY_NUMSLICES" T.int64_t
 
-  let cu_device_attribute_surface_alignment = T.constant "CU_DEVICE_ATTRIBUTE_SURFACE_ALIGNMENT" T.int64_t
-  let cu_device_attribute_concurrent_kernels = T.constant "CU_DEVICE_ATTRIBUTE_CONCURRENT_KERNELS" T.int64_t
+  let cu_device_attribute_surface_alignment =
+    T.constant "CU_DEVICE_ATTRIBUTE_SURFACE_ALIGNMENT" T.int64_t
+
+  let cu_device_attribute_concurrent_kernels =
+    T.constant "CU_DEVICE_ATTRIBUTE_CONCURRENT_KERNELS" T.int64_t
+
   let cu_device_attribute_ecc_enabled = T.constant "CU_DEVICE_ATTRIBUTE_ECC_ENABLED" T.int64_t
   let cu_device_attribute_pci_bus_id = T.constant "CU_DEVICE_ATTRIBUTE_PCI_BUS_ID" T.int64_t
   let cu_device_attribute_pci_device_id = T.constant "CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID" T.int64_t
   let cu_device_attribute_tcc_driver = T.constant "CU_DEVICE_ATTRIBUTE_TCC_DRIVER" T.int64_t
-  let cu_device_attribute_memory_clock_rate = T.constant "CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE" T.int64_t
+
+  let cu_device_attribute_memory_clock_rate =
+    T.constant "CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE" T.int64_t
 
   let cu_device_attribute_global_memory_bus_width =
     T.constant "CU_DEVICE_ATTRIBUTE_GLOBAL_MEMORY_BUS_WIDTH" T.int64_t
@@ -829,7 +897,8 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_device_attribute_max_threads_per_multiprocessor =
     T.constant "CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR" T.int64_t
 
-  let cu_device_attribute_async_engine_count = T.constant "CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT" T.int64_t
+  let cu_device_attribute_async_engine_count =
+    T.constant "CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT" T.int64_t
   (* let cu_device_attribute_unified_addressing = T.constant "CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING" T.int64_t *)
 
   let cu_device_attribute_maximum_texture1d_layered_width =
@@ -838,7 +907,8 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_device_attribute_maximum_texture1d_layered_layers =
     T.constant "CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_LAYERED_LAYERS" T.int64_t
 
-  let cu_device_attribute_can_tex2d_gather = T.constant "CU_DEVICE_ATTRIBUTE_CAN_TEX2D_GATHER" T.int64_t
+  let cu_device_attribute_can_tex2d_gather =
+    T.constant "CU_DEVICE_ATTRIBUTE_CAN_TEX2D_GATHER" T.int64_t
 
   let cu_device_attribute_maximum_texture2d_gather_width =
     T.constant "CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_GATHER_WIDTH" T.int64_t
@@ -954,7 +1024,9 @@ module Types (T : Ctypes.TYPE) = struct
     T.constant "CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_MULTIPROCESSOR" T.int64_t
 
   let cu_device_attribute_managed_memory = T.constant "CU_DEVICE_ATTRIBUTE_MANAGED_MEMORY" T.int64_t
-  let cu_device_attribute_multi_gpu_board = T.constant "CU_DEVICE_ATTRIBUTE_MULTI_GPU_BOARD" T.int64_t
+
+  let cu_device_attribute_multi_gpu_board =
+    T.constant "CU_DEVICE_ATTRIBUTE_MULTI_GPU_BOARD" T.int64_t
 
   let cu_device_attribute_multi_gpu_board_group_id =
     T.constant "CU_DEVICE_ATTRIBUTE_MULTI_GPU_BOARD_GROUP_ID" T.int64_t
@@ -977,7 +1049,8 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_device_attribute_can_use_host_pointer_for_registered_mem =
     T.constant "CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM" T.int64_t
 
-  let cu_device_attribute_cooperative_launch = T.constant "CU_DEVICE_ATTRIBUTE_COOPERATIVE_LAUNCH" T.int64_t
+  let cu_device_attribute_cooperative_launch =
+    T.constant "CU_DEVICE_ATTRIBUTE_COOPERATIVE_LAUNCH" T.int64_t
 
   let cu_device_attribute_cooperative_multi_device_launch =
     T.constant "CU_DEVICE_ATTRIBUTE_COOPERATIVE_MULTI_DEVICE_LAUNCH" T.int64_t
@@ -1092,7 +1165,8 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X, cu_device_attribute_max_grid_dim_x);
         (CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y, cu_device_attribute_max_grid_dim_y);
         (CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z, cu_device_attribute_max_grid_dim_z);
-        (CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK, cu_device_attribute_max_shared_memory_per_block);
+        ( CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK,
+          cu_device_attribute_max_shared_memory_per_block );
         (CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, cu_device_attribute_total_constant_memory);
         (CU_DEVICE_ATTRIBUTE_WARP_SIZE, cu_device_attribute_warp_size);
         (CU_DEVICE_ATTRIBUTE_MAX_PITCH, cu_device_attribute_max_pitch);
@@ -1147,7 +1221,8 @@ module Types (T : Ctypes.TYPE) = struct
           cu_device_attribute_maximum_texture3d_depth_alternate );
         (CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, cu_device_attribute_pci_domain_id);
         (CU_DEVICE_ATTRIBUTE_TEXTURE_PITCH_ALIGNMENT, cu_device_attribute_texture_pitch_alignment);
-        (CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURECUBEMAP_WIDTH, cu_device_attribute_maximum_texturecubemap_width);
+        ( CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURECUBEMAP_WIDTH,
+          cu_device_attribute_maximum_texturecubemap_width );
         ( CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURECUBEMAP_LAYERED_WIDTH,
           cu_device_attribute_maximum_texturecubemap_layered_width );
         ( CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURECUBEMAP_LAYERED_LAYERS,
@@ -1168,7 +1243,8 @@ module Types (T : Ctypes.TYPE) = struct
           cu_device_attribute_maximum_surface2d_layered_height );
         ( CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACE2D_LAYERED_LAYERS,
           cu_device_attribute_maximum_surface2d_layered_layers );
-        (CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACECUBEMAP_WIDTH, cu_device_attribute_maximum_surfacecubemap_width);
+        ( CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACECUBEMAP_WIDTH,
+          cu_device_attribute_maximum_surfacecubemap_width );
         ( CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACECUBEMAP_LAYERED_WIDTH,
           cu_device_attribute_maximum_surfacecubemap_layered_width );
         ( CU_DEVICE_ATTRIBUTE_MAXIMUM_SURFACECUBEMAP_LAYERED_LAYERS,
@@ -1189,8 +1265,10 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, cu_device_attribute_compute_capability_minor);
         ( CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_MIPMAPPED_WIDTH,
           cu_device_attribute_maximum_texture1d_mipmapped_width );
-        (CU_DEVICE_ATTRIBUTE_STREAM_PRIORITIES_SUPPORTED, cu_device_attribute_stream_priorities_supported);
-        (CU_DEVICE_ATTRIBUTE_GLOBAL_L1_CACHE_SUPPORTED, cu_device_attribute_global_l1_cache_supported);
+        ( CU_DEVICE_ATTRIBUTE_STREAM_PRIORITIES_SUPPORTED,
+          cu_device_attribute_stream_priorities_supported );
+        ( CU_DEVICE_ATTRIBUTE_GLOBAL_L1_CACHE_SUPPORTED,
+          cu_device_attribute_global_l1_cache_supported );
         (CU_DEVICE_ATTRIBUTE_LOCAL_L1_CACHE_SUPPORTED, cu_device_attribute_local_l1_cache_supported);
         ( CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_MULTIPROCESSOR,
           cu_device_attribute_max_shared_memory_per_multiprocessor );
@@ -1199,12 +1277,15 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_DEVICE_ATTRIBUTE_MANAGED_MEMORY, cu_device_attribute_managed_memory);
         (CU_DEVICE_ATTRIBUTE_MULTI_GPU_BOARD, cu_device_attribute_multi_gpu_board);
         (CU_DEVICE_ATTRIBUTE_MULTI_GPU_BOARD_GROUP_ID, cu_device_attribute_multi_gpu_board_group_id);
-        (CU_DEVICE_ATTRIBUTE_HOST_NATIVE_ATOMIC_SUPPORTED, cu_device_attribute_host_native_atomic_supported);
+        ( CU_DEVICE_ATTRIBUTE_HOST_NATIVE_ATOMIC_SUPPORTED,
+          cu_device_attribute_host_native_atomic_supported );
         ( CU_DEVICE_ATTRIBUTE_SINGLE_TO_DOUBLE_PRECISION_PERF_RATIO,
           cu_device_attribute_single_to_double_precision_perf_ratio );
         (CU_DEVICE_ATTRIBUTE_PAGEABLE_MEMORY_ACCESS, cu_device_attribute_pageable_memory_access);
-        (CU_DEVICE_ATTRIBUTE_CONCURRENT_MANAGED_ACCESS, cu_device_attribute_concurrent_managed_access);
-        (CU_DEVICE_ATTRIBUTE_COMPUTE_PREEMPTION_SUPPORTED, cu_device_attribute_compute_preemption_supported);
+        ( CU_DEVICE_ATTRIBUTE_CONCURRENT_MANAGED_ACCESS,
+          cu_device_attribute_concurrent_managed_access );
+        ( CU_DEVICE_ATTRIBUTE_COMPUTE_PREEMPTION_SUPPORTED,
+          cu_device_attribute_compute_preemption_supported );
         ( CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM,
           cu_device_attribute_can_use_host_pointer_for_registered_mem );
         (* (CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_MEM_OPS_V1, cu_device_attribute_can_use_stream_mem_ops_v1); *)
@@ -1231,21 +1312,27 @@ module Types (T : Ctypes.TYPE) = struct
           cu_device_attribute_handle_type_win32_handle_supported );
         ( CU_DEVICE_ATTRIBUTE_HANDLE_TYPE_WIN32_KMT_HANDLE_SUPPORTED,
           cu_device_attribute_handle_type_win32_kmt_handle_supported );
-        (CU_DEVICE_ATTRIBUTE_MAX_BLOCKS_PER_MULTIPROCESSOR, cu_device_attribute_max_blocks_per_multiprocessor);
-        (CU_DEVICE_ATTRIBUTE_GENERIC_COMPRESSION_SUPPORTED, cu_device_attribute_generic_compression_supported);
-        (CU_DEVICE_ATTRIBUTE_MAX_PERSISTING_L2_CACHE_SIZE, cu_device_attribute_max_persisting_l2_cache_size);
-        (CU_DEVICE_ATTRIBUTE_MAX_ACCESS_POLICY_WINDOW_SIZE, cu_device_attribute_max_access_policy_window_size);
+        ( CU_DEVICE_ATTRIBUTE_MAX_BLOCKS_PER_MULTIPROCESSOR,
+          cu_device_attribute_max_blocks_per_multiprocessor );
+        ( CU_DEVICE_ATTRIBUTE_GENERIC_COMPRESSION_SUPPORTED,
+          cu_device_attribute_generic_compression_supported );
+        ( CU_DEVICE_ATTRIBUTE_MAX_PERSISTING_L2_CACHE_SIZE,
+          cu_device_attribute_max_persisting_l2_cache_size );
+        ( CU_DEVICE_ATTRIBUTE_MAX_ACCESS_POLICY_WINDOW_SIZE,
+          cu_device_attribute_max_access_policy_window_size );
         ( CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_WITH_CUDA_VMM_SUPPORTED,
           cu_device_attribute_gpu_direct_rdma_with_cuda_vmm_supported );
         ( CU_DEVICE_ATTRIBUTE_RESERVED_SHARED_MEMORY_PER_BLOCK,
           cu_device_attribute_reserved_shared_memory_per_block );
-        (CU_DEVICE_ATTRIBUTE_SPARSE_CUDA_ARRAY_SUPPORTED, cu_device_attribute_sparse_cuda_array_supported);
+        ( CU_DEVICE_ATTRIBUTE_SPARSE_CUDA_ARRAY_SUPPORTED,
+          cu_device_attribute_sparse_cuda_array_supported );
         ( CU_DEVICE_ATTRIBUTE_READ_ONLY_HOST_REGISTER_SUPPORTED,
           cu_device_attribute_read_only_host_register_supported );
         ( CU_DEVICE_ATTRIBUTE_TIMELINE_SEMAPHORE_INTEROP_SUPPORTED,
           cu_device_attribute_timeline_semaphore_interop_supported );
         (* (CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED, cu_device_attribute_memory_pools_supported); *)
-        (CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED, cu_device_attribute_gpu_direct_rdma_supported);
+        ( CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED,
+          cu_device_attribute_gpu_direct_rdma_supported );
         ( CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_FLUSH_WRITES_OPTIONS,
           cu_device_attribute_gpu_direct_rdma_flush_writes_options );
         ( CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_WRITES_ORDERING,
@@ -1255,8 +1342,10 @@ module Types (T : Ctypes.TYPE) = struct
         (* (CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH, cu_device_attribute_cluster_launch); *)
         (* ( CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED,
            cu_device_attribute_deferred_mapping_cuda_array_supported ); *)
-        (CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS, cu_device_attribute_can_use_64_bit_stream_mem_ops);
-        (CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR, cu_device_attribute_can_use_stream_wait_value_nor);
+        ( CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS,
+          cu_device_attribute_can_use_64_bit_stream_mem_ops );
+        ( CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR,
+          cu_device_attribute_can_use_stream_wait_value_nor );
         (* (CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED, cu_device_attribute_dma_buf_supported); *)
         (* (CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED, cu_device_attribute_ipc_event_supported); *)
         (* (CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT, cu_device_attribute_mem_sync_domain_count); *)
@@ -1288,8 +1377,10 @@ module Types (T : Ctypes.TYPE) = struct
       [
         (CU_DEVICE_P2P_ATTRIBUTE_PERFORMANCE_RANK, cu_device_p2p_attribute_performance_rank);
         (CU_DEVICE_P2P_ATTRIBUTE_ACCESS_SUPPORTED, cu_device_p2p_attribute_access_supported);
-        (CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED, cu_device_p2p_attribute_native_atomic_supported);
-        (CU_DEVICE_P2P_ATTRIBUTE_ACCESS_ACCESS_SUPPORTED, cu_device_p2p_attribute_access_access_supported);
+        ( CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED,
+          cu_device_p2p_attribute_native_atomic_supported );
+        ( CU_DEVICE_P2P_ATTRIBUTE_ACCESS_ACCESS_SUPPORTED,
+          cu_device_p2p_attribute_access_access_supported );
         ( CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED,
           cu_device_p2p_attribute_cuda_array_access_supported );
       ]
@@ -1316,11 +1407,13 @@ module Types (T : Ctypes.TYPE) = struct
 
   let cu_flush_GPU_direct_RDMA_writes_options =
     T.enum ~typedef:true
-      ~unexpected:(fun error_code -> CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_UNCATEGORIZED error_code)
+      ~unexpected:(fun error_code ->
+        CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_UNCATEGORIZED error_code)
       "CUflushGPUDirectRDMAWritesOptions"
       [
         (CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_HOST, cu_flush_gpu_direct_rdma_writes_option_host);
-        (CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_MEMOPS, cu_flush_gpu_direct_rdma_writes_option_memops);
+        ( CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_MEMOPS,
+          cu_flush_gpu_direct_rdma_writes_option_memops );
       ]
 
   let cu_limit_stack_size = T.constant "CU_LIMIT_STACK_SIZE" T.int64_t

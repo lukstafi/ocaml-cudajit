@@ -22,22 +22,26 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "nvrtcDestroyProgram" F.(ptr nvrtc_program @-> returning E.nvrtc_result)
 
   let nvrtc_compile_program =
-    F.foreign "nvrtcCompileProgram" F.(nvrtc_program @-> int @-> ptr (ptr char) @-> returning E.nvrtc_result)
+    F.foreign "nvrtcCompileProgram"
+      F.(nvrtc_program @-> int @-> ptr (ptr char) @-> returning E.nvrtc_result)
 
   let nvrtc_get_PTX_size =
     F.foreign "nvrtcGetPTXSize" F.(nvrtc_program @-> ptr size_t @-> returning E.nvrtc_result)
 
-  let nvrtc_get_PTX = F.foreign "nvrtcGetPTX" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
+  let nvrtc_get_PTX =
+    F.foreign "nvrtcGetPTX" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
 
   let nvrtc_get_cubin_size =
     F.foreign "nvrtcGetCUBINSize" F.(nvrtc_program @-> ptr size_t @-> returning E.nvrtc_result)
 
-  let nvrtc_get_cubin = F.foreign "nvrtcGetCUBIN" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
+  let nvrtc_get_cubin =
+    F.foreign "nvrtcGetCUBIN" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
 
   let nvrtc_get_NVVM_size =
     F.foreign "nvrtcGetNVVMSize" F.(nvrtc_program @-> ptr size_t @-> returning E.nvrtc_result)
 
-  let nvrtc_get_NVVM = F.foreign "nvrtcGetNVVM" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
+  let nvrtc_get_NVVM =
+    F.foreign "nvrtcGetNVVM" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
 
   let nvrtc_get_program_log_size =
     F.foreign "nvrtcGetProgramLogSize" F.(nvrtc_program @-> ptr size_t @-> returning E.nvrtc_result)
@@ -49,5 +53,6 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "nvrtcAddNameExpression" F.(nvrtc_program @-> string @-> returning E.nvrtc_result)
 
   let nvrtc_get_lowered_name =
-    F.foreign "nvrtcGetLoweredName" F.(nvrtc_program @-> string @-> ptr string @-> returning E.nvrtc_result)
+    F.foreign "nvrtcGetLoweredName"
+      F.(nvrtc_program @-> string @-> ptr string @-> returning E.nvrtc_result)
 end
