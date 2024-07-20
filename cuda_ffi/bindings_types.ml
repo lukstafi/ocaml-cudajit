@@ -12,7 +12,7 @@ type cu_result =
   | CUDA_ERROR_PROFILER_ALREADY_STARTED
   | CUDA_ERROR_PROFILER_ALREADY_STOPPED
   | CUDA_ERROR_STUB_LIBRARY
-  (* | CUDA_ERROR_DEVICE_UNAVAILABLE *)
+  | CUDA_ERROR_DEVICE_UNAVAILABLE
   | CUDA_ERROR_NO_DEVICE
   | CUDA_ERROR_INVALID_DEVICE
   | CUDA_ERROR_DEVICE_NOT_LICENSED
@@ -39,7 +39,7 @@ type cu_result =
   | CUDA_ERROR_UNSUPPORTED_PTX_VERSION
   | CUDA_ERROR_JIT_COMPILATION_DISABLED
   | CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY
-  (* | CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC *)
+  | CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC
   | CUDA_ERROR_INVALID_SOURCE
   | CUDA_ERROR_FILE_NOT_FOUND
   | CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND
@@ -78,9 +78,9 @@ type cu_result =
   | CUDA_ERROR_MPS_SERVER_NOT_READY
   | CUDA_ERROR_MPS_MAX_CLIENTS_REACHED
   | CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED
-  (* | CUDA_ERROR_MPS_CLIENT_TERMINATED *)
-  (* | CUDA_ERROR_CDP_NOT_SUPPORTED *)
-  (* | CUDA_ERROR_CDP_VERSION_MISMATCH *)
+  | CUDA_ERROR_MPS_CLIENT_TERMINATED
+  | CUDA_ERROR_CDP_NOT_SUPPORTED
+  | CUDA_ERROR_CDP_VERSION_MISMATCH
   | CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED
   | CUDA_ERROR_STREAM_CAPTURE_INVALIDATED
   | CUDA_ERROR_STREAM_CAPTURE_MERGE
@@ -93,7 +93,7 @@ type cu_result =
   | CUDA_ERROR_TIMEOUT
   | CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE
   | CUDA_ERROR_EXTERNAL_DEVICE
-  (* | CUDA_ERROR_INVALID_CLUSTER_SIZE *)
+  | CUDA_ERROR_INVALID_CLUSTER_SIZE
   | CUDA_ERROR_UNKNOWN
   | CUDA_ERROR_UNCATEGORIZED of int64
 [@@deriving sexp]
@@ -126,12 +126,12 @@ type cu_jit_option =
   | CU_JIT_PREC_DIV
   | CU_JIT_PREC_SQRT
   | CU_JIT_FMA
-  (*| CU_JIT_REFERENCED_KERNEL_NAMES
-    | CU_JIT_REFERENCED_KERNEL_COUNT
-    | CU_JIT_REFERENCED_VARIABLE_NAMES
-    | CU_JIT_REFERENCED_VARIABLE_COUNT
-    | CU_JIT_OPTIMIZE_UNUSED_DEVICE_VARIABLES
-    | CU_JIT_POSITION_INDEPENDENT_CODE *)
+  | CU_JIT_REFERENCED_KERNEL_NAMES
+  | CU_JIT_REFERENCED_KERNEL_COUNT
+  | CU_JIT_REFERENCED_VARIABLE_NAMES
+  | CU_JIT_REFERENCED_VARIABLE_COUNT
+  | CU_JIT_OPTIMIZE_UNUSED_DEVICE_VARIABLES
+  | CU_JIT_POSITION_INDEPENDENT_CODE
   | CU_JIT_NUM_OPTIONS
   | CU_JIT_UNCATEGORIZED of int64
 [@@deriving sexp]
@@ -178,10 +178,10 @@ type cu_jit_target =
   | CU_TARGET_COMPUTE_75
   | CU_TARGET_COMPUTE_80
   | CU_TARGET_COMPUTE_86
-  (* | CU_TARGET_COMPUTE_87
-     | CU_TARGET_COMPUTE_89
-     | CU_TARGET_COMPUTE_90
-     | CU_TARGET_COMPUTE_90A *)
+  | CU_TARGET_COMPUTE_87
+  | CU_TARGET_COMPUTE_89
+  | CU_TARGET_COMPUTE_90
+  | CU_TARGET_COMPUTE_90A
   | CU_TARGET_UNCATEGORIZED of int64
 [@@deriving sexp]
 
@@ -236,7 +236,7 @@ type cu_device_attribute =
   | CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE
   | CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR
   | CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT
-  (* | CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING *)
+  | CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING
   | CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_LAYERED_WIDTH
   | CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_LAYERED_LAYERS
   | CU_DEVICE_ATTRIBUTE_CAN_TEX2D_GATHER
@@ -307,21 +307,21 @@ type cu_device_attribute =
   | CU_DEVICE_ATTRIBUTE_SPARSE_CUDA_ARRAY_SUPPORTED
   | CU_DEVICE_ATTRIBUTE_READ_ONLY_HOST_REGISTER_SUPPORTED
   | CU_DEVICE_ATTRIBUTE_TIMELINE_SEMAPHORE_INTEROP_SUPPORTED
-  (* | CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED *)
+  | CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED
   | CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED
   | CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_FLUSH_WRITES_OPTIONS
   | CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_WRITES_ORDERING
   | CU_DEVICE_ATTRIBUTE_MEMPOOL_SUPPORTED_HANDLE_TYPES
-  (* | CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH *)
-  (* | CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED *)
+  | CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH
+  | CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED
   | CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS
   | CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR
-  (* | CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED *)
-  (* | CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED *)
-  (* | CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT *)
-  (* | CU_DEVICE_ATTRIBUTE_TENSOR_MAP_ACCESS_SUPPORTED *)
-  (* | CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS *)
-  (* | CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED *)
+  | CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED
+  | CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED
+  | CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT
+  | CU_DEVICE_ATTRIBUTE_TENSOR_MAP_ACCESS_SUPPORTED
+  | CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS
+  | CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED
   | CU_DEVICE_ATTRIBUTE_MAX
   | CU_DEVICE_ATTRIBUTE_UNCATEGORIZED of int64
 [@@deriving sexp]
@@ -412,8 +412,7 @@ module Types (T : Ctypes.TYPE) = struct
     T.constant "CUDA_ERROR_PROFILER_ALREADY_STOPPED" T.int64_t
 
   let cuda_error_stub_library = T.constant "CUDA_ERROR_STUB_LIBRARY" T.int64_t
-
-  (* let cuda_error_device_unavailable = T.constant "CUDA_ERROR_DEVICE_UNAVAILABLE" T.int64_t *)
+  let cuda_error_device_unavailable = T.constant "CUDA_ERROR_DEVICE_UNAVAILABLE" T.int64_t
   let cuda_error_no_device = T.constant "CUDA_ERROR_NO_DEVICE" T.int64_t
   let cuda_error_invalid_device = T.constant "CUDA_ERROR_INVALID_DEVICE" T.int64_t
   let cuda_error_device_not_licensed = T.constant "CUDA_ERROR_DEVICE_NOT_LICENSED" T.int64_t
@@ -448,7 +447,9 @@ module Types (T : Ctypes.TYPE) = struct
   let cuda_error_unsupported_exec_affinity =
     T.constant "CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY" T.int64_t
 
-  (* let cuda_error_unsupported_devside_sync = T.constant "CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC" T.int64_t *)
+  let cuda_error_unsupported_devside_sync =
+    T.constant "CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC" T.int64_t
+
   let cuda_error_invalid_source = T.constant "CUDA_ERROR_INVALID_SOURCE" T.int64_t
   let cuda_error_file_not_found = T.constant "CUDA_ERROR_FILE_NOT_FOUND" T.int64_t
 
@@ -511,9 +512,10 @@ module Types (T : Ctypes.TYPE) = struct
   let cuda_error_mps_max_connections_reached =
     T.constant "CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED" T.int64_t
 
-  (* let cuda_error_mps_client_terminated = T.constant "CUDA_ERROR_MPS_CLIENT_TERMINATED" T.int64_t *)
-  (* let cuda_error_cdp_not_supported = T.constant "CUDA_ERROR_CDP_NOT_SUPPORTED" T.int64_t *)
-  (* let cuda_error_cdp_version_mismatch = T.constant "CUDA_ERROR_CDP_VERSION_MISMATCH" T.int64_t *)
+  let cuda_error_mps_client_terminated = T.constant "CUDA_ERROR_MPS_CLIENT_TERMINATED" T.int64_t
+  let cuda_error_cdp_not_supported = T.constant "CUDA_ERROR_CDP_NOT_SUPPORTED" T.int64_t
+  let cuda_error_cdp_version_mismatch = T.constant "CUDA_ERROR_CDP_VERSION_MISMATCH" T.int64_t
+
   let cuda_error_stream_capture_unsupported =
     T.constant "CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED" T.int64_t
 
@@ -542,8 +544,7 @@ module Types (T : Ctypes.TYPE) = struct
     T.constant "CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE" T.int64_t
 
   let cuda_error_external_device = T.constant "CUDA_ERROR_EXTERNAL_DEVICE" T.int64_t
-
-  (* let cuda_error_invalid_cluster_size = T.constant "CUDA_ERROR_INVALID_CLUSTER_SIZE" T.int64_t *)
+  let cuda_error_invalid_cluster_size = T.constant "CUDA_ERROR_INVALID_CLUSTER_SIZE" T.int64_t
   let cuda_error_unknown = T.constant "CUDA_ERROR_UNKNOWN" T.int64_t
 
   let cu_result =
@@ -561,7 +562,7 @@ module Types (T : Ctypes.TYPE) = struct
         (CUDA_ERROR_PROFILER_ALREADY_STARTED, cuda_error_profiler_already_started);
         (CUDA_ERROR_PROFILER_ALREADY_STOPPED, cuda_error_profiler_already_stopped);
         (CUDA_ERROR_STUB_LIBRARY, cuda_error_stub_library);
-        (* (CUDA_ERROR_DEVICE_UNAVAILABLE, cuda_error_device_unavailable); *)
+        (CUDA_ERROR_DEVICE_UNAVAILABLE, cuda_error_device_unavailable);
         (CUDA_ERROR_NO_DEVICE, cuda_error_no_device);
         (CUDA_ERROR_INVALID_DEVICE, cuda_error_invalid_device);
         (CUDA_ERROR_DEVICE_NOT_LICENSED, cuda_error_device_not_licensed);
@@ -588,7 +589,7 @@ module Types (T : Ctypes.TYPE) = struct
         (CUDA_ERROR_UNSUPPORTED_PTX_VERSION, cuda_error_unsupported_ptx_version);
         (CUDA_ERROR_JIT_COMPILATION_DISABLED, cuda_error_jit_compilation_disabled);
         (CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY, cuda_error_unsupported_exec_affinity);
-        (* (CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC, cuda_error_unsupported_devside_sync); *)
+        (CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC, cuda_error_unsupported_devside_sync);
         (CUDA_ERROR_INVALID_SOURCE, cuda_error_invalid_source);
         (CUDA_ERROR_FILE_NOT_FOUND, cuda_error_file_not_found);
         (CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND, cuda_error_shared_object_symbol_not_found);
@@ -627,9 +628,9 @@ module Types (T : Ctypes.TYPE) = struct
         (CUDA_ERROR_MPS_SERVER_NOT_READY, cuda_error_mps_server_not_ready);
         (CUDA_ERROR_MPS_MAX_CLIENTS_REACHED, cuda_error_mps_max_clients_reached);
         (CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED, cuda_error_mps_max_connections_reached);
-        (* (CUDA_ERROR_MPS_CLIENT_TERMINATED, cuda_error_mps_client_terminated); *)
-        (* (CUDA_ERROR_CDP_NOT_SUPPORTED, cuda_error_cdp_not_supported); *)
-        (* (CUDA_ERROR_CDP_VERSION_MISMATCH, cuda_error_cdp_version_mismatch); *)
+        (CUDA_ERROR_MPS_CLIENT_TERMINATED, cuda_error_mps_client_terminated);
+        (CUDA_ERROR_CDP_NOT_SUPPORTED, cuda_error_cdp_not_supported);
+        (CUDA_ERROR_CDP_VERSION_MISMATCH, cuda_error_cdp_version_mismatch);
         (CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED, cuda_error_stream_capture_unsupported);
         (CUDA_ERROR_STREAM_CAPTURE_INVALIDATED, cuda_error_stream_capture_invalidated);
         (CUDA_ERROR_STREAM_CAPTURE_MERGE, cuda_error_stream_capture_merge);
@@ -642,7 +643,7 @@ module Types (T : Ctypes.TYPE) = struct
         (CUDA_ERROR_TIMEOUT, cuda_error_timeout);
         (CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE, cuda_error_graph_exec_update_failure);
         (CUDA_ERROR_EXTERNAL_DEVICE, cuda_error_external_device);
-        (* (CUDA_ERROR_INVALID_CLUSTER_SIZE, cuda_error_invalid_cluster_size); *)
+        (CUDA_ERROR_INVALID_CLUSTER_SIZE, cuda_error_invalid_cluster_size);
         (CUDA_ERROR_UNKNOWN, cuda_error_unknown);
       ]
 
@@ -671,13 +672,15 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_jit_prec_div = T.constant "CU_JIT_PREC_DIV" T.int64_t
   let cu_jit_prec_sqrt = T.constant "CU_JIT_PREC_SQRT" T.int64_t
   let cu_jit_fma = T.constant "CU_JIT_FMA" T.int64_t
+  let cu_jit_referenced_kernel_names = T.constant "CU_JIT_REFERENCED_KERNEL_NAMES" T.int64_t
+  let cu_jit_referenced_kernel_count = T.constant "CU_JIT_REFERENCED_KERNEL_COUNT" T.int64_t
+  let cu_jit_referenced_variable_names = T.constant "CU_JIT_REFERENCED_VARIABLE_NAMES" T.int64_t
+  let cu_jit_referenced_variable_count = T.constant "CU_JIT_REFERENCED_VARIABLE_COUNT" T.int64_t
 
-  (* let cu_jit_referenced_kernel_names = T.constant "CU_JIT_REFERENCED_KERNEL_NAMES" T.int64_t
-     let cu_jit_referenced_kernel_count = T.constant "CU_JIT_REFERENCED_KERNEL_COUNT" T.int64_t
-     let cu_jit_referenced_variable_names = T.constant "CU_JIT_REFERENCED_VARIABLE_NAMES" T.int64_t
-     let cu_jit_referenced_variable_count = T.constant "CU_JIT_REFERENCED_VARIABLE_COUNT" T.int64_t
-     let cu_jit_optimize_unused_device_variables = T.constant "CU_JIT_OPTIMIZE_UNUSED_DEVICE_VARIABLES" T.int64_t
-     let cu_jit_position_independent_code = T.constant "CU_JIT_POSITION_INDEPENDENT_CODE" T.int64_t *)
+  let cu_jit_optimize_unused_device_variables =
+    T.constant "CU_JIT_OPTIMIZE_UNUSED_DEVICE_VARIABLES" T.int64_t
+
+  let cu_jit_position_independent_code = T.constant "CU_JIT_POSITION_INDEPENDENT_CODE" T.int64_t
   let cu_jit_num_options = T.constant "CU_JIT_NUM_OPTIONS" T.int64_t
 
   let cu_jit_option =
@@ -710,12 +713,12 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_JIT_PREC_DIV, cu_jit_prec_div);
         (CU_JIT_PREC_SQRT, cu_jit_prec_sqrt);
         (CU_JIT_FMA, cu_jit_fma);
-        (* (CU_JIT_REFERENCED_KERNEL_NAMES, cu_jit_referenced_kernel_names);
-           (CU_JIT_REFERENCED_KERNEL_COUNT, cu_jit_referenced_kernel_count);
-           (CU_JIT_REFERENCED_VARIABLE_NAMES, cu_jit_referenced_variable_names);
-           (CU_JIT_REFERENCED_VARIABLE_COUNT, cu_jit_referenced_variable_count);
-           (CU_JIT_OPTIMIZE_UNUSED_DEVICE_VARIABLES, cu_jit_optimize_unused_device_variables);
-           (CU_JIT_POSITION_INDEPENDENT_CODE, cu_jit_position_independent_code); *)
+        (CU_JIT_REFERENCED_KERNEL_NAMES, cu_jit_referenced_kernel_names);
+        (CU_JIT_REFERENCED_KERNEL_COUNT, cu_jit_referenced_kernel_count);
+        (CU_JIT_REFERENCED_VARIABLE_NAMES, cu_jit_referenced_variable_names);
+        (CU_JIT_REFERENCED_VARIABLE_COUNT, cu_jit_referenced_variable_count);
+        (CU_JIT_OPTIMIZE_UNUSED_DEVICE_VARIABLES, cu_jit_optimize_unused_device_variables);
+        (CU_JIT_POSITION_INDEPENDENT_CODE, cu_jit_position_independent_code);
         (CU_JIT_NUM_OPTIONS, cu_jit_num_options);
       ]
 
@@ -734,10 +737,10 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_target_compute_75 = T.constant "CU_TARGET_COMPUTE_75" T.int64_t
   let cu_target_compute_80 = T.constant "CU_TARGET_COMPUTE_80" T.int64_t
   let cu_target_compute_86 = T.constant "CU_TARGET_COMPUTE_86" T.int64_t
-  (* let cu_target_compute_87 = T.constant "CU_TARGET_COMPUTE_87" T.int64_t
-     let cu_target_compute_89 = T.constant "CU_TARGET_COMPUTE_89" T.int64_t
-     let cu_target_compute_90 = T.constant "CU_TARGET_COMPUTE_90" T.int64_t
-     let cu_target_compute_90a = T.constant "CU_TARGET_COMPUTE_90A" T.int64_t *)
+  let cu_target_compute_87 = T.constant "CU_TARGET_COMPUTE_87" T.int64_t
+  let cu_target_compute_89 = T.constant "CU_TARGET_COMPUTE_89" T.int64_t
+  let cu_target_compute_90 = T.constant "CU_TARGET_COMPUTE_90" T.int64_t
+  let cu_target_compute_90a = T.constant "CU_TARGET_COMPUTE_90A" T.int64_t
 
   let cu_jit_target =
     T.enum ~typedef:true
@@ -759,10 +762,10 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_TARGET_COMPUTE_75, cu_target_compute_75);
         (CU_TARGET_COMPUTE_80, cu_target_compute_80);
         (CU_TARGET_COMPUTE_86, cu_target_compute_86);
-        (* (CU_TARGET_COMPUTE_87, cu_target_compute_87);
-           (CU_TARGET_COMPUTE_89, cu_target_compute_89);
-           (CU_TARGET_COMPUTE_90, cu_target_compute_90);
-           (CU_TARGET_COMPUTE_90A, cu_target_compute_90a); *)
+        (CU_TARGET_COMPUTE_87, cu_target_compute_87);
+        (CU_TARGET_COMPUTE_89, cu_target_compute_89);
+        (CU_TARGET_COMPUTE_90, cu_target_compute_90);
+        (CU_TARGET_COMPUTE_90A, cu_target_compute_90a);
       ]
 
   let cu_prefer_ptx = T.constant "CU_PREFER_PTX" T.int64_t
@@ -899,7 +902,9 @@ module Types (T : Ctypes.TYPE) = struct
 
   let cu_device_attribute_async_engine_count =
     T.constant "CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT" T.int64_t
-  (* let cu_device_attribute_unified_addressing = T.constant "CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING" T.int64_t *)
+
+  let cu_device_attribute_unified_addressing =
+    T.constant "CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING" T.int64_t
 
   let cu_device_attribute_maximum_texture1d_layered_width =
     T.constant "CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_LAYERED_WIDTH" T.int64_t
@@ -1112,8 +1117,8 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_device_attribute_timeline_semaphore_interop_supported =
     T.constant "CU_DEVICE_ATTRIBUTE_TIMELINE_SEMAPHORE_INTEROP_SUPPORTED" T.int64_t
 
-  (* let cu_device_attribute_memory_pools_supported =
-     T.constant "CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED" T.int64_t *)
+  let cu_device_attribute_memory_pools_supported =
+    T.constant "CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED" T.int64_t
 
   let cu_device_attribute_gpu_direct_rdma_supported =
     T.constant "CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED" T.int64_t
@@ -1127,10 +1132,10 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_device_attribute_mempool_supported_handle_types =
     T.constant "CU_DEVICE_ATTRIBUTE_MEMPOOL_SUPPORTED_HANDLE_TYPES" T.int64_t
 
-  (* let cu_device_attribute_cluster_launch = T.constant "CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH" T.int64_t *)
+  let cu_device_attribute_cluster_launch = T.constant "CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH" T.int64_t
 
-  (* let cu_device_attribute_deferred_mapping_cuda_array_supported =
-     T.constant "CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED" T.int64_t *)
+  let cu_device_attribute_deferred_mapping_cuda_array_supported =
+    T.constant "CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED" T.int64_t
 
   let cu_device_attribute_can_use_64_bit_stream_mem_ops =
     T.constant "CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS" T.int64_t
@@ -1138,19 +1143,24 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_device_attribute_can_use_stream_wait_value_nor =
     T.constant "CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR" T.int64_t
 
-  (* let cu_device_attribute_dma_buf_supported = T.constant "CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED" T.int64_t *)
-  (* let cu_device_attribute_ipc_event_supported = T.constant "CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED" T.int64_t *)
+  let cu_device_attribute_dma_buf_supported =
+    T.constant "CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED" T.int64_t
 
-  (* let cu_device_attribute_mem_sync_domain_count =
-     T.constant "CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT" T.int64_t *)
+  let cu_device_attribute_ipc_event_supported =
+    T.constant "CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED" T.int64_t
 
-  (* let cu_device_attribute_tensor_map_access_supported =
-     T.constant "CU_DEVICE_ATTRIBUTE_TENSOR_MAP_ACCESS_SUPPORTED" T.int64_t *)
+  let cu_device_attribute_mem_sync_domain_count =
+    T.constant "CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT" T.int64_t
 
-  (* let cu_device_attribute_unified_function_pointers =
-     T.constant "CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS" T.int64_t *)
+  let cu_device_attribute_tensor_map_access_supported =
+    T.constant "CU_DEVICE_ATTRIBUTE_TENSOR_MAP_ACCESS_SUPPORTED" T.int64_t
 
-  (* let cu_device_attribute_multicast_supported = T.constant "CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED" T.int64_t *)
+  let cu_device_attribute_unified_function_pointers =
+    T.constant "CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS" T.int64_t
+
+  let cu_device_attribute_multicast_supported =
+    T.constant "CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED" T.int64_t
+
   let cu_device_attribute_max = T.constant "CU_DEVICE_ATTRIBUTE_MAX" T.int64_t
 
   let cu_device_attribute =
@@ -1203,7 +1213,7 @@ module Types (T : Ctypes.TYPE) = struct
         ( CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,
           cu_device_attribute_max_threads_per_multiprocessor );
         (CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT, cu_device_attribute_async_engine_count);
-        (* (CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING, cu_device_attribute_unified_addressing); *)
+        (CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING, cu_device_attribute_unified_addressing);
         ( CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_LAYERED_WIDTH,
           cu_device_attribute_maximum_texture1d_layered_width );
         ( CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE1D_LAYERED_LAYERS,
@@ -1288,11 +1298,12 @@ module Types (T : Ctypes.TYPE) = struct
           cu_device_attribute_compute_preemption_supported );
         ( CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM,
           cu_device_attribute_can_use_host_pointer_for_registered_mem );
-        (* (CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_MEM_OPS_V1, cu_device_attribute_can_use_stream_mem_ops_v1); *)
-        (* ( CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS_V1,
-           cu_device_attribute_can_use_64_bit_stream_mem_ops_v1 ); *)
-        (* ( CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR_V1,
-           cu_device_attribute_can_use_stream_wait_value_nor_v1 ); *)
+        (* ( CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_MEM_OPS_V1,
+             cu_device_attribute_can_use_stream_mem_ops_v1 );
+           ( CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS_V1,
+             cu_device_attribute_can_use_64_bit_stream_mem_ops_v1 );
+           ( CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR_V1,
+             cu_device_attribute_can_use_stream_wait_value_nor_v1 ); *)
         (CU_DEVICE_ATTRIBUTE_COOPERATIVE_LAUNCH, cu_device_attribute_cooperative_launch);
         ( CU_DEVICE_ATTRIBUTE_COOPERATIVE_MULTI_DEVICE_LAUNCH,
           cu_device_attribute_cooperative_multi_device_launch );
@@ -1330,7 +1341,7 @@ module Types (T : Ctypes.TYPE) = struct
           cu_device_attribute_read_only_host_register_supported );
         ( CU_DEVICE_ATTRIBUTE_TIMELINE_SEMAPHORE_INTEROP_SUPPORTED,
           cu_device_attribute_timeline_semaphore_interop_supported );
-        (* (CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED, cu_device_attribute_memory_pools_supported); *)
+        (CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED, cu_device_attribute_memory_pools_supported);
         ( CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED,
           cu_device_attribute_gpu_direct_rdma_supported );
         ( CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_FLUSH_WRITES_OPTIONS,
@@ -1339,19 +1350,21 @@ module Types (T : Ctypes.TYPE) = struct
           cu_device_attribute_gpu_direct_rdma_writes_ordering );
         ( CU_DEVICE_ATTRIBUTE_MEMPOOL_SUPPORTED_HANDLE_TYPES,
           cu_device_attribute_mempool_supported_handle_types );
-        (* (CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH, cu_device_attribute_cluster_launch); *)
-        (* ( CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED,
-           cu_device_attribute_deferred_mapping_cuda_array_supported ); *)
+        (CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH, cu_device_attribute_cluster_launch);
+        ( CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED,
+          cu_device_attribute_deferred_mapping_cuda_array_supported );
         ( CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS,
           cu_device_attribute_can_use_64_bit_stream_mem_ops );
         ( CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR,
           cu_device_attribute_can_use_stream_wait_value_nor );
-        (* (CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED, cu_device_attribute_dma_buf_supported); *)
-        (* (CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED, cu_device_attribute_ipc_event_supported); *)
-        (* (CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT, cu_device_attribute_mem_sync_domain_count); *)
-        (* (CU_DEVICE_ATTRIBUTE_TENSOR_MAP_ACCESS_SUPPORTED, cu_device_attribute_tensor_map_access_supported); *)
-        (* (CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS, cu_device_attribute_unified_function_pointers); *)
-        (* (CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED, cu_device_attribute_multicast_supported); *)
+        (CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED, cu_device_attribute_dma_buf_supported);
+        (CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED, cu_device_attribute_ipc_event_supported);
+        (CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT, cu_device_attribute_mem_sync_domain_count);
+        ( CU_DEVICE_ATTRIBUTE_TENSOR_MAP_ACCESS_SUPPORTED,
+          cu_device_attribute_tensor_map_access_supported );
+        ( CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS,
+          cu_device_attribute_unified_function_pointers );
+        (CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED, cu_device_attribute_multicast_supported);
         (CU_DEVICE_ATTRIBUTE_MAX, cu_device_attribute_max);
       ]
 

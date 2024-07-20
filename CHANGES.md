@@ -2,7 +2,7 @@
 
 ### Added
 
-- TODO: Previously commented out parts, that require a newer version of the CUDA API.
+- Previously commented out parts, that require a newer version of the CUDA API.
 - TODO: Interface file `cudajit.mli`.
 
 ### Fixed

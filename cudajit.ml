@@ -204,7 +204,7 @@ type jit_option =
   | JIT_LOG_VERBOSE of bool
   | JIT_GENERATE_LINE_INFO of bool
   | JIT_CACHE_MODE of cu_jit_cache_mode
-(* | JIT_POSITION_INDEPENDENT_CODE of bool *)
+  | JIT_POSITION_INDEPENDENT_CODE of bool
 [@@deriving sexp]
 
 let uint_of_cu_jit_target c =
@@ -225,10 +225,10 @@ let uint_of_cu_jit_target c =
   | CU_TARGET_COMPUTE_75 -> Unsigned.UInt.of_int64 cu_target_compute_75
   | CU_TARGET_COMPUTE_80 -> Unsigned.UInt.of_int64 cu_target_compute_80
   | CU_TARGET_COMPUTE_86 -> Unsigned.UInt.of_int64 cu_target_compute_86
-  (* | CU_TARGET_COMPUTE_87 -> Unsigned.UInt.of_int64 cu_target_compute_87
-     | CU_TARGET_COMPUTE_89 -> Unsigned.UInt.of_int64 cu_target_compute_89
-     | CU_TARGET_COMPUTE_90 -> Unsigned.UInt.of_int64 cu_target_compute_90
-     | CU_TARGET_COMPUTE_90A -> Unsigned.UInt.of_int64 cu_target_compute_90a *)
+  | CU_TARGET_COMPUTE_87 -> Unsigned.UInt.of_int64 cu_target_compute_87
+  | CU_TARGET_COMPUTE_89 -> Unsigned.UInt.of_int64 cu_target_compute_89
+  | CU_TARGET_COMPUTE_90 -> Unsigned.UInt.of_int64 cu_target_compute_90
+  | CU_TARGET_COMPUTE_90A -> Unsigned.UInt.of_int64 cu_target_compute_90a
   | CU_TARGET_UNCATEGORIZED c -> Unsigned.UInt.of_int64 c
 
 let uint_of_cu_jit_fallback c =
@@ -267,9 +267,8 @@ let module_load_data_ex ptx options =
            | JIT_GENERATE_DEBUG_INFO _ -> [ CU_JIT_GENERATE_DEBUG_INFO ]
            | JIT_LOG_VERBOSE _ -> [ CU_JIT_LOG_VERBOSE ]
            | JIT_GENERATE_LINE_INFO _ -> [ CU_JIT_GENERATE_LINE_INFO ]
-           | JIT_CACHE_MODE _ ->
-               [ CU_JIT_CACHE_MODE ]
-               (* | JIT_POSITION_INDEPENDENT_CODE _ -> [CU_JIT_POSITION_INDEPENDENT_CODE] *))
+           | JIT_CACHE_MODE _ -> [ CU_JIT_CACHE_MODE ]
+           | JIT_POSITION_INDEPENDENT_CODE _ -> [ CU_JIT_POSITION_INDEPENDENT_CODE ])
          options
   in
   let i2u2vp i = coerce (ptr uint) (ptr void) @@ allocate uint @@ Unsigned.UInt.of_int i in
@@ -298,12 +297,10 @@ let module_load_data_ex ptx options =
            | JIT_GENERATE_DEBUG_INFO c -> [ bi2vp c ]
            | JIT_LOG_VERBOSE c -> [ bi2vp c ]
            | JIT_GENERATE_LINE_INFO c -> [ bi2vp c ]
-           | JIT_CACHE_MODE t ->
-               [ u2vp @@ uint_of_cu_jit_cache_mode t ]
-               (* | JIT_POSITION_INDEPENDENT_CODE c -> [ bi2vp c ] *))
+           | JIT_CACHE_MODE t -> [ u2vp @@ uint_of_cu_jit_cache_mode t ]
+           | JIT_POSITION_INDEPENDENT_CODE c -> [ bi2vp c ])
          options
   in
-  (* allocate_n Cuda_ffi.Types_generated.cu_jit_option ~count:n_opts in *)
   check "cu_module_load_data_ex"
   @@ Cuda.cu_module_load_data_ex cu_mod
        (coerce (ptr char) (ptr void) ptx.ptx)
@@ -581,7 +578,7 @@ type device_attributes = {
   l2_cache_size : int;  (** In bytes. *)
   max_threads_per_multiprocessor : int;
   async_engine_count : int;
-  (* unified_addressing: bool; *)
+  unified_addressing : bool;
   maximum_texture1d_layered_width : int;
   maximum_texture1d_layered_layers : int;
   maximum_texture2d_gather_width : int;
@@ -649,21 +646,21 @@ type device_attributes = {
   sparse_cuda_array_supported : bool;
   read_only_host_register_supported : bool;
   timeline_semaphore_interop_supported : bool;
-  (* memory_pools_supported: bool; *)
+  memory_pools_supported : bool;
   gpu_direct_rdma_supported : bool;
   gpu_direct_rdma_flush_writes_options : cu_flush_GPU_direct_RDMA_writes_options list;
   gpu_direct_rdma_writes_ordering : bool;
   mempool_supported_handle_types : bool;
-  (* cluster_launch: bool; *)
-  (* deferred_mapping_cuda_array_supported: bool; *)
+  cluster_launch : bool;
+  deferred_mapping_cuda_array_supported : bool;
   can_use_64_bit_stream_mem_ops : bool;
   can_use_stream_wait_value_nor : bool;
-      (* dma_buf_supported: bool; *)
-      (* ipc_event_supported: bool; *)
-      (* mem_sync_domain_count: int; *)
-      (* tensor_map_access_supported: bool; *)
-      (* unified_function_pointers: bool; *)
-      (* multicast_supported: bool; *)
+  dma_buf_supported : bool;
+  ipc_event_supported : bool;
+  mem_sync_domain_count : int;
+  tensor_map_access_supported : bool;
+  unified_function_pointers : bool;
+  multicast_supported : bool;
 }
 [@@deriving sexp]
 
@@ -845,10 +842,10 @@ let device_get_attributes device =
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute async_engine_count CU_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT device;
   let async_engine_count = !@async_engine_count in
-  (* let unified_addressing = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute unified_addressing CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING device;
-     let unified_addressing = 0 <> !@unified_addressing in *)
+  let unified_addressing = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute unified_addressing CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING device;
+  let unified_addressing = 0 <> !@unified_addressing in
   let maximum_texture1d_layered_width = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute maximum_texture1d_layered_width
@@ -1184,10 +1181,11 @@ let device_get_attributes device =
   @@ Cuda.cu_device_get_attribute timeline_semaphore_interop_supported
        CU_DEVICE_ATTRIBUTE_TIMELINE_SEMAPHORE_INTEROP_SUPPORTED device;
   let timeline_semaphore_interop_supported = 0 <> !@timeline_semaphore_interop_supported in
-  (* let memory_pools_supported = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute memory_pools_supported CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED device;
-     let memory_pools_supported = 0 <> !@memory_pools_supported in *)
+  let memory_pools_supported = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute memory_pools_supported CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED
+       device;
+  let memory_pools_supported = 0 <> !@memory_pools_supported in
   let gpu_direct_rdma_supported = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute gpu_direct_rdma_supported
@@ -1204,14 +1202,15 @@ let device_get_attributes device =
   @@ Cuda.cu_device_get_attribute mempool_supported_handle_types
        CU_DEVICE_ATTRIBUTE_MEMPOOL_SUPPORTED_HANDLE_TYPES device;
   let mempool_supported_handle_types = 0 <> !@mempool_supported_handle_types in
-  (* let cluster_launch = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute cluster_launch CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH device;
-     let cluster_launch = 0 <> !@cluster_launch in *)
-  (* let deferred_mapping_cuda_array_supported = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute deferred_mapping_cuda_array_supported CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED device;
-     let deferred_mapping_cuda_array_supported = 0 <> !@deferred_mapping_cuda_array_supported in *)
+  let cluster_launch = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute cluster_launch CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH device;
+  let cluster_launch = 0 <> !@cluster_launch in
+  let deferred_mapping_cuda_array_supported = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute deferred_mapping_cuda_array_supported
+       CU_DEVICE_ATTRIBUTE_DEFERRED_MAPPING_CUDA_ARRAY_SUPPORTED device;
+  let deferred_mapping_cuda_array_supported = 0 <> !@deferred_mapping_cuda_array_supported in
   let can_use_64_bit_stream_mem_ops = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute can_use_64_bit_stream_mem_ops
@@ -1222,30 +1221,33 @@ let device_get_attributes device =
   @@ Cuda.cu_device_get_attribute can_use_stream_wait_value_nor
        CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR device;
   let can_use_stream_wait_value_nor = 0 <> !@can_use_stream_wait_value_nor in
-  (* let dma_buf_supported = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute dma_buf_supported CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED device;
-     let dma_buf_supported = 0 <> !@dma_buf_supported in *)
-  (* let ipc_event_supported = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute ipc_event_supported CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED device;
-     let ipc_event_supported = 0 <> !@ipc_event_supported in *)
-  (* let mem_sync_domain_count = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute mem_sync_domain_count CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT device;
-     let mem_sync_domain_count = !@mem_sync_domain_count in *)
-  (* let tensor_map_access_supported = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute tensor_map_access_supported CU_DEVICE_ATTRIBUTE_TENSOR_MAP_ACCESS_SUPPORTED device;
-     let tensor_map_access_supported = 0 <> !@tensor_map_access_supported in *)
-  (* let unified_function_pointers = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute unified_function_pointers CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS device;
-     let unified_function_pointers = 0 <> !@unified_function_pointers in *)
-  (* let multicast_supported = allocate int 0 in
-     check "cu_device_get_attribute"
-     @@ Cuda.cu_device_get_attribute multicast_supported CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED device;
-     let multicast_supported = 0 <> !@multicast_supported in *)
+  let dma_buf_supported = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute dma_buf_supported CU_DEVICE_ATTRIBUTE_DMA_BUF_SUPPORTED device;
+  let dma_buf_supported = 0 <> !@dma_buf_supported in
+  let ipc_event_supported = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute ipc_event_supported CU_DEVICE_ATTRIBUTE_IPC_EVENT_SUPPORTED device;
+  let ipc_event_supported = 0 <> !@ipc_event_supported in
+  let mem_sync_domain_count = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute mem_sync_domain_count CU_DEVICE_ATTRIBUTE_MEM_SYNC_DOMAIN_COUNT
+       device;
+  let mem_sync_domain_count = !@mem_sync_domain_count in
+  let tensor_map_access_supported = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute tensor_map_access_supported
+       CU_DEVICE_ATTRIBUTE_TENSOR_MAP_ACCESS_SUPPORTED device;
+  let tensor_map_access_supported = 0 <> !@tensor_map_access_supported in
+  let unified_function_pointers = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute unified_function_pointers
+       CU_DEVICE_ATTRIBUTE_UNIFIED_FUNCTION_POINTERS device;
+  let unified_function_pointers = 0 <> !@unified_function_pointers in
+  let multicast_supported = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute multicast_supported CU_DEVICE_ATTRIBUTE_MULTICAST_SUPPORTED device;
+  let multicast_supported = 0 <> !@multicast_supported in
   {
     name;
     max_threads_per_block;
@@ -1287,7 +1289,7 @@ let device_get_attributes device =
     l2_cache_size;
     max_threads_per_multiprocessor;
     async_engine_count;
-    (* unified_addressing; *)
+    unified_addressing;
     maximum_texture1d_layered_width;
     maximum_texture1d_layered_layers;
     maximum_texture2d_gather_width;
@@ -1355,21 +1357,21 @@ let device_get_attributes device =
     sparse_cuda_array_supported;
     read_only_host_register_supported;
     timeline_semaphore_interop_supported;
-    (* memory_pools_supported; *)
+    memory_pools_supported;
     gpu_direct_rdma_supported;
     gpu_direct_rdma_flush_writes_options;
     gpu_direct_rdma_writes_ordering;
     mempool_supported_handle_types;
-    (* cluster_launch; *)
-    (* deferred_mapping_cuda_array_supported; *)
+    cluster_launch;
+    deferred_mapping_cuda_array_supported;
     can_use_64_bit_stream_mem_ops;
     can_use_stream_wait_value_nor;
-    (* dma_buf_supported; *)
-    (* ipc_event_supported; *)
-    (* mem_sync_domain_count; *)
-    (* tensor_map_access_supported; *)
-    (* unified_function_pointers; *)
-    (* multicast_supported; *)
+    dma_buf_supported;
+    ipc_event_supported;
+    mem_sync_domain_count;
+    tensor_map_access_supported;
+    unified_function_pointers;
+    multicast_supported;
   }
 
 let ctx_set_limit limit value =
