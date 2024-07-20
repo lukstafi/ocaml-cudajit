@@ -17,7 +17,7 @@ let%expect_test "SAXPY compilation" =
     Cudajit.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
       ~with_debug:true
   in
-  (match prog.log with None -> () | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
+  (match Cudajit.compilation_log prog with None -> () | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
   [%expect {| CUDA Compile log: |}];
   Format.printf "PTX: %s%!"
   @@ Str.global_replace

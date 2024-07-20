@@ -319,6 +319,9 @@ type deviceptr =
   | Deviceptr of Unsigned.uint64
       (** A pointer to an array on a device. (Not a pointer to a device!) *)
 
+let string_of_deviceptr (Deviceptr id) = Unsigned.UInt64.to_hexstring id
+let sexp_of_deviceptr ptr = Sexplib0.Sexp.Atom (string_of_deviceptr ptr)
+
 let mem_alloc ~size_in_bytes =
   let open Ctypes in
   let deviceptr = allocate_n cu_deviceptr ~count:1 in
@@ -1394,7 +1397,7 @@ let uint_of_attach_mem f =
   | Mem_host -> Unsigned.UInt.of_int64 cu_mem_attach_host
   | Mem_single_stream -> Unsigned.UInt.of_int64 cu_mem_attach_single
 
-let stream_attach_mem_async stream device length flag =
+let stream_attach_mem_async stream (Deviceptr device) length flag =
   check "cu_stream_attach_mem_async"
   @@ Cuda.cu_stream_attach_mem_async stream.stream device (Unsigned.Size_t.of_int length)
   @@ uint_of_attach_mem flag
@@ -1447,5 +1450,5 @@ type func = cu_function
 type module_ = cu_module
 type limit = cu_limit
 type device = cu_device
-type nonrec nvrtc_result = Nvrtc_ffi.Bindings_types.nvrtc_result
-type cuda_result = Cuda_ffi.Bindings_types.cu_result
+type nonrec nvrtc_result = Nvrtc_ffi.Bindings_types.nvrtc_result [@@deriving sexp]
+type cuda_result = Cuda_ffi.Bindings_types.cu_result [@@deriving sexp]
