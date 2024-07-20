@@ -20,8 +20,7 @@ type nvrtc_result =
   | NVRTC_ERROR_NO_LOWERED_NAMES_BEFORE_COMPILATION
   | NVRTC_ERROR_NAME_EXPRESSION_NOT_VALID
   | NVRTC_ERROR_INTERNAL_ERROR
-  (* Only available in recent versions of nvrtc.h: *)
-  (* | NVRTC_ERROR_TIME_FILE_WRITE_FAILED *)
+  | NVRTC_ERROR_TIME_FILE_WRITE_FAILED
   | NVRTC_ERROR_UNCATEGORIZED of int64
 [@@deriving sexp]
 
@@ -51,8 +50,8 @@ module Types (T : Ctypes.TYPE) = struct
 
   let nvrtc_result_error_internal_error = T.constant "NVRTC_ERROR_INTERNAL_ERROR" T.int64_t
 
-  (* Only available in recent versions of nvrtc.h: *)
-  (* let nvrtc_result_error_time_file_write_failed = T.constant "NVRTC_ERROR_TIME_FILE_WRITE_FAILED" T.int64_t *)
+  let nvrtc_result_error_time_file_write_failed =
+    T.constant "NVRTC_ERROR_TIME_FILE_WRITE_FAILED" T.int64_t
 
   let nvrtc_result =
     T.enum ~typedef:true
@@ -73,7 +72,6 @@ module Types (T : Ctypes.TYPE) = struct
           nvrtc_result_error_no_lowered_names_before_compilation );
         (NVRTC_ERROR_NAME_EXPRESSION_NOT_VALID, nvrtc_result_error_name_expression_not_valid);
         (NVRTC_ERROR_INTERNAL_ERROR, nvrtc_result_error_internal_error);
-        (* Only available in recent versions of nvrtc.h: *)
-        (* (NVRTC_ERROR_TIME_FILE_WRITE_FAILED, nvrtc_result_error_time_file_write_failed); *)
+        (NVRTC_ERROR_TIME_FILE_WRITE_FAILED, nvrtc_result_error_time_file_write_failed);
       ]
 end
