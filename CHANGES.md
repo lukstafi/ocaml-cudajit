@@ -1,3 +1,14 @@
+## [0.3.1] 2024-07-20
+
+### Added
+
+- TODO: Previously commented out parts, that require a newer version of the CUDA API.
+
+### Fixed
+
+- A major design bug, exacerbated by the asynchronous functionaliy of v0.3 -- functions performing asynchronous calls should keep the call arguments alive; the user should only forget (or free) the arguments after the calls complete (e.g. after synchronizing a stream).
+  - Only `launch_kernel` needed fixing as I don't think other functions allocate passed arguments.
+
 ## [0.3.0] 2024-07-05
 
 ### Added

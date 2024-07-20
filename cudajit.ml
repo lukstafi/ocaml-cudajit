@@ -308,6 +308,8 @@ let module_get_function module_ ~name =
   check "cu_module_get_function" @@ Cuda.cu_module_get_function func module_ name;
   !@func
 
+type lifetime = Remember : 'a -> lifetime
+
 type deviceptr =
   | Deviceptr of Unsigned.uint64  (** A pointer to an array on a device. (Not a pointer to a device!) *)
 
@@ -363,7 +365,7 @@ let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_di
     ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
   let i2u = Unsigned.UInt.of_int in
   let open Ctypes in
-  let c_kernel_params =
+  let kernel_params =
     List.map
       (function
         | Tensor (Deviceptr dev) -> coerce (ptr uint64_t) (ptr void) @@ allocate uint64_t dev
@@ -372,13 +374,13 @@ let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_di
         | Single u -> coerce (ptr float) (ptr void) @@ allocate float u
         | Double u -> coerce (ptr double) (ptr void) @@ allocate double u)
       kernel_params
-    |> CArray.of_list (ptr void)
-    |> CArray.start
   in
+  let c_kernel_params = kernel_params |> CArray.of_list (ptr void) in
   check "cu_launch_kernel"
   @@ Cuda.cu_launch_kernel func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z) (i2u block_dim_x)
-       (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream c_kernel_params
-  @@ coerce (ptr void) (ptr @@ ptr void) null
+       (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream (CArray.start c_kernel_params)
+  @@ coerce (ptr void) (ptr @@ ptr void) null;
+  Remember (kernel_params, c_kernel_params)
 
 let ctx_synchronize () = check "cu_ctx_synchronize" @@ Cuda.cu_ctx_synchronize ()
 
@@ -510,6 +512,7 @@ let memset_d32_async (Deviceptr dev) v ~length stream =
 
 let module_get_global module_ ~name =
   let open Ctypes in
+  (* FIXME: here and elsewhere -- we are leaking memory from [allocate_n] and [allocate] I think? *)
   let device = allocate_n cu_deviceptr ~count:1 in
   let size_in_bytes = allocate size_t Unsigned.Size_t.zero in
   check "cu_module_get_global" @@ Cuda.cu_module_get_global device size_in_bytes module_ name;
