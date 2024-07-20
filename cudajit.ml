@@ -1411,8 +1411,8 @@ let stream_create ?(non_blocking = false) ?(lower_priority = 0) () =
   { args_lifetimes = []; stream = !@stream }
 
 let stream_destroy stream =
-  stream.args_lifetimes <- [];
-  check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream
+  check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream;
+  stream.args_lifetimes <- []
 
 let stream_get_context stream =
   let open Ctypes in
