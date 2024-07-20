@@ -190,6 +190,31 @@ let ctx_set_current ctx = check "cu_ctx_set_current" @@ Cuda.cu_ctx_set_current 
 
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
+type jit_target =
+  | COMPUTE_30
+  | COMPUTE_32
+  | COMPUTE_35
+  | COMPUTE_37
+  | COMPUTE_50
+  | COMPUTE_52
+  | COMPUTE_53
+  | COMPUTE_60
+  | COMPUTE_61
+  | COMPUTE_62
+  | COMPUTE_70
+  | COMPUTE_72
+  | COMPUTE_75
+  | COMPUTE_80
+  | COMPUTE_86
+  | COMPUTE_87
+  | COMPUTE_89
+  | COMPUTE_90
+  | COMPUTE_90A
+[@@deriving sexp]
+
+type jit_fallback = PREFER_PTX | PREFER_BINARY [@@deriving sexp]
+type jit_cache_mode = NONE | CG | CA [@@deriving sexp]
+
 (* Note: bool corresponds to C int (0=false). *)
 type jit_option =
   | JIT_MAX_REGISTERS of int
@@ -199,14 +224,42 @@ type jit_option =
   | JIT_ERROR_LOG_BUFFER of (bigstring[@sexp.opaque])
   | JIT_OPTIMIZATION_LEVEL of int
   | JIT_TARGET_FROM_CUCONTEXT
-  | JIT_TARGET of cu_jit_target
-  | JIT_FALLBACK_STRATEGY of cu_jit_fallback
+  | JIT_TARGET of jit_target
+  | JIT_FALLBACK_STRATEGY of jit_fallback
   | JIT_GENERATE_DEBUG_INFO of bool
   | JIT_LOG_VERBOSE of bool
   | JIT_GENERATE_LINE_INFO of bool
-  | JIT_CACHE_MODE of cu_jit_cache_mode
+  | JIT_CACHE_MODE of jit_cache_mode
   | JIT_POSITION_INDEPENDENT_CODE of bool
 [@@deriving sexp]
+
+let cu_jit_target_of = function
+  | COMPUTE_30 -> CU_TARGET_COMPUTE_30
+  | COMPUTE_32 -> CU_TARGET_COMPUTE_32
+  | COMPUTE_35 -> CU_TARGET_COMPUTE_35
+  | COMPUTE_37 -> CU_TARGET_COMPUTE_37
+  | COMPUTE_50 -> CU_TARGET_COMPUTE_50
+  | COMPUTE_52 -> CU_TARGET_COMPUTE_52
+  | COMPUTE_53 -> CU_TARGET_COMPUTE_53
+  | COMPUTE_60 -> CU_TARGET_COMPUTE_60
+  | COMPUTE_61 -> CU_TARGET_COMPUTE_61
+  | COMPUTE_62 -> CU_TARGET_COMPUTE_62
+  | COMPUTE_70 -> CU_TARGET_COMPUTE_70
+  | COMPUTE_72 -> CU_TARGET_COMPUTE_72
+  | COMPUTE_75 -> CU_TARGET_COMPUTE_75
+  | COMPUTE_80 -> CU_TARGET_COMPUTE_80
+  | COMPUTE_86 -> CU_TARGET_COMPUTE_86
+  | COMPUTE_87 -> CU_TARGET_COMPUTE_87
+  | COMPUTE_89 -> CU_TARGET_COMPUTE_89
+  | COMPUTE_90 -> CU_TARGET_COMPUTE_90
+  | COMPUTE_90A -> CU_TARGET_COMPUTE_90A
+
+let cu_jit_fallback_of = function PREFER_PTX -> CU_PREFER_PTX | PREFER_BINARY -> CU_PREFER_BINARY
+
+let cu_jit_cache_mode_of = function
+  | NONE -> CU_JIT_CACHE_OPTION_NONE
+  | CG -> CU_JIT_CACHE_OPTION_CG
+  | CA -> CU_JIT_CACHE_OPTION_CA
 
 let uint_of_cu_jit_target c =
   let open Cuda_ffi.Types_generated in
@@ -293,12 +346,12 @@ let module_load_data_ex ptx options =
                [ size; ba2vp b ]
            | JIT_OPTIMIZATION_LEVEL i -> [ i2vp i ]
            | JIT_TARGET_FROM_CUCONTEXT -> [ null ]
-           | JIT_TARGET t -> [ u2vp @@ uint_of_cu_jit_target t ]
-           | JIT_FALLBACK_STRATEGY t -> [ u2vp @@ uint_of_cu_jit_fallback t ]
+           | JIT_TARGET t -> [ u2vp @@ uint_of_cu_jit_target @@ cu_jit_target_of t ]
+           | JIT_FALLBACK_STRATEGY t -> [ u2vp @@ uint_of_cu_jit_fallback @@ cu_jit_fallback_of t ]
            | JIT_GENERATE_DEBUG_INFO c -> [ bi2vp c ]
            | JIT_LOG_VERBOSE c -> [ bi2vp c ]
            | JIT_GENERATE_LINE_INFO c -> [ bi2vp c ]
-           | JIT_CACHE_MODE t -> [ u2vp @@ uint_of_cu_jit_cache_mode t ]
+           | JIT_CACHE_MODE t -> [ u2vp @@ uint_of_cu_jit_cache_mode @@ cu_jit_cache_mode_of t ]
            | JIT_POSITION_INDEPENDENT_CODE c -> [ bi2vp c ])
          options
   in
@@ -542,6 +595,21 @@ let module_get_global module_ ~name =
   check "cu_module_get_global" @@ Cuda.cu_module_get_global device size_in_bytes module_ name;
   (Deviceptr !@device, !@size_in_bytes)
 
+type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS [@@deriving sexp]
+type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
+
+let computemode_of_cu = function
+  | CU_COMPUTEMODE_DEFAULT -> DEFAULT
+  | CU_COMPUTEMODE_PROHIBITED -> PROHIBITED
+  | CU_COMPUTEMODE_EXCLUSIVE_PROCESS -> EXCLUSIVE_PROCESS
+  | CU_COMPUTEMODE_UNCATEGORIZED i -> invalid_arg @@ "Unknown computemode: " ^ Int64.to_string i
+
+let _flush_GPU_direct_RDMA_writes_options_of_cu = function
+  | CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_HOST -> HOST
+  | CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_MEMOPS -> MEMOPS
+  | CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_UNCATEGORIZED i ->
+      invalid_arg @@ "Unknown flush_GPU_direct_RDMA_writes_options: " ^ Int64.to_string i
+
 type device_attributes = {
   name : string;
   max_threads_per_block : int;
@@ -562,7 +630,7 @@ type device_attributes = {
   kernel_exec_timeout : bool;
   integrated : bool;
   can_map_host_memory : bool;
-  compute_mode : cu_computemode;
+  compute_mode : computemode;
   maximum_texture1d_width : int;
   maximum_texture2d_width : int;
   maximum_texture2d_height : int;
@@ -653,7 +721,7 @@ type device_attributes = {
   timeline_semaphore_interop_supported : bool;
   memory_pools_supported : bool;
   gpu_direct_rdma_supported : bool;
-  gpu_direct_rdma_flush_writes_options : cu_flush_GPU_direct_RDMA_writes_options list;
+  gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
   gpu_direct_rdma_writes_ordering : bool;
   mempool_supported_handle_types : bool;
   cluster_launch : bool;
@@ -755,7 +823,7 @@ let device_get_attributes device =
   let compute_mode = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute compute_mode CU_DEVICE_ATTRIBUTE_CAN_MAP_HOST_MEMORY device;
-  let compute_mode = Cuda.cu_computemode_of_int !@compute_mode in
+  let compute_mode = computemode_of_cu @@ Cuda.cu_computemode_of_int !@compute_mode in
   let maximum_texture1d_width = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute maximum_texture1d_width
@@ -1196,6 +1264,7 @@ let device_get_attributes device =
   @@ Cuda.cu_device_get_attribute gpu_direct_rdma_supported
        CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED device;
   let gpu_direct_rdma_supported = 0 <> !@gpu_direct_rdma_supported in
+  (* FIXME: populate gpu_direct_rdma_flush_writes_options *)
   let gpu_direct_rdma_flush_writes_options = [] in
   let gpu_direct_rdma_writes_ordering = allocate int 0 in
   check "cu_device_get_attribute"

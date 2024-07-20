@@ -48,6 +48,31 @@ val ctx_set_current : context -> unit
 
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
+type jit_target =
+  | COMPUTE_30
+  | COMPUTE_32
+  | COMPUTE_35
+  | COMPUTE_37
+  | COMPUTE_50
+  | COMPUTE_52
+  | COMPUTE_53
+  | COMPUTE_60
+  | COMPUTE_61
+  | COMPUTE_62
+  | COMPUTE_70
+  | COMPUTE_72
+  | COMPUTE_75
+  | COMPUTE_80
+  | COMPUTE_86
+  | COMPUTE_87
+  | COMPUTE_89
+  | COMPUTE_90
+  | COMPUTE_90A
+[@@deriving sexp]
+
+type jit_fallback = PREFER_PTX | PREFER_BINARY [@@deriving sexp]
+type jit_cache_mode = NONE | CG | CA [@@deriving sexp]
+
 type jit_option =
   | JIT_MAX_REGISTERS of int
   | JIT_THREADS_PER_BLOCK of int
@@ -56,12 +81,12 @@ type jit_option =
   | JIT_ERROR_LOG_BUFFER of bigstring
   | JIT_OPTIMIZATION_LEVEL of int
   | JIT_TARGET_FROM_CUCONTEXT
-  | JIT_TARGET of Cuda_ffi.Bindings_types.cu_jit_target
-  | JIT_FALLBACK_STRATEGY of Cuda_ffi.Bindings_types.cu_jit_fallback
+  | JIT_TARGET of jit_target
+  | JIT_FALLBACK_STRATEGY of jit_fallback
   | JIT_GENERATE_DEBUG_INFO of bool
   | JIT_LOG_VERBOSE of bool
   | JIT_GENERATE_LINE_INFO of bool
-  | JIT_CACHE_MODE of Cuda_ffi.Bindings_types.cu_jit_cache_mode
+  | JIT_CACHE_MODE of jit_cache_mode
   | JIT_POSITION_INDEPENDENT_CODE of bool
 [@@deriving sexp]
 
@@ -206,6 +231,9 @@ val memset_d16_async : deviceptr -> Unsigned.ushort -> length:int -> stream -> u
 val memset_d32_async : deviceptr -> Unsigned.uint32 -> length:int -> stream -> unit
 val module_get_global : module_ -> name:string -> deviceptr * Unsigned.size_t
 
+type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS [@@deriving sexp]
+type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
+
 type device_attributes = {
   name : string;
   max_threads_per_block : int;
@@ -226,7 +254,7 @@ type device_attributes = {
   kernel_exec_timeout : bool;
   integrated : bool;
   can_map_host_memory : bool;
-  compute_mode : Cuda_ffi.Bindings_types.cu_computemode;
+  compute_mode : computemode;
   maximum_texture1d_width : int;
   maximum_texture2d_width : int;
   maximum_texture2d_height : int;
@@ -317,8 +345,7 @@ type device_attributes = {
   timeline_semaphore_interop_supported : bool;
   memory_pools_supported : bool;
   gpu_direct_rdma_supported : bool;
-  gpu_direct_rdma_flush_writes_options :
-    Cuda_ffi.Bindings_types.cu_flush_GPU_direct_RDMA_writes_options list;
+  gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
   gpu_direct_rdma_writes_ordering : bool;
   mempool_supported_handle_types : bool;
   cluster_launch : bool;
