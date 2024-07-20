@@ -72,12 +72,8 @@ val sexp_of_jit_option : jit_option -> Sexplib0.Sexp.t
 val uint_of_cu_jit_target : Cuda_ffi.Bindings_types.cu_jit_target -> Unsigned.uint
 val uint_of_cu_jit_fallback : Cuda_ffi.Bindings_types.cu_jit_fallback -> Unsigned.uint
 val uint_of_cu_jit_cache_mode : Cuda_ffi.Bindings_types.cu_jit_cache_mode -> Unsigned.uint
-
-val module_load_data_ex :
-  compile_to_ptx_result -> jit_option list -> Cuda_ffi.Bindings_types.cu_module
-
-val module_get_function :
-  Cuda_ffi.Bindings_types.cu_module -> name:string -> Cuda_ffi.Bindings_types.cu_function
+val module_load_data_ex : compile_to_ptx_result -> jit_option list -> module_
+val module_get_function : module_ -> name:string -> Cuda_ffi.Bindings_types.cu_function
 
 type deviceptr = Deviceptr of Unsigned.uint64
 
@@ -224,7 +220,7 @@ type p2p_attribute =
 
 val device_get_p2p_attributes : dst:deviceptr -> src:deviceptr -> p2p_attribute list
 val mem_free : deviceptr -> unit
-val module_unload : Cuda_ffi.Bindings_types.cu_module -> unit
+val module_unload : module_ -> unit
 val ctx_destroy : context -> unit
 val memset_d8 : deviceptr -> Unsigned.uchar -> length:int -> unit
 val memset_d16 : deviceptr -> Unsigned.ushort -> length:int -> unit
@@ -232,9 +228,7 @@ val memset_d32 : deviceptr -> Unsigned.uint32 -> length:int -> unit
 val memset_d8_async : deviceptr -> Unsigned.uchar -> length:int -> stream -> unit
 val memset_d16_async : deviceptr -> Unsigned.ushort -> length:int -> stream -> unit
 val memset_d32_async : deviceptr -> Unsigned.uint32 -> length:int -> stream -> unit
-
-val module_get_global :
-  Cuda_ffi.Bindings_types.cu_module -> name:string -> deviceptr * Unsigned.size_t
+val module_get_global : module_ -> name:string -> deviceptr * Unsigned.size_t
 
 type device_attributes = {
   name : string;
