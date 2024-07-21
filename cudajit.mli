@@ -539,6 +539,12 @@ type computemode =
       CUflushGPUDirectRDMAWritesOptions}. *)
 type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
 
+(** See
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g450a23153d86fce0afe30e25d63caef9}
+      CUmemAllocationHandleType}. *)
+type mem_allocation_handle_type = NONE | POSIX_FILE_DESCRIPTOR | WIN32 | WIN32_KMT | FABRIC
+[@@deriving sexp]
+
 type device_attributes = {
   name : string;
       (** See
@@ -659,9 +665,8 @@ type device_attributes = {
       (** See {{:https://docs.nvidia.com/cuda/gpudirect-rdma/} GPUDirect RDMA}. *)
   gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
   gpu_direct_rdma_writes_ordering : bool;
-  mempool_supported_handle_types : int;
-      (** Bitmask of handle types supported with mempool based IPC. TODO: flesh out as a separate
-          type. *)
+  mempool_supported_handle_types : mem_allocation_handle_type list;
+      (** Handle types supported with mempool based IPC. *)
   cluster_launch : bool;
   deferred_mapping_cuda_array_supported : bool;
   can_use_64_bit_stream_mem_ops : bool;

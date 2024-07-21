@@ -612,6 +612,18 @@ let int_of_flush_GPU_direct_RDMA_writes_options =
 
 (* TODO: export CUmemAllocationHandleType to use in mempool_supported_handle_types. *)
 
+type mem_allocation_handle_type = NONE | POSIX_FILE_DESCRIPTOR | WIN32 | WIN32_KMT | FABRIC
+[@@deriving sexp]
+
+let int_of_mem_allocation_handle_type =
+  let open Cuda_ffi.Types_generated in
+  function
+  | NONE -> Int64.to_int cu_mem_handle_type_none
+  | POSIX_FILE_DESCRIPTOR -> Int64.to_int cu_mem_handle_type_posix_file_descriptor
+  | WIN32 -> Int64.to_int cu_mem_handle_type_win32
+  | WIN32_KMT -> Int64.to_int cu_mem_handle_type_win32_kmt
+  | FABRIC -> Int64.to_int cu_mem_handle_type_fabric
+
 type device_attributes = {
   name : string;
   max_threads_per_block : int;
@@ -725,7 +737,7 @@ type device_attributes = {
   gpu_direct_rdma_supported : bool;
   gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
   gpu_direct_rdma_writes_ordering : bool;
-  mempool_supported_handle_types : int;
+  mempool_supported_handle_types : mem_allocation_handle_type list;
   cluster_launch : bool;
   deferred_mapping_cuda_array_supported : bool;
   can_use_64_bit_stream_mem_ops : bool;
@@ -1266,7 +1278,7 @@ let device_get_attributes device =
   @@ Cuda.cu_device_get_attribute gpu_direct_rdma_supported
        CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED device;
   let gpu_direct_rdma_supported = 0 <> !@gpu_direct_rdma_supported in
-  let rec unfold flags remaining =
+  let rec unfold f flags remaining =
     let open Int in
     match remaining with
     | [] ->
@@ -1275,16 +1287,18 @@ let device_get_attributes device =
     | flag :: remaining ->
         if equal flags zero then []
         else
-          let uflag = int_of_flush_GPU_direct_RDMA_writes_options flag in
-          if equal (flags land uflag) zero then unfold flags remaining
-          else flag :: unfold (flags lxor uflag) remaining
+          let uflag = f flag in
+          if equal (flags land uflag) zero then unfold f flags remaining
+          else flag :: unfold f (flags lxor uflag) remaining
   in
   let gpu_direct_rdma_flush_writes_options = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute gpu_direct_rdma_flush_writes_options
        CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_FLUSH_WRITES_OPTIONS device;
   let gpu_direct_rdma_flush_writes_options =
-    unfold !@gpu_direct_rdma_flush_writes_options [ HOST; MEMOPS ]
+    unfold int_of_flush_GPU_direct_RDMA_writes_options
+      !@gpu_direct_rdma_flush_writes_options
+      [ HOST; MEMOPS ]
   in
   let gpu_direct_rdma_writes_ordering = allocate int 0 in
   check "cu_device_get_attribute"
@@ -1295,8 +1309,11 @@ let device_get_attributes device =
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute mempool_supported_handle_types
        CU_DEVICE_ATTRIBUTE_MEMPOOL_SUPPORTED_HANDLE_TYPES device;
-  (* TODO: flesh out as a separate type. *)
-  let mempool_supported_handle_types = !@mempool_supported_handle_types in
+  let mempool_supported_handle_types =
+    unfold int_of_mem_allocation_handle_type !@mempool_supported_handle_types
+      [ NONE; POSIX_FILE_DESCRIPTOR; WIN32; WIN32_KMT; FABRIC ]
+  in
+
   let cluster_launch = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute cluster_launch CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH device;

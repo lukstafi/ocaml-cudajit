@@ -348,6 +348,16 @@ type cu_flush_GPU_direct_RDMA_writes_options =
   | CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_UNCATEGORIZED of int64
 [@@deriving sexp]
 
+type cu_mem_allocation_handle_type =
+  | CU_MEM_HANDLE_TYPE_NONE
+  | CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR
+  | CU_MEM_HANDLE_TYPE_WIN32
+  | CU_MEM_HANDLE_TYPE_WIN32_KMT
+  | CU_MEM_HANDLE_TYPE_FABRIC
+  | CU_MEM_HANDLE_TYPE_MAX
+  | CU_MEM_HANDLE_TYPE_UNCATEGORIZED of int64
+[@@deriving sexp]
+
 type cu_limit =
   | CU_LIMIT_STACK_SIZE
   | CU_LIMIT_PRINTF_FIFO_SIZE
@@ -1299,11 +1309,11 @@ module Types (T : Ctypes.TYPE) = struct
         ( CU_DEVICE_ATTRIBUTE_CAN_USE_HOST_POINTER_FOR_REGISTERED_MEM,
           cu_device_attribute_can_use_host_pointer_for_registered_mem );
         (* ( CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_MEM_OPS_V1,
-             cu_device_attribute_can_use_stream_mem_ops_v1 );
-           ( CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS_V1,
-             cu_device_attribute_can_use_64_bit_stream_mem_ops_v1 );
-           ( CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR_V1,
-             cu_device_attribute_can_use_stream_wait_value_nor_v1 ); *)
+           cu_device_attribute_can_use_stream_mem_ops_v1 ); (
+           CU_DEVICE_ATTRIBUTE_CAN_USE_64_BIT_STREAM_MEM_OPS_V1,
+           cu_device_attribute_can_use_64_bit_stream_mem_ops_v1 ); (
+           CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_WAIT_VALUE_NOR_V1,
+           cu_device_attribute_can_use_stream_wait_value_nor_v1 ); *)
         (CU_DEVICE_ATTRIBUTE_COOPERATIVE_LAUNCH, cu_device_attribute_cooperative_launch);
         ( CU_DEVICE_ATTRIBUTE_COOPERATIVE_MULTI_DEVICE_LAUNCH,
           cu_device_attribute_cooperative_multi_device_launch );
@@ -1427,6 +1437,29 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_HOST, cu_flush_gpu_direct_rdma_writes_option_host);
         ( CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_MEMOPS,
           cu_flush_gpu_direct_rdma_writes_option_memops );
+      ]
+
+  let cu_mem_handle_type_none = T.constant "CU_MEM_HANDLE_TYPE_NONE" T.int64_t
+
+  let cu_mem_handle_type_posix_file_descriptor =
+    T.constant "CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR" T.int64_t
+
+  let cu_mem_handle_type_win32 = T.constant "CU_MEM_HANDLE_TYPE_WIN32" T.int64_t
+  let cu_mem_handle_type_win32_kmt = T.constant "CU_MEM_HANDLE_TYPE_WIN32_KMT" T.int64_t
+  let cu_mem_handle_type_fabric = T.constant "CU_MEM_HANDLE_TYPE_FABRIC" T.int64_t
+  let cu_mem_handle_type_max = T.constant "CU_MEM_HANDLE_TYPE_MAX" T.int64_t
+
+  let cu_mem_allocation_handle_type =
+    T.enum ~typedef:true
+      ~unexpected:(fun error_code -> CU_MEM_HANDLE_TYPE_UNCATEGORIZED error_code)
+      "CUmemAllocationHandleType"
+      [
+        (CU_MEM_HANDLE_TYPE_NONE, cu_mem_handle_type_none);
+        (CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR, cu_mem_handle_type_posix_file_descriptor);
+        (CU_MEM_HANDLE_TYPE_WIN32, cu_mem_handle_type_win32);
+        (CU_MEM_HANDLE_TYPE_WIN32_KMT, cu_mem_handle_type_win32_kmt);
+        (CU_MEM_HANDLE_TYPE_FABRIC, cu_mem_handle_type_fabric);
+        (CU_MEM_HANDLE_TYPE_MAX, cu_mem_handle_type_max);
       ]
 
   let cu_limit_stack_size = T.constant "CU_LIMIT_STACK_SIZE" T.int64_t
