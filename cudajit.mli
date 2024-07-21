@@ -679,13 +679,29 @@ type device_attributes = {
       cuDeviceGetAttribute}. *)
 
 val device_get_attributes : device -> device_attributes
-(** See {{:}}. *)
+(** Populates all the device attributes. See
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g9c3e1414f0ad901d3278a4d6645fc266}
+      cuDeviceGetAttribute}. *)
 
-type limit
-(** See {{:}}. *)
+(** See
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge24c2d4214af24139020f1aecaf32665}
+      enum CUlimit}. *)
+type limit =
+  | STACK_SIZE
+  | PRINTF_FIFO_SIZE
+  | MALLOC_HEAP_SIZE
+  | DEV_RUNTIME_SYNC_DEPTH  (** GPU device runtime launch synchronize depth. *)
+  | DEV_RUNTIME_PENDING_LAUNCH_COUNT
+  | MAX_L2_FETCH_GRANULARITY  (** Between 0 and 128, in bytes, it is a hint. *)
+  | PERSISTING_L2_CACHE_SIZE
+[@@deriving sexp]
 
 val ctx_set_limit : limit -> int -> unit
-(** See {{:}}. *)
+(** See
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g0651954dfb9788173e60a9af7201e65a}
+      cuCtxSetLimit}. *)
 
-val ctx_get_limit : limit -> Unsigned.size_t
-(** See {{:}}. *)
+val ctx_get_limit : limit -> int
+(** See
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g9f2d47d1745752aa16da7ed0d111b6a8}
+      cuCtxGetLimit}. *)

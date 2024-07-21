@@ -1469,14 +1469,35 @@ let device_get_attributes device =
     multicast_supported;
   }
 
+type limit =
+  | STACK_SIZE
+  | PRINTF_FIFO_SIZE
+  | MALLOC_HEAP_SIZE
+  | DEV_RUNTIME_SYNC_DEPTH
+  | DEV_RUNTIME_PENDING_LAUNCH_COUNT
+  | MAX_L2_FETCH_GRANULARITY
+  | PERSISTING_L2_CACHE_SIZE
+[@@deriving sexp]
+
+let cu_of_limit = function
+  | STACK_SIZE -> CU_LIMIT_STACK_SIZE
+  | PRINTF_FIFO_SIZE -> CU_LIMIT_PRINTF_FIFO_SIZE
+  | MALLOC_HEAP_SIZE -> CU_LIMIT_MALLOC_HEAP_SIZE
+  | DEV_RUNTIME_SYNC_DEPTH -> CU_LIMIT_DEV_RUNTIME_SYNC_DEPTH
+  | DEV_RUNTIME_PENDING_LAUNCH_COUNT -> CU_LIMIT_DEV_RUNTIME_PENDING_LAUNCH_COUNT
+  | MAX_L2_FETCH_GRANULARITY -> CU_LIMIT_MAX_L2_FETCH_GRANULARITY
+  | PERSISTING_L2_CACHE_SIZE -> CU_LIMIT_PERSISTING_L2_CACHE_SIZE
+
 let ctx_set_limit limit value =
-  check "cu_ctx_set_limit" @@ Cuda.cu_ctx_set_limit limit @@ Unsigned.Size_t.of_int value
+  check "cu_ctx_set_limit"
+  @@ Cuda.cu_ctx_set_limit (cu_of_limit limit)
+  @@ Unsigned.Size_t.of_int value
 
 let ctx_get_limit limit =
   let open Ctypes in
   let value = allocate size_t Unsigned.Size_t.zero in
-  check "cu_ctx_set_limit" @@ Cuda.cu_ctx_get_limit value limit;
-  !@value
+  check "cu_ctx_set_limit" @@ Cuda.cu_ctx_get_limit value (cu_of_limit limit);
+  Unsigned.Size_t.to_int !@value
 
 type attach_mem = GLOBAL | HOST | SINGLE_stream [@@deriving sexp]
 
@@ -1538,7 +1559,6 @@ let stream_synchronize stream =
 type context = cu_context
 type func = cu_function
 type module_ = cu_module
-type limit = cu_limit
 type device = cu_device
 type nonrec nvrtc_result = Nvrtc_ffi.Bindings_types.nvrtc_result [@@deriving sexp]
 type cuda_result = Cuda_ffi.Bindings_types.cu_result [@@deriving sexp]
