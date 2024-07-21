@@ -604,11 +604,11 @@ let computemode_of_cu = function
   | CU_COMPUTEMODE_EXCLUSIVE_PROCESS -> EXCLUSIVE_PROCESS
   | CU_COMPUTEMODE_UNCATEGORIZED i -> invalid_arg @@ "Unknown computemode: " ^ Int64.to_string i
 
-let _flush_GPU_direct_RDMA_writes_options_of_cu = function
-  | CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_HOST -> HOST
-  | CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_MEMOPS -> MEMOPS
-  | CU_FLUSH_GPU_DIRECT_RDMA_WRITES_OPTION_UNCATEGORIZED i ->
-      invalid_arg @@ "Unknown flush_GPU_direct_RDMA_writes_options: " ^ Int64.to_string i
+let int_of_flush_GPU_direct_RDMA_writes_options =
+  let open Cuda_ffi.Types_generated in
+  function
+  | HOST -> Int64.to_int cu_flush_gpu_direct_rdma_writes_option_host
+  | MEMOPS -> Int64.to_int cu_flush_gpu_direct_rdma_writes_option_memops
 
 type device_attributes = {
   name : string;
@@ -822,7 +822,7 @@ let device_get_attributes device =
   let can_map_host_memory = 0 <> !@can_map_host_memory in
   let compute_mode = allocate int 0 in
   check "cu_device_get_attribute"
-  @@ Cuda.cu_device_get_attribute compute_mode CU_DEVICE_ATTRIBUTE_CAN_MAP_HOST_MEMORY device;
+  @@ Cuda.cu_device_get_attribute compute_mode CU_DEVICE_ATTRIBUTE_COMPUTE_MODE device;
   let compute_mode = computemode_of_cu @@ Cuda.cu_computemode_of_int !@compute_mode in
   let maximum_texture1d_width = allocate int 0 in
   check "cu_device_get_attribute"
@@ -1264,8 +1264,26 @@ let device_get_attributes device =
   @@ Cuda.cu_device_get_attribute gpu_direct_rdma_supported
        CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_SUPPORTED device;
   let gpu_direct_rdma_supported = 0 <> !@gpu_direct_rdma_supported in
-  (* FIXME: populate gpu_direct_rdma_flush_writes_options *)
-  let gpu_direct_rdma_flush_writes_options = [] in
+  let rec unfold flags remaining =
+    let open Int in
+    match remaining with
+    | [] ->
+        if not (equal flags zero) then failwith @@ "ctx_get_flags: unknown flag " ^ to_string flags
+        else []
+    | flag :: remaining ->
+        if equal flags zero then []
+        else
+          let uflag = int_of_flush_GPU_direct_RDMA_writes_options flag in
+          if equal (flags land uflag) zero then unfold flags remaining
+          else flag :: unfold (flags lxor uflag) remaining
+  in
+  let gpu_direct_rdma_flush_writes_options = allocate int 0 in
+  check "cu_device_get_attribute"
+  @@ Cuda.cu_device_get_attribute gpu_direct_rdma_flush_writes_options
+       CU_DEVICE_ATTRIBUTE_GPU_DIRECT_RDMA_FLUSH_WRITES_OPTIONS device;
+  let gpu_direct_rdma_flush_writes_options =
+    unfold !@gpu_direct_rdma_flush_writes_options [ HOST; MEMOPS ]
+  in
   let gpu_direct_rdma_writes_ordering = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute gpu_direct_rdma_writes_ordering
