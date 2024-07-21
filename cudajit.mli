@@ -282,6 +282,7 @@ type kernel_param =
   | Size_t of Unsigned.size_t
   | Single of float  (** Passed as C [float]. *)
   | Double of float  (** Passed as C [double]. *)
+[@@deriving sexp_of]
 
 val no_stream : stream
 (** The NULL stream which is the main synchronization stream of a device. Manages lifetimes of the

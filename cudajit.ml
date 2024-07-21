@@ -415,12 +415,17 @@ let memcpy_H_to_D_async_unsafe ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) ~si
 let memcpy_H_to_D_async ?host_offset ?length ~dst:(Deviceptr dst) ~src =
   memcpy_H_to_D_impl ?host_offset ?length ~dst:(Deviceptr dst) ~src memcpy_H_to_D_async_unsafe
 
+type size_t = Unsigned.size_t
+
+let sexp_of_size_t i = Sexplib0.Sexp.Atom (Unsigned.Size_t.to_string i)
+
 type kernel_param =
   | Tensor of deviceptr
   | Int of int
-  | Size_t of Unsigned.size_t
+  | Size_t of size_t
   | Single of float
   | Double of float
+[@@deriving sexp_of]
 
 let no_stream = { args_lifetimes = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
