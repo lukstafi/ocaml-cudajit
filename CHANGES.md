@@ -1,9 +1,17 @@
-## [0.4.0] 2024-07-20
+## [0.4.0] 2024-07-21
 
 ### Added
 
 - Previously commented out parts, that require a newer version of the CUDA API.
 - Interface file `cudajit.mli` with documentation.
+- Expose context limits. Print default limits in `bin/properties`.
+- `sexp_of_kernel_param`
+
+### Changed
+
+- Dropped `JIT_` prefix for `jit_option` values.
+- Self-contained types in the interface, with some corrections and renaming.
+- Formatting: line length 100.
 
 ### Fixed
 
