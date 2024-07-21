@@ -720,7 +720,7 @@ type device_attributes = {
   gpu_direct_rdma_supported : bool;
   gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
   gpu_direct_rdma_writes_ordering : bool;
-  mempool_supported_handle_types : int64;
+  mempool_supported_handle_types : int;
   cluster_launch : bool;
   deferred_mapping_cuda_array_supported : bool;
   can_use_64_bit_stream_mem_ops : bool;

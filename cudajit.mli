@@ -658,7 +658,7 @@ type device_attributes = {
       (** See {{:https://docs.nvidia.com/cuda/gpudirect-rdma/} GPUDirect RDMA}. *)
   gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
   gpu_direct_rdma_writes_ordering : bool;
-  mempool_supported_handle_types : int64;
+  mempool_supported_handle_types : int;
       (** Bitmask of handle types supported with mempool based IPC. TODO: flesh out as a separate
           type. *)
   cluster_launch : bool;
