@@ -2,6 +2,8 @@
 
 Bindings to the NVIDIA `cuda` and `nvrtc` libraries with a unified interface.
 
+Requires a recent version of CUDA.
+
 Paraphrased from the [SAXPY example](test/saxpy.ml):
 
 ```ocaml

@@ -89,7 +89,7 @@ type ctx_flag =
   | SCHED_YIELD
   | SCHED_BLOCKING_SYNC
   | SCHED_MASK
-  | MAP_HOST  (** MAP_HOST is deprecated: it is always present regardless of passed config. *)
+  | MAP_HOST
   | LMEM_RESIZE_TO_MAX
   | COREDUMP_ENABLE
   | USER_COREDUMP_ENABLE
@@ -312,8 +312,7 @@ let module_load_data_ex ptx options =
            | THREADS_PER_BLOCK _ -> [ CU_JIT_THREADS_PER_BLOCK ]
            | WALL_TIME _ -> [ CU_JIT_WALL_TIME ]
            | INFO_LOG_BUFFER _ -> [ CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES; CU_JIT_INFO_LOG_BUFFER ]
-           | ERROR_LOG_BUFFER _ ->
-               [ CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES; CU_JIT_ERROR_LOG_BUFFER ]
+           | ERROR_LOG_BUFFER _ -> [ CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES; CU_JIT_ERROR_LOG_BUFFER ]
            | OPTIMIZATION_LEVEL _ -> [ CU_JIT_OPTIMIZATION_LEVEL ]
            | TARGET_FROM_CUCONTEXT -> [ CU_JIT_TARGET_FROM_CUCONTEXT ]
            | TARGET _ -> [ CU_JIT_TARGET ]
@@ -368,9 +367,7 @@ let module_get_function module_ ~name =
   check "cu_module_get_function" @@ Cuda.cu_module_get_function func module_ name;
   !@func
 
-type deviceptr =
-  | Deviceptr of Unsigned.uint64
-      (** A pointer to an array on a device. (Not a pointer to a device!) *)
+type deviceptr = Deviceptr of Unsigned.uint64
 
 let string_of_deviceptr (Deviceptr id) = Unsigned.UInt64.to_hexstring id
 let sexp_of_deviceptr ptr = Sexplib0.Sexp.Atom (string_of_deviceptr ptr)
@@ -496,12 +493,10 @@ let get_size_in_bytes ?kind ?length ?size_in_bytes provenance =
       invalid_arg @@ provenance
       ^ ": Too few arguments, provide either both [kind] and [length], or just [size_in_bytes]."
 
-(** Provide either both [kind] and [length], or just [size_in_bytes]. *)
 let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) () =
   let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D" in
   check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src @@ Unsigned.Size_t.of_int size_in_bytes
 
-(** Provide either both [kind] and [length], or just [size_in_bytes]. *)
 let memcpy_D_to_D_async ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src)
     stream =
   let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D_async" in
@@ -610,6 +605,8 @@ let int_of_flush_GPU_direct_RDMA_writes_options =
   | HOST -> Int64.to_int cu_flush_gpu_direct_rdma_writes_option_host
   | MEMOPS -> Int64.to_int cu_flush_gpu_direct_rdma_writes_option_memops
 
+(* TODO: export CUmemAllocationHandleType to use in mempool_supported_handle_types. *)
+
 type device_attributes = {
   name : string;
   max_threads_per_block : int;
@@ -619,12 +616,12 @@ type device_attributes = {
   max_grid_dim_x : int;
   max_grid_dim_y : int;
   max_grid_dim_z : int;
-  max_shared_memory_per_block : int;  (** In bytes. *)
-  total_constant_memory : int;  (** In bytes. *)
-  warp_size : int;  (** In threads. *)
-  max_pitch : int;  (** In bytes. *)
-  max_registers_per_block : int;  (** 32-bit registers. *)
-  clock_rate : int;  (** In kilohertz. *)
+  max_shared_memory_per_block : int;
+  total_constant_memory : int;
+  warp_size : int;
+  max_pitch : int;
+  max_registers_per_block : int;
+  clock_rate : int;
   texture_alignment : int;
   multiprocessor_count : int;
   kernel_exec_timeout : bool;
@@ -646,9 +643,9 @@ type device_attributes = {
   pci_bus_id : int;
   pci_device_id : int;
   tcc_driver : bool;
-  memory_clock_rate : int;  (** In kilohertz. *)
-  global_memory_bus_width : int;  (** In bits. *)
-  l2_cache_size : int;  (** In bytes. *)
+  memory_clock_rate : int;
+  global_memory_bus_width : int;
+  l2_cache_size : int;
   max_threads_per_multiprocessor : int;
   async_engine_count : int;
   unified_addressing : bool;
@@ -680,7 +677,7 @@ type device_attributes = {
   maximum_surfacecubemap_layered_layers : int;
   maximum_texture2d_linear_width : int;
   maximum_texture2d_linear_height : int;
-  maximum_texture2d_linear_pitch : int;  (** In bytes. *)
+  maximum_texture2d_linear_pitch : int;
   maximum_texture2d_mipmapped_width : int;
   maximum_texture2d_mipmapped_height : int;
   compute_capability_major : int;
@@ -689,8 +686,8 @@ type device_attributes = {
   stream_priorities_supported : bool;
   global_l1_cache_supported : bool;
   local_l1_cache_supported : bool;
-  max_shared_memory_per_multiprocessor : int;  (** In bytes. *)
-  max_registers_per_multiprocessor : int;  (** 32-bit registers. *)
+  max_shared_memory_per_multiprocessor : int;
+  max_registers_per_multiprocessor : int;
   managed_memory : bool;
   multi_gpu_board : bool;
   multi_gpu_board_group_id : int;
@@ -712,10 +709,10 @@ type device_attributes = {
   handle_type_win32_kmt_handle_supported : bool;
   max_blocks_per_multiprocessor : int;
   generic_compression_supported : bool;
-  max_persisting_l2_cache_size : int;  (** In bytes. *)
-  max_access_policy_window_size : int;  (** For [CUaccessPolicyWindow::num_bytes]. *)
+  max_persisting_l2_cache_size : int;
+  max_access_policy_window_size : int;
   gpu_direct_rdma_with_cuda_vmm_supported : bool;
-  reserved_shared_memory_per_block : int;  (** In bytes. *)
+  reserved_shared_memory_per_block : int;
   sparse_cuda_array_supported : bool;
   read_only_host_register_supported : bool;
   timeline_semaphore_interop_supported : bool;
@@ -723,7 +720,7 @@ type device_attributes = {
   gpu_direct_rdma_supported : bool;
   gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
   gpu_direct_rdma_writes_ordering : bool;
-  mempool_supported_handle_types : bool;
+  mempool_supported_handle_types : int64;
   cluster_launch : bool;
   deferred_mapping_cuda_array_supported : bool;
   can_use_64_bit_stream_mem_ops : bool;
@@ -1293,7 +1290,8 @@ let device_get_attributes device =
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute mempool_supported_handle_types
        CU_DEVICE_ATTRIBUTE_MEMPOOL_SUPPORTED_HANDLE_TYPES device;
-  let mempool_supported_handle_types = 0 <> !@mempool_supported_handle_types in
+  (* TODO: flesh out as a separate type. *)
+  let mempool_supported_handle_types = !@mempool_supported_handle_types in
   let cluster_launch = allocate int 0 in
   check "cu_device_get_attribute"
   @@ Cuda.cu_device_get_attribute cluster_launch CU_DEVICE_ATTRIBUTE_CLUSTER_LAUNCH device;
@@ -1475,14 +1473,14 @@ let ctx_get_limit limit =
   check "cu_ctx_set_limit" @@ Cuda.cu_ctx_get_limit value limit;
   !@value
 
-type attach_mem = Mem_global | Mem_host | Mem_single_stream [@@deriving sexp]
+type attach_mem = GLOBAL | HOST | SINGLE_stream [@@deriving sexp]
 
 let uint_of_attach_mem f =
   let open Cuda_ffi.Types_generated in
   match f with
-  | Mem_global -> Unsigned.UInt.of_int64 cu_mem_attach_global
-  | Mem_host -> Unsigned.UInt.of_int64 cu_mem_attach_host
-  | Mem_single_stream -> Unsigned.UInt.of_int64 cu_mem_attach_single
+  | GLOBAL -> Unsigned.UInt.of_int64 cu_mem_attach_global
+  | HOST -> Unsigned.UInt.of_int64 cu_mem_attach_host
+  | SINGLE_stream -> Unsigned.UInt.of_int64 cu_mem_attach_single
 
 let stream_attach_mem_async stream (Deviceptr device) length flag =
   check "cu_stream_attach_mem_async"

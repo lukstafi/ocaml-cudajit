@@ -3,7 +3,7 @@
 ### Added
 
 - Previously commented out parts, that require a newer version of the CUDA API.
-- TODO: Interface file `cudajit.mli`.
+- Interface file `cudajit.mli` with documentation.
 
 ### Fixed
 
