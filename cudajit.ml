@@ -217,20 +217,20 @@ type jit_cache_mode = NONE | CG | CA [@@deriving sexp]
 
 (* Note: bool corresponds to C int (0=false). *)
 type jit_option =
-  | JIT_MAX_REGISTERS of int
-  | JIT_THREADS_PER_BLOCK of int
-  | JIT_WALL_TIME of { milliseconds : float }
-  | JIT_INFO_LOG_BUFFER of (bigstring[@sexp.opaque])
-  | JIT_ERROR_LOG_BUFFER of (bigstring[@sexp.opaque])
-  | JIT_OPTIMIZATION_LEVEL of int
-  | JIT_TARGET_FROM_CUCONTEXT
-  | JIT_TARGET of jit_target
-  | JIT_FALLBACK_STRATEGY of jit_fallback
-  | JIT_GENERATE_DEBUG_INFO of bool
-  | JIT_LOG_VERBOSE of bool
-  | JIT_GENERATE_LINE_INFO of bool
-  | JIT_CACHE_MODE of jit_cache_mode
-  | JIT_POSITION_INDEPENDENT_CODE of bool
+  | MAX_REGISTERS of int
+  | THREADS_PER_BLOCK of int
+  | WALL_TIME of { milliseconds : float }
+  | INFO_LOG_BUFFER of (bigstring[@sexp.opaque])
+  | ERROR_LOG_BUFFER of (bigstring[@sexp.opaque])
+  | OPTIMIZATION_LEVEL of int
+  | TARGET_FROM_CUCONTEXT
+  | TARGET of jit_target
+  | FALLBACK_STRATEGY of jit_fallback
+  | GENERATE_DEBUG_INFO of bool
+  | LOG_VERBOSE of bool
+  | GENERATE_LINE_INFO of bool
+  | CACHE_MODE of jit_cache_mode
+  | POSITION_INDEPENDENT_CODE of bool
 [@@deriving sexp]
 
 let cu_jit_target_of = function
@@ -308,21 +308,21 @@ let module_load_data_ex ptx options =
     CArray.of_list Cuda_ffi.Types_generated.cu_jit_option
     @@ List.concat_map
          (function
-           | JIT_MAX_REGISTERS _ -> [ CU_JIT_MAX_REGISTERS ]
-           | JIT_THREADS_PER_BLOCK _ -> [ CU_JIT_THREADS_PER_BLOCK ]
-           | JIT_WALL_TIME _ -> [ CU_JIT_WALL_TIME ]
-           | JIT_INFO_LOG_BUFFER _ -> [ CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES; CU_JIT_INFO_LOG_BUFFER ]
-           | JIT_ERROR_LOG_BUFFER _ ->
+           | MAX_REGISTERS _ -> [ CU_JIT_MAX_REGISTERS ]
+           | THREADS_PER_BLOCK _ -> [ CU_JIT_THREADS_PER_BLOCK ]
+           | WALL_TIME _ -> [ CU_JIT_WALL_TIME ]
+           | INFO_LOG_BUFFER _ -> [ CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES; CU_JIT_INFO_LOG_BUFFER ]
+           | ERROR_LOG_BUFFER _ ->
                [ CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES; CU_JIT_ERROR_LOG_BUFFER ]
-           | JIT_OPTIMIZATION_LEVEL _ -> [ CU_JIT_OPTIMIZATION_LEVEL ]
-           | JIT_TARGET_FROM_CUCONTEXT -> [ CU_JIT_TARGET_FROM_CUCONTEXT ]
-           | JIT_TARGET _ -> [ CU_JIT_TARGET ]
-           | JIT_FALLBACK_STRATEGY _ -> [ CU_JIT_FALLBACK_STRATEGY ]
-           | JIT_GENERATE_DEBUG_INFO _ -> [ CU_JIT_GENERATE_DEBUG_INFO ]
-           | JIT_LOG_VERBOSE _ -> [ CU_JIT_LOG_VERBOSE ]
-           | JIT_GENERATE_LINE_INFO _ -> [ CU_JIT_GENERATE_LINE_INFO ]
-           | JIT_CACHE_MODE _ -> [ CU_JIT_CACHE_MODE ]
-           | JIT_POSITION_INDEPENDENT_CODE _ -> [ CU_JIT_POSITION_INDEPENDENT_CODE ])
+           | OPTIMIZATION_LEVEL _ -> [ CU_JIT_OPTIMIZATION_LEVEL ]
+           | TARGET_FROM_CUCONTEXT -> [ CU_JIT_TARGET_FROM_CUCONTEXT ]
+           | TARGET _ -> [ CU_JIT_TARGET ]
+           | FALLBACK_STRATEGY _ -> [ CU_JIT_FALLBACK_STRATEGY ]
+           | GENERATE_DEBUG_INFO _ -> [ CU_JIT_GENERATE_DEBUG_INFO ]
+           | LOG_VERBOSE _ -> [ CU_JIT_LOG_VERBOSE ]
+           | GENERATE_LINE_INFO _ -> [ CU_JIT_GENERATE_LINE_INFO ]
+           | CACHE_MODE _ -> [ CU_JIT_CACHE_MODE ]
+           | POSITION_INDEPENDENT_CODE _ -> [ CU_JIT_POSITION_INDEPENDENT_CODE ])
          options
   in
   let i2u2vp i = coerce (ptr uint) (ptr void) @@ allocate uint @@ Unsigned.UInt.of_int i in
@@ -335,24 +335,24 @@ let module_load_data_ex ptx options =
     CArray.of_list (ptr void)
     @@ List.concat_map
          (function
-           | JIT_MAX_REGISTERS v -> [ i2u2vp v ]
-           | JIT_THREADS_PER_BLOCK v -> [ i2u2vp v ]
-           | JIT_WALL_TIME { milliseconds } -> [ f2vp milliseconds ]
-           | JIT_INFO_LOG_BUFFER b ->
+           | MAX_REGISTERS v -> [ i2u2vp v ]
+           | THREADS_PER_BLOCK v -> [ i2u2vp v ]
+           | WALL_TIME { milliseconds } -> [ f2vp milliseconds ]
+           | INFO_LOG_BUFFER b ->
                let size = u2vp @@ Unsigned.UInt.of_int @@ Bigarray.Array1.size_in_bytes b in
                [ size; ba2vp b ]
-           | JIT_ERROR_LOG_BUFFER b ->
+           | ERROR_LOG_BUFFER b ->
                let size = u2vp @@ Unsigned.UInt.of_int @@ Bigarray.Array1.size_in_bytes b in
                [ size; ba2vp b ]
-           | JIT_OPTIMIZATION_LEVEL i -> [ i2vp i ]
-           | JIT_TARGET_FROM_CUCONTEXT -> [ null ]
-           | JIT_TARGET t -> [ u2vp @@ uint_of_cu_jit_target @@ cu_jit_target_of t ]
-           | JIT_FALLBACK_STRATEGY t -> [ u2vp @@ uint_of_cu_jit_fallback @@ cu_jit_fallback_of t ]
-           | JIT_GENERATE_DEBUG_INFO c -> [ bi2vp c ]
-           | JIT_LOG_VERBOSE c -> [ bi2vp c ]
-           | JIT_GENERATE_LINE_INFO c -> [ bi2vp c ]
-           | JIT_CACHE_MODE t -> [ u2vp @@ uint_of_cu_jit_cache_mode @@ cu_jit_cache_mode_of t ]
-           | JIT_POSITION_INDEPENDENT_CODE c -> [ bi2vp c ])
+           | OPTIMIZATION_LEVEL i -> [ i2vp i ]
+           | TARGET_FROM_CUCONTEXT -> [ null ]
+           | TARGET t -> [ u2vp @@ uint_of_cu_jit_target @@ cu_jit_target_of t ]
+           | FALLBACK_STRATEGY t -> [ u2vp @@ uint_of_cu_jit_fallback @@ cu_jit_fallback_of t ]
+           | GENERATE_DEBUG_INFO c -> [ bi2vp c ]
+           | LOG_VERBOSE c -> [ bi2vp c ]
+           | GENERATE_LINE_INFO c -> [ bi2vp c ]
+           | CACHE_MODE t -> [ u2vp @@ uint_of_cu_jit_cache_mode @@ cu_jit_cache_mode_of t ]
+           | POSITION_INDEPENDENT_CODE c -> [ bi2vp c ])
          options
   in
   check "cu_module_load_data_ex"

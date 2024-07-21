@@ -74,20 +74,20 @@ type jit_fallback = PREFER_PTX | PREFER_BINARY [@@deriving sexp]
 type jit_cache_mode = NONE | CG | CA [@@deriving sexp]
 
 type jit_option =
-  | JIT_MAX_REGISTERS of int
-  | JIT_THREADS_PER_BLOCK of int
-  | JIT_WALL_TIME of { milliseconds : float }
-  | JIT_INFO_LOG_BUFFER of bigstring
-  | JIT_ERROR_LOG_BUFFER of bigstring
-  | JIT_OPTIMIZATION_LEVEL of int
-  | JIT_TARGET_FROM_CUCONTEXT
-  | JIT_TARGET of jit_target
-  | JIT_FALLBACK_STRATEGY of jit_fallback
-  | JIT_GENERATE_DEBUG_INFO of bool
-  | JIT_LOG_VERBOSE of bool
-  | JIT_GENERATE_LINE_INFO of bool
-  | JIT_CACHE_MODE of jit_cache_mode
-  | JIT_POSITION_INDEPENDENT_CODE of bool
+  | MAX_REGISTERS of int
+  | THREADS_PER_BLOCK of int
+  | WALL_TIME of { milliseconds : float }
+  | INFO_LOG_BUFFER of bigstring
+  | ERROR_LOG_BUFFER of bigstring
+  | OPTIMIZATION_LEVEL of int
+  | TARGET_FROM_CUCONTEXT
+  | TARGET of jit_target
+  | FALLBACK_STRATEGY of jit_fallback
+  | GENERATE_DEBUG_INFO of bool
+  | LOG_VERBOSE of bool
+  | GENERATE_LINE_INFO of bool
+  | CACHE_MODE of jit_cache_mode
+  | POSITION_INDEPENDENT_CODE of bool
 [@@deriving sexp]
 
 val module_load_data_ex : compile_to_ptx_result -> jit_option list -> module_
