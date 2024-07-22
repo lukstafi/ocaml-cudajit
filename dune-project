@@ -27,9 +27,11 @@
  (description
   "Bindings to manually selected parts of `lcuda` and `lnvrtc`, with a few types and conversion functions to facilitate use.")
  (depends
-  ocaml
+  (ocaml
+   (>= 4.08))
   dune
-  ctypes
+  (ctypes
+   (>= 0.14.0))
   ctypes-foreign
   sexplib0
   ppx_sexp_conv
