@@ -441,7 +441,7 @@ val module_unload : module_ -> unit
 
 val ctx_destroy : context -> unit
 (** See
-    {:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}. *)
+    {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}ctxDestroy}. *)
 
 (** See
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g17c5d5f9b585aa2d6f121847d1a78f4c}
