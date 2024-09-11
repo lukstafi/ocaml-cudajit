@@ -31,7 +31,9 @@ val compile_to_ptx :
       nvrtcGetPTX}. If you store [cu_src] as a file, pass the file name including the extension as
     [name]. [options] can include for example ["--use_fast_math"] or ["--device-debug"]. If
     [with_debug] is [true], the compilation log is included even in case of compilation success (see
-    {!compilation_log}). *)
+    {!compilation_log}).
+
+    NOTE: [compile_to_ptx] prepends the CUDA include path to [options], so you don't need to. *)
 
 val string_from_ptx : compile_to_ptx_result -> string
 (** The stored PTX (i.e. NVIDIA assembly language) source, see
@@ -441,7 +443,8 @@ val module_unload : module_ -> unit
 
 val ctx_destroy : context -> unit
 (** See
-    {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}ctxDestroy}. *)
+    {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}
+      ctxDestroy}. *)
 
 (** See
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g17c5d5f9b585aa2d6f121847d1a78f4c}

@@ -42,4 +42,6 @@ let () =
 You can see how a kernel is compiled and launched, how on-device tensors are created, retrieved to host
 (i.e. the CPU), and released.
 
+Note that you don't need to add the include path to the `compile_to_ptx` options.
+
 [Automatically generated API docs.](https://lukstafi.github.io/ocaml-cudajit/cudajit/index.html)

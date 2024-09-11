@@ -23,7 +23,13 @@ type compile_to_ptx_result = { log : string option; ptx : char Ctypes.ptr; ptx_l
 let compile_to_ptx ~cu_src ~name ~options ~with_debug =
   let open Ctypes in
   let prog = allocate_n nvrtc_program ~count:1 in
-  (* TODO: support headers / includes in the cuda sources. *)
+  (* We can add the include at the library level, because conf-cuda sets CUDA_PATH if it is missing
+     but the information is available. *)
+  let default =
+    if Sys.win32 then "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA" else "/usr/local/cuda"
+  in
+  let cuda_path = Sys.getenv_opt "CUDA_PATH" |> Option.value ~default in
+  let options = ("-I" ^ Filename.concat cuda_path "include") :: options in
   let status =
     Nvrtc.nvrtc_create_program prog cu_src name 0 (from_voidp string null) (from_voidp string null)
   in

@@ -1,3 +1,9 @@
+## [0.4.1] current
+
+### Fixed
+
+- Pass the $CUDA_PATH/include path to the nvrtc compiler; otherwise it will not `#include` anything.
+
 ## [0.4.0] 2024-07-21
 
 ### Added
