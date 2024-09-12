@@ -3,6 +3,7 @@
 ### Fixed
 
 - Pass the $CUDA_PATH/include path to the nvrtc compiler; otherwise it will not `#include` anything.
+- Work around `Ctypes.bigarray_start` because it does not support half precision.
 
 ## [0.4.0] 2024-07-21
 
