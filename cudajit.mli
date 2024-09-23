@@ -1,5 +1,7 @@
 (** Bindings to the NVIDIA `cuda` and `nvrtc` libraries. *)
 
+(** NVRTC is a runtime compilation library for CUDA C++. See:
+    {{:https://docs.nvidia.com/cuda/nvrtc/index.html} The User guide for the NVRTC library}. *)
 module Nvrtc : sig
   type result [@@deriving sexp]
   (** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}. *)
@@ -55,6 +57,11 @@ val init : ?flags:int -> unit -> unit
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__INITIALIZE.html#group__CUDA__INITIALIZE_1g0a2f1517e1bd8502c7194c3a8c134bc3}
       cuInit}. *)
 
+(** Managing a CUDA GPU device and its primary context. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE}
+      Device Management} and
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX}
+      Primary Context Management}. *)
 module Device : sig
   type t
   (** See
@@ -246,6 +253,9 @@ module Device : sig
         cuDeviceGetAttribute}. *)
 end
 
+(** All CUDA tasks are run under a context, usually under the current context. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX} Context
+      Management}. *)
 module Context : sig
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g9f889e28a45a295b5c8ce13aa05f6cd4}
@@ -359,6 +369,10 @@ end
 
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
+(** This module introduces the type of pointers into on-device global memory, and stream-independent
+    memory management functions. All functions from this module run synchronously. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM} Memory
+      Management}. *)
 module Deviceptr : sig
   type t [@@deriving sexp_of]
   (** A pointer to a memory location on a device. See
@@ -466,6 +480,9 @@ module Deviceptr : sig
         cuMemsetD32}. *)
 end
 
+(** A CUDA module type represents CUDA code that's ready to execute, i.e. is loaded. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE}
+      Module Management}. *)
 module Module : sig
   (** Compute device classes. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge443308cb7ed1d52b85b487305779184}
@@ -560,6 +577,10 @@ module Module : sig
         cuModuleGetGlobal}. *)
 end
 
+(** CUDA streams are independent FIFO schedules for CUDA tasks, allowing them to potentially run in
+    parallel. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM}
+      Stream Management}. *)
 module Stream : sig
   type t
   (** Stores a stream pointer and manages lifetimes of kernel launch arguments. See
