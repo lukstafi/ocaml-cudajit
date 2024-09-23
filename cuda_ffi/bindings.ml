@@ -94,12 +94,12 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let cu_device_can_access_peer =
     F.foreign "cuDeviceCanAccessPeer"
-      F.(ptr int @-> cu_deviceptr @-> cu_deviceptr @-> returning E.cu_result)
+      F.(ptr int @-> E.cu_device @-> E.cu_device @-> returning E.cu_result)
 
   let cu_device_get_p2p_attribute =
     F.foreign "cuDeviceGetP2PAttribute"
       F.(
-        ptr int @-> cu_deviceptr @-> cu_deviceptr @-> E.cu_device_p2p_attribute
+        ptr int @-> E.cu_device_p2p_attribute @-> E.cu_device @-> E.cu_device
         @-> returning E.cu_result)
 
   let cu_mem_free = F.foreign "cuMemFree" F.(cu_deviceptr @-> returning E.cu_result)

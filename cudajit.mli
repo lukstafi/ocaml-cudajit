@@ -89,6 +89,25 @@ module Device : sig
         cuDevicePrimaryCtxReset}. *)
 
   (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g578d7cf687ce20f7e99468e8c14e22de}
+        CUdevice_P2PAttribute}. *)
+  type p2p_attribute =
+    | PERFORMANCE_RANK of int
+    | ACCESS_SUPPORTED of bool
+    | NATIVE_ATOMIC_SUPPORTED of bool
+    | CUDA_ARRAY_ACCESS_SUPPORTED of bool
+
+  val get_p2p_attributes : dst:t -> src:t -> p2p_attribute list
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g4c55c60508f8eba4546b51f2ee545393}
+        cuDeviceGetP2PAttribute}. *)
+
+  val can_access_peer : dst:t -> src:t -> bool
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g496bdaae1f632ebfb695b99d2c40f19e}
+        cuDeviceCanAccessPeer}. *)
+
+  (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g637aab2eadb52e1c1c048b8bad9592d1}
         CUcomputemode}. *)
   type computemode =
@@ -423,25 +442,6 @@ module Deviceptr : sig
       [length], or just [size_in_bytes]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g1725774abf8b51b91945f3336b778c8b}
         cuMemcpyDtoD}. *)
-
-  (** See
-      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g578d7cf687ce20f7e99468e8c14e22de}
-        CUdevice_P2PAttribute}. *)
-  type p2p_attribute =
-    | PERFORMANCE_RANK of int
-    | ACCESS_SUPPORTED of bool
-    | NATIVE_ATOMIC_SUPPORTED of bool
-    | CUDA_ARRAY_ACCESS_SUPPORTED of bool
-
-  val get_p2p_attributes : dst:t -> src:t -> p2p_attribute list
-  (** See
-      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g4c55c60508f8eba4546b51f2ee545393}
-        cuDeviceGetP2PAttribute}. *)
-
-  val can_access_peer : dst:t -> src:t -> bool
-  (** See
-      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g496bdaae1f632ebfb695b99d2c40f19e}
-        cuDeviceCanAccessPeer}. *)
 
   val memcpy_peer :
     ?kind:('a, 'b) Bigarray.kind ->

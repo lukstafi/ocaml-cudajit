@@ -8,6 +8,10 @@
 
 - Partitioned the API into modules.
 
+### Fixed
+
+- Broken types for `can_access_peer` and `get_p2p_attributes`.
+
 ## [0.4.1] 2024-09-12
 
 ### Fixed

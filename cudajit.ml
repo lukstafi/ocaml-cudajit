@@ -112,6 +112,38 @@ module Device = struct
   type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS [@@deriving sexp]
   type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
 
+  type p2p_attribute =
+    | PERFORMANCE_RANK of int
+    | ACCESS_SUPPORTED of bool
+    | NATIVE_ATOMIC_SUPPORTED of bool
+    | CUDA_ARRAY_ACCESS_SUPPORTED of bool
+
+  let get_p2p_attributes ~dst ~src =
+    let open Ctypes in
+    let result = ref [] in
+    let value = allocate int 0 in
+    check "cu_device_get_p2p_attribute"
+    @@ Cuda.cu_device_get_p2p_attribute value CU_DEVICE_P2P_ATTRIBUTE_PERFORMANCE_RANK dst src;
+    result := PERFORMANCE_RANK !@value :: !result;
+    check "cu_device_get_p2p_attribute"
+    @@ Cuda.cu_device_get_p2p_attribute value CU_DEVICE_P2P_ATTRIBUTE_ACCESS_SUPPORTED dst src;
+    result := ACCESS_SUPPORTED (!@value = 1) :: !result;
+    check "cu_device_get_p2p_attribute"
+    @@ Cuda.cu_device_get_p2p_attribute value CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED dst
+         src;
+    result := NATIVE_ATOMIC_SUPPORTED (!@value = 1) :: !result;
+    check "cu_device_get_p2p_attribute"
+    @@ Cuda.cu_device_get_p2p_attribute value CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED
+         dst src;
+    result := CUDA_ARRAY_ACCESS_SUPPORTED (!@value = 1) :: !result;
+    !result
+
+  let can_access_peer ~dst ~src =
+    let open Ctypes in
+    let can_access_peer = allocate int 0 in
+    check "cu_device_can_access_peer" @@ Cuda.cu_device_can_access_peer can_access_peer dst src;
+    !@can_access_peer <> 0
+
   let computemode_of_cu = function
     | CU_COMPUTEMODE_DEFAULT -> DEFAULT
     | CU_COMPUTEMODE_PROHIBITED -> PROHIBITED
@@ -1048,9 +1080,7 @@ module Context = struct
     let open Ctypes in
     let ctx = allocate_n cu_context ~count:1 in
     let open Unsigned.UInt in
-    let flags =
-      List.fold_left (fun flags flag -> Infix.(flags lor uint_of_flag flag)) zero flags
-    in
+    let flags = List.fold_left (fun flags flag -> Infix.(flags lor uint_of_flag flag)) zero flags in
     check "cu_ctx_create" @@ Cuda.cu_ctx_create ctx flags device;
     !@ctx
 
@@ -1253,38 +1283,6 @@ module Deviceptr = struct
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D" in
     check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src
     @@ Unsigned.Size_t.of_int size_in_bytes
-
-  type p2p_attribute =
-    | PERFORMANCE_RANK of int
-    | ACCESS_SUPPORTED of bool
-    | NATIVE_ATOMIC_SUPPORTED of bool
-    | CUDA_ARRAY_ACCESS_SUPPORTED of bool
-
-  let get_p2p_attributes ~dst:(Deviceptr dst) ~src:(Deviceptr src) =
-    let open Ctypes in
-    let result = ref [] in
-    let value = allocate int 0 in
-    check "cu_device_get_p2p_attribute"
-    @@ Cuda.cu_device_get_p2p_attribute value dst src CU_DEVICE_P2P_ATTRIBUTE_PERFORMANCE_RANK;
-    result := PERFORMANCE_RANK !@value :: !result;
-    check "cu_device_get_p2p_attribute"
-    @@ Cuda.cu_device_get_p2p_attribute value dst src CU_DEVICE_P2P_ATTRIBUTE_ACCESS_SUPPORTED;
-    result := ACCESS_SUPPORTED (!@value = 1) :: !result;
-    check "cu_device_get_p2p_attribute"
-    @@ Cuda.cu_device_get_p2p_attribute value dst src
-         CU_DEVICE_P2P_ATTRIBUTE_NATIVE_ATOMIC_SUPPORTED;
-    result := NATIVE_ATOMIC_SUPPORTED (!@value = 1) :: !result;
-    check "cu_device_get_p2p_attribute"
-    @@ Cuda.cu_device_get_p2p_attribute value dst src
-         CU_DEVICE_P2P_ATTRIBUTE_CUDA_ARRAY_ACCESS_SUPPORTED;
-    result := CUDA_ARRAY_ACCESS_SUPPORTED (!@value = 1) :: !result;
-    !result
-
-  let can_access_peer ~dst:(Deviceptr dst) ~src:(Deviceptr src) =
-    let open Ctypes in
-    let can_access_peer = allocate int 0 in
-    check "cu_device_can_access_peer" @@ Cuda.cu_device_can_access_peer can_access_peer dst src;
-    !@can_access_peer <> 0
 
   (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
   let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src)
