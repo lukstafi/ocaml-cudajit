@@ -1,715 +1,720 @@
 (** Bindings to the NVIDIA `cuda` and `nvrtc` libraries. *)
 
-type nvrtc_result [@@deriving sexp]
-(** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}. *)
+module Nvrtc : sig
+  type result [@@deriving sexp]
+  (** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}. *)
 
-type cuda_result [@@deriving sexp]
+  exception Nvrtc_error of { status : result; message : string }
+  (** Error codes returned by CUDA functions are converted to exceptions. The message stores a
+      snake-case variant of the offending CUDA function name (see {!Cuda_ffi.C.Functions} and
+      {!Nvrtc_ffi.C.Functions} for the direct funciton bindings). *)
+
+  type compile_to_ptx_result
+  (** The values passed from {!compile_to_ptx} to {!module_load_data_ex}. Currently, cudajit
+      converts the result of [nvrtc_compile_program] to human-readable PTX assembly before passing
+      it to the [cu_module_load_data_ex] function. *)
+
+  val compile_to_ptx :
+    cu_src:string -> name:string -> options:string list -> with_debug:bool -> compile_to_ptx_result
+  (** Performs a cascade of calls:
+      {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv418nvrtcCreateProgramP12nvrtcProgramPKcPKciPPCKcPPCKc}
+        nvrtcCreateProgram},
+      {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv419nvrtcCompileProgram12nvrtcProgramiPPCKc}
+        nvrtcCompileProgram},
+      {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcGetPTX12nvrtcProgramPc}
+        nvrtcGetPTX}. If you store [cu_src] as a file, pass the file name including the extension as
+      [name]. [options] can include for example ["--use_fast_math"] or ["--device-debug"]. If
+      [with_debug] is [true], the compilation log is included even in case of compilation success
+      (see {!compilation_log}).
+
+      NOTE: [compile_to_ptx] prepends the CUDA include path to [options], so you don't need to. *)
+
+  val string_from_ptx : compile_to_ptx_result -> string
+  (** The stored PTX (i.e. NVIDIA assembly language) source, see
+      {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcGetPTX12nvrtcProgramPc}
+        nvrtcGetPTX}. *)
+
+  val compilation_log : compile_to_ptx_result -> string option
+  (** The stored side output of the compilation, see
+      {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv418nvrtcGetProgramLog12nvrtcProgramPc}
+        nvrtcGetProgramLog}. *)
+end
+
+type result [@@deriving sexp]
 (** See
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gc6c391505e117393cc2558fff6bfc2e9}
       enum CUresult}. *)
 
-type error_code = Nvrtc_error of nvrtc_result | Cuda_error of cuda_result [@@deriving sexp]
-
-exception Error of { status : error_code; message : string }
+exception Cuda_error of { status : result; message : string }
 (** Error codes returned by CUDA functions are converted to exceptions. The message stores a
     snake-case variant of the offending CUDA function name (see {!Cuda_ffi.C.Functions} and
     {!Nvrtc_ffi.C.Functions} for the direct funciton bindings). *)
-
-type compile_to_ptx_result
-(** The values passed from {!compile_to_ptx} to {!module_load_data_ex}. Currently, cudajit converts
-    the result of [nvrtc_compile_program] to human-readable PTX assembly before passing it to the
-    [cu_module_load_data_ex] function. *)
-
-val compile_to_ptx :
-  cu_src:string -> name:string -> options:string list -> with_debug:bool -> compile_to_ptx_result
-(** Performs a cascade of calls:
-    {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv418nvrtcCreateProgramP12nvrtcProgramPKcPKciPPCKcPPCKc}
-      nvrtcCreateProgram},
-    {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv419nvrtcCompileProgram12nvrtcProgramiPPCKc}
-      nvrtcCompileProgram},
-    {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcGetPTX12nvrtcProgramPc}
-      nvrtcGetPTX}. If you store [cu_src] as a file, pass the file name including the extension as
-    [name]. [options] can include for example ["--use_fast_math"] or ["--device-debug"]. If
-    [with_debug] is [true], the compilation log is included even in case of compilation success (see
-    {!compilation_log}).
-
-    NOTE: [compile_to_ptx] prepends the CUDA include path to [options], so you don't need to. *)
-
-val string_from_ptx : compile_to_ptx_result -> string
-(** The stored PTX (i.e. NVIDIA assembly language) source, see
-    {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcGetPTX12nvrtcProgramPc}
-      nvrtcGetPTX}. *)
-
-val compilation_log : compile_to_ptx_result -> string option
-(** The stored side output of the compilation, see
-    {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv418nvrtcGetProgramLog12nvrtcProgramPc}
-      nvrtcGetProgramLog}. *)
 
 val init : ?flags:int -> unit -> unit
 (** Must be called before any other function. Currently [flags] is unused. See
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__INITIALIZE.html#group__CUDA__INITIALIZE_1g0a2f1517e1bd8502c7194c3a8c134bc3}
       cuInit}. *)
 
-type device
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g41ca2a24a242b36ef2ca77330b5fb72a}
-      CUdevice}. *)
+module Device : sig
+  type t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g41ca2a24a242b36ef2ca77330b5fb72a}
+        CUdevice}. *)
 
-val device_get_count : unit -> int
-(** Returns the number of Nvidia devices. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g52b5ce05cb8c5fb6831b2c0ff2887c74}
-      cuDeviceGetCount}. *)
+  val get_count : unit -> int
+  (** Returns the number of Nvidia devices. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g52b5ce05cb8c5fb6831b2c0ff2887c74}
+        cuDeviceGetCount}. *)
 
-val device_get : ordinal:int -> device
-(** Returns the given device. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g8bdd1cc7201304b01357b8034f6587cb}
-      cuDeviceGet}. *)
+  val get : ordinal:int -> t
+  (** Returns the given device. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g8bdd1cc7201304b01357b8034f6587cb}
+        cuDeviceGet}. *)
 
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g9f889e28a45a295b5c8ce13aa05f6cd4}
-      enum CUctx_flags}. *)
-type ctx_flag =
-  | SCHED_AUTO  (** Automatic scheduling. *)
-  | SCHED_SPIN  (** Instruct CUDA to actively spin when waiting for results from the GPU. *)
-  | SCHED_YIELD  (** Instruct CUDA to yield its thread when waiting for results from the GPU. *)
-  | SCHED_BLOCKING_SYNC  (** Set blocking synchronization as default scheduling. *)
-  | SCHED_MASK
-  | MAP_HOST  (** Deprecated: it is always present regardless of passed config. *)
-  | LMEM_RESIZE_TO_MAX  (** Keep local memory allocation after launch. *)
-  | COREDUMP_ENABLE  (** Trigger coredumps from exceptions in this context. *)
-  | USER_COREDUMP_ENABLE  (** Enable user pipe to trigger coredumps in this context. *)
-  | SYNC_MEMOPS  (** Ensure synchronous memory operations on this context will synchronize. *)
-[@@deriving sexp]
+  val primary_ctx_release : t -> unit
+  (** The context is automatically reset once the last reference to it is released. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1gf2a8bc16f8df0c88031f6a1ba3d6e8ad}
+        cuDevicePrimaryCtxRelease}. *)
 
-type ctx_flags = ctx_flag list [@@deriving sexp]
+  val primary_ctx_reset : t -> unit
+  (** Destroys all allocations and resets all state on the primary context. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g5d38802e8600340283958a117466ce12}
+        cuDevicePrimaryCtxReset}. *)
 
-type context
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf9f5bd81658f866613785b3a0bb7d7d9}
-      CUcontext}. *)
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g637aab2eadb52e1c1c048b8bad9592d1}
+        CUcomputemode}. *)
+  type computemode =
+    | DEFAULT  (** Multiple contexts allowed per device. *)
+    | PROHIBITED  (** No contexts can be created on this device at this time. *)
+    | EXCLUSIVE_PROCESS
+        (** Only one context used by a single process can be present on this device at a time. *)
+  [@@deriving sexp]
 
-val ctx_create : ctx_flags -> device -> context
-(** You should call {!ctx_destroy} when done using the context (no finalizer attached). The context
-    is pushed to the CPU-thread-local stack. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g65dc0012348bc84810e2103a40d8e2cf}
-      cuCtxCreate}. *)
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf34334d1d6892847a5d05be7ca8db3c6}
+        CUflushGPUDirectRDMAWritesOptions}. *)
+  type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
 
-val ctx_get_flags : unit -> ctx_flags
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gf81eef983c1e3b2ef4f166d7a930c86d}
-      cuCtxGetFlags}. *)
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g450a23153d86fce0afe30e25d63caef9}
+        CUmemAllocationHandleType}. *)
+  type mem_allocation_handle_type = NONE | POSIX_FILE_DESCRIPTOR | WIN32 | WIN32_KMT | FABRIC
+  [@@deriving sexp]
 
-val device_primary_ctx_release : device -> unit
-(** The context is automatically reset once the last reference to it is released. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1gf2a8bc16f8df0c88031f6a1ba3d6e8ad}
-      cuDevicePrimaryCtxRelease}. *)
+  type attributes = {
+    name : string;
+        (** See
+            {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1gef75aa30df95446a845f2a7b9fffbb7f}
+              cuDeviceGetName}. *)
+    max_threads_per_block : int;
+    max_block_dim_x : int;
+    max_block_dim_y : int;
+    max_block_dim_z : int;
+    max_grid_dim_x : int;
+    max_grid_dim_y : int;
+    max_grid_dim_z : int;
+    max_shared_memory_per_block : int;  (** In bytes. *)
+    total_constant_memory : int;  (** In bytes. *)
+    warp_size : int;  (** In threads. *)
+    max_pitch : int;  (** In bytes. *)
+    max_registers_per_block : int;  (** 32-bit registers. *)
+    clock_rate : int;  (** In kilohertz. *)
+    texture_alignment : int;
+    multiprocessor_count : int;
+    kernel_exec_timeout : bool;
+    integrated : bool;
+    can_map_host_memory : bool;
+    compute_mode : computemode;
+    maximum_texture1d_width : int;
+    maximum_texture2d_width : int;
+    maximum_texture2d_height : int;
+    maximum_texture3d_width : int;
+    maximum_texture3d_height : int;
+    maximum_texture3d_depth : int;
+    maximum_texture2d_layered_width : int;
+    maximum_texture2d_layered_height : int;
+    maximum_texture2d_layered_layers : int;
+    surface_alignment : int;
+    concurrent_kernels : bool;
+        (** Whether the device supports executing multiple kernels within the same context
+            simultaneously. *)
+    ecc_enabled : bool;  (** Whether error correction is supported and enabled on the device. *)
+    pci_bus_id : int;
+    pci_device_id : int;  (** PCI device (also known as slot) identifier of the device. *)
+    tcc_driver : bool;
+    memory_clock_rate : int;  (** In kilohertz. *)
+    global_memory_bus_width : int;  (** In bits. *)
+    l2_cache_size : int;  (** In bytes. *)
+    max_threads_per_multiprocessor : int;
+    async_engine_count : int;
+    unified_addressing : bool;
+    maximum_texture1d_layered_width : int;
+    maximum_texture1d_layered_layers : int;
+    maximum_texture2d_gather_width : int;
+    maximum_texture2d_gather_height : int;
+    maximum_texture3d_width_alternate : int;
+    maximum_texture3d_height_alternate : int;
+    maximum_texture3d_depth_alternate : int;
+    pci_domain_id : int;
+    texture_pitch_alignment : int;
+    maximum_texturecubemap_width : int;
+    maximum_texturecubemap_layered_width : int;
+    maximum_texturecubemap_layered_layers : int;
+    maximum_surface1d_width : int;
+    maximum_surface2d_width : int;
+    maximum_surface2d_height : int;
+    maximum_surface3d_width : int;
+    maximum_surface3d_height : int;
+    maximum_surface3d_depth : int;
+    maximum_surface1d_layered_width : int;
+    maximum_surface1d_layered_layers : int;
+    maximum_surface2d_layered_width : int;
+    maximum_surface2d_layered_height : int;
+    maximum_surface2d_layered_layers : int;
+    maximum_surfacecubemap_width : int;
+    maximum_surfacecubemap_layered_width : int;
+    maximum_surfacecubemap_layered_layers : int;
+    maximum_texture2d_linear_width : int;
+    maximum_texture2d_linear_height : int;
+    maximum_texture2d_linear_pitch : int;  (** In bytes. *)
+    maximum_texture2d_mipmapped_width : int;
+    maximum_texture2d_mipmapped_height : int;
+    compute_capability_major : int;
+    compute_capability_minor : int;
+    maximum_texture1d_mipmapped_width : int;
+    stream_priorities_supported : bool;
+    global_l1_cache_supported : bool;
+    local_l1_cache_supported : bool;
+    max_shared_memory_per_multiprocessor : int;  (** In bytes. *)
+    max_registers_per_multiprocessor : int;  (** 32-bit registers. *)
+    managed_memory : bool;
+    multi_gpu_board : bool;
+    multi_gpu_board_group_id : int;
+    host_native_atomic_supported : bool;
+    single_to_double_precision_perf_ratio : int;
+    pageable_memory_access : bool;
+        (** Device supports coherently accessing pageable memory without calling cudaHostRegister. *)
+    concurrent_managed_access : bool;
+    compute_preemption_supported : bool;
+    can_use_host_pointer_for_registered_mem : bool;
+    cooperative_launch : bool;
+    max_shared_memory_per_block_optin : int;
+    can_flush_remote_writes : bool;
+    host_register_supported : bool;
+    pageable_memory_access_uses_host_page_tables : bool;
+    direct_managed_mem_access_from_host : bool;
+    virtual_memory_management_supported : bool;
+    handle_type_posix_file_descriptor_supported : bool;
+    handle_type_win32_handle_supported : bool;
+    handle_type_win32_kmt_handle_supported : bool;
+    max_blocks_per_multiprocessor : int;
+    generic_compression_supported : bool;
+    max_persisting_l2_cache_size : int;  (** In bytes. *)
+    max_access_policy_window_size : int;  (** For [CUaccessPolicyWindow::num_bytes]. *)
+    gpu_direct_rdma_with_cuda_vmm_supported : bool;
+    reserved_shared_memory_per_block : int;  (** In bytes. *)
+    sparse_cuda_array_supported : bool;
+    read_only_host_register_supported : bool;
+    timeline_semaphore_interop_supported : bool;
+    memory_pools_supported : bool;
+    gpu_direct_rdma_supported : bool;
+        (** See {{:https://docs.nvidia.com/cuda/gpudirect-rdma/} GPUDirect RDMA}. *)
+    gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
+    gpu_direct_rdma_writes_ordering : bool;
+    mempool_supported_handle_types : mem_allocation_handle_type list;
+        (** Handle types supported with mempool based IPC. *)
+    cluster_launch : bool;
+    deferred_mapping_cuda_array_supported : bool;
+    can_use_64_bit_stream_mem_ops : bool;
+    can_use_stream_wait_value_nor : bool;
+    dma_buf_supported : bool;
+    ipc_event_supported : bool;
+    mem_sync_domain_count : int;  (** Number of memory domains the device supports. *)
+    tensor_map_access_supported : bool;
+    unified_function_pointers : bool;
+    multicast_supported : bool;  (** Device supports switch multicast and reduction operations. *)
+  }
+  [@@deriving sexp]
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g9c3e1414f0ad901d3278a4d6645fc266}
+        cuDeviceGetAttribute}. *)
 
-val device_primary_ctx_reset : device -> unit
-(** Destroys all allocations and resets all state on the primary context. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g5d38802e8600340283958a117466ce12}
-      cuDevicePrimaryCtxReset}. *)
+  val get_attributes : t -> attributes
+  (** Populates all the device attributes. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g9c3e1414f0ad901d3278a4d6645fc266}
+        cuDeviceGetAttribute}. *)
+end
 
-val device_primary_ctx_retain : device -> context
-(** You should always call {!device_primary_ctx_release} once done using the retained context. The
-    context is {i not} pushed to the stack. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g9051f2d5c31501997a6cb0530290a300}
-      cuDevicePrimaryCtxRetain}. *)
+module Context : sig
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g9f889e28a45a295b5c8ce13aa05f6cd4}
+        enum CUctx_flags}. *)
+  type flag =
+    | SCHED_AUTO  (** Automatic scheduling. *)
+    | SCHED_SPIN  (** Instruct CUDA to actively spin when waiting for results from the GPU. *)
+    | SCHED_YIELD  (** Instruct CUDA to yield its thread when waiting for results from the GPU. *)
+    | SCHED_BLOCKING_SYNC  (** Set blocking synchronization as default scheduling. *)
+    | SCHED_MASK
+    | MAP_HOST  (** Deprecated: it is always present regardless of passed config. *)
+    | LMEM_RESIZE_TO_MAX  (** Keep local memory allocation after launch. *)
+    | COREDUMP_ENABLE  (** Trigger coredumps from exceptions in this context. *)
+    | USER_COREDUMP_ENABLE  (** Enable user pipe to trigger coredumps in this context. *)
+    | SYNC_MEMOPS  (** Ensure synchronous memory operations on this context will synchronize. *)
+  [@@deriving sexp]
 
-val ctx_get_device : unit -> device
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g4e84b109eba36cdaaade167f34ae881e}
-      cuCtxGetDevice}. *)
+  type flags = flag list [@@deriving sexp]
 
-val ctx_pop_current : unit -> context
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g2fac188026a062d92e91a8687d0a7902}
-      cuCtxPopCurrent}. *)
+  type t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf9f5bd81658f866613785b3a0bb7d7d9}
+        CUcontext}. *)
 
-val ctx_get_current : unit -> context
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g8f13165846b73750693640fb3e8380d0}
-      cuCtxGetCurrent}. *)
+  val create : flags -> Device.t -> t
+  (** You should call {!ctx_destroy} when done using the context (no finalizer attached). The
+      context is pushed to the CPU-thread-local stack. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g65dc0012348bc84810e2103a40d8e2cf}
+        cuCtxCreate}. *)
 
-val ctx_push_current : context -> unit
-(** Pushes a context on the current CPU thread. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gb02d4c850eb16f861fe5a29682cc90ba}
-      cuCtxPushCurrent}. *)
+  val get_flags : unit -> flags
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gf81eef983c1e3b2ef4f166d7a930c86d}
+        cuCtxGetFlags}. *)
 
-val ctx_set_current : context -> unit
-(** If there exists a CUDA context stack on the calling CPU thread, this will replace the top of
-    that stack with ctx. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gbe562ee6258b4fcc272ca6478ca2a2f7}
-      cuCtxSetCurrent}. *)
+  val get_primary : Device.t -> t
+  (** You should always call {!Device.primary_ctx_release} once done using the retained context. The
+      context is {i not} pushed to the stack. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g9051f2d5c31501997a6cb0530290a300}
+        cuDevicePrimaryCtxRetain}. *)
+
+  val get_device : unit -> Device.t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g4e84b109eba36cdaaade167f34ae881e}
+        cuCtxGetDevice}. *)
+
+  val pop_current : unit -> t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g2fac188026a062d92e91a8687d0a7902}
+        cuCtxPopCurrent}. *)
+
+  val get_current : unit -> t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g8f13165846b73750693640fb3e8380d0}
+        cuCtxGetCurrent}. *)
+
+  val push_current : t -> unit
+  (** Pushes a context on the current CPU thread. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gb02d4c850eb16f861fe5a29682cc90ba}
+        cuCtxPushCurrent}. *)
+
+  val set_current : t -> unit
+  (** If there exists a CUDA context stack on the calling CPU thread, this will replace the top of
+      that stack with ctx. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gbe562ee6258b4fcc272ca6478ca2a2f7}
+        cuCtxSetCurrent}. *)
+
+  val synchronize : unit -> unit
+  (** Blocks for the current context's tasks to complete. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g7a54725f28d34b8c6299f0c6ca579616}
+        cuCtxSynchronize}. *)
+
+  val disable_peer_access : t -> unit
+  (** Disables peer access between the current context and the given context. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g5b4b6936ea868d4954ce4d841a3b4810}
+        cuCtxDisablePeerAccess}. *)
+
+  val enable_peer_access : ?flags:Unsigned.uint -> t -> unit
+  (** Flags are unused. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g0889ec6728e61c05ed359551d67b3f5a}
+        cuCtxEnablePeerAccess}. *)
+
+  val destroy : t -> unit
+  (** See
+      {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}
+        ctxDestroy}. *)
+
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge24c2d4214af24139020f1aecaf32665}
+        enum CUlimit}. *)
+  type limit =
+    | STACK_SIZE
+    | PRINTF_FIFO_SIZE
+    | MALLOC_HEAP_SIZE
+    | DEV_RUNTIME_SYNC_DEPTH  (** GPU device runtime launch synchronize depth. *)
+    | DEV_RUNTIME_PENDING_LAUNCH_COUNT
+    | MAX_L2_FETCH_GRANULARITY  (** Between 0 and 128, in bytes, it is a hint. *)
+    | PERSISTING_L2_CACHE_SIZE
+  [@@deriving sexp]
+
+  val set_limit : limit -> int -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g0651954dfb9788173e60a9af7201e65a}
+        cuCtxSetLimit}. *)
+
+  val get_limit : limit -> int
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g9f2d47d1745752aa16da7ed0d111b6a8}
+        cuCtxGetLimit}. *)
+end
 
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-(** Compute device classes. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge443308cb7ed1d52b85b487305779184}
-      enum CUjit_target}. *)
-type jit_target =
-  | COMPUTE_30
-  | COMPUTE_32
-  | COMPUTE_35
-  | COMPUTE_37
-  | COMPUTE_50
-  | COMPUTE_52
-  | COMPUTE_53
-  | COMPUTE_60
-  | COMPUTE_61
-  | COMPUTE_62
-  | COMPUTE_70
-  | COMPUTE_72
-  | COMPUTE_75
-  | COMPUTE_80
-  | COMPUTE_86
-  | COMPUTE_87
-  | COMPUTE_89
-  | COMPUTE_90
-  | COMPUTE_90A  (** Compute device class 9.0 with accelerated features. *)
-[@@deriving sexp]
+module Deviceptr : sig
+  type t [@@deriving sexp_of]
+  (** A pointer to a memory location on a device. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g183f7b0d8ad008ea2a5fd552537ace4e}
+        CUdeviceptr}. *)
 
-(** Cubin matching fallback strategies. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g4a1a92ea65e18b06907b981848c282f2}
-      CUjit_fallback}. *)
-type jit_fallback = PREFER_PTX | PREFER_BINARY [@@deriving sexp]
+  val string_of : t -> string
+  (** Hexadecimal representation of the pointer. *)
 
-(** Caching modes for dlcm. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gce011cfe2d6b1fb734da48a6cf48fd04}
-      CUjit_cacheMode}. *)
-type jit_cache_mode =
-  | NONE
-  | CG  (** Compile with L1 cache disabled. *)
-  | CA  (** Compile with L1 cache enabled. *)
-[@@deriving sexp]
+  val mem_alloc : size_in_bytes:int -> t
+  (** The memory is aligned, is not cleared. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gb82d2a09844a58dd9e744dc31e8aa467}
+        cuMemAlloc}. *)
 
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g5527fa8030d5cabedc781a04dbd1997d}
-      CUjit_option}. *)
-type jit_option =
-  | MAX_REGISTERS of int  (** Max number of registers that a thread may use. *)
-  | THREADS_PER_BLOCK of int
-      (** Specifies minimum number of threads per block to target compilation for or returns the
-          number of threads the compiler actually targeted. Cannot be combined with [TARGET]. *)
-  | WALL_TIME of { milliseconds : float }  (**  *)
-  | INFO_LOG_BUFFER of bigstring
-  | ERROR_LOG_BUFFER of bigstring
-  | OPTIMIZATION_LEVEL of int
-      (** 0 to 4, with 4 being the default and highest level of optimizations. *)
-  | TARGET_FROM_CUCONTEXT
-  | TARGET of jit_target
-  | FALLBACK_STRATEGY of jit_fallback
-  | GENERATE_DEBUG_INFO of bool  (** Helpful for cuda-gdb. *)
-  | LOG_VERBOSE of bool
-  | GENERATE_LINE_INFO of bool  (** Helpful for cuda-gdb. *)
-  | CACHE_MODE of jit_cache_mode
-  | POSITION_INDEPENDENT_CODE of bool
-[@@deriving sexp]
+  val memcpy_H_to_D_unsafe : dst:t -> src:unit Ctypes.ptr -> size_in_bytes:int -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g4d32266788c440b0220b1a9ba5795169}
+        cuMemcpyHtoD}. *)
 
-type func
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gba6128b948022f495706d93bc2cea9c8}
-      CUfunction}. *)
+  val memcpy_H_to_D :
+    ?host_offset:int -> ?length:int -> dst:t -> src:('a, 'b, 'c) Bigarray.Genarray.t -> unit -> unit
+  (** Copies the bigarray (or its interval) into the device memory. [host_offset] and [length] are
+      in numbers of elements. See {!memcpy_H_to_D_unsafe}. *)
 
-type module_
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g9e4ef4dcfba4662b2299acb8d049a1ef}
-      CUmodule}. *)
+  val alloc_and_memcpy : ('a, 'b, 'c) Bigarray.Genarray.t -> t
+  (** Combines {!mem_alloc} and {!memcpy_H_to_D}. *)
 
-val module_load_data_ex : compile_to_ptx_result -> jit_option list -> module_
-(** Currently, the image passed via this call is the PTX source. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g9e8047e9dbf725f0cd7cafd18bfd4d12}
-      cuModuleLoadDataEx}. *)
+  val memcpy_D_to_H_unsafe : dst:unit Ctypes.ptr -> src:t -> size_in_bytes:int -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g3480368ee0208a98f75019c9a8450893}
+        cuMemcpyDtoH}. *)
 
-val module_get_function : module_ -> name:string -> func
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1ga52be009b0d4045811b30c965e1cb2cf}
-      cuModuleGetFunction}. *)
+  val memcpy_D_to_H :
+    ?host_offset:int -> ?length:int -> dst:('a, 'b, 'c) Bigarray.Genarray.t -> src:t -> unit -> unit
+  (** Copies from the device memory into the bigarray (or its interval). [host_offset] and [length]
+      are in numbers of elements. See {!memcpy_D_to_H_unsafe}. *)
 
-type deviceptr [@@deriving sexp_of]
-(** A pointer to a memory location on a device. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g183f7b0d8ad008ea2a5fd552537ace4e}
-      CUdeviceptr}. *)
+  val memcpy_D_to_D :
+    ?kind:('a, 'b) Bigarray.kind ->
+    ?length:int ->
+    ?size_in_bytes:int ->
+    dst:t ->
+    src:t ->
+    unit ->
+    unit
+  (** Copies between two memory positions on the same device. The size to copy can optionally be
+      provided in numbers of elements via [kind] and [length]. Provide either both [kind] and
+      [length], or just [size_in_bytes]. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g1725774abf8b51b91945f3336b778c8b}
+        cuMemcpyDtoD}. *)
 
-val string_of_deviceptr : deviceptr -> string
-(** Hexadecimal representation of the pointer. *)
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g578d7cf687ce20f7e99468e8c14e22de}
+        CUdevice_P2PAttribute}. *)
+  type p2p_attribute =
+    | PERFORMANCE_RANK of int
+    | ACCESS_SUPPORTED of bool
+    | NATIVE_ATOMIC_SUPPORTED of bool
+    | CUDA_ARRAY_ACCESS_SUPPORTED of bool
 
-val mem_alloc : size_in_bytes:int -> deviceptr
-(** The memory is aligned, is not cleared. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gb82d2a09844a58dd9e744dc31e8aa467}
-      cuMemAlloc}. *)
+  val get_p2p_attributes : dst:t -> src:t -> p2p_attribute list
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g4c55c60508f8eba4546b51f2ee545393}
+        cuDeviceGetP2PAttribute}. *)
 
-val memcpy_H_to_D_unsafe : dst:deviceptr -> src:unit Ctypes.ptr -> size_in_bytes:int -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g4d32266788c440b0220b1a9ba5795169}
-      cuMemcpyHtoD}. *)
+  val can_access_peer : dst:t -> src:t -> bool
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g496bdaae1f632ebfb695b99d2c40f19e}
+        cuDeviceCanAccessPeer}. *)
 
-val memcpy_H_to_D :
-  ?host_offset:int ->
-  ?length:int ->
-  dst:deviceptr ->
-  src:('a, 'b, 'c) Bigarray.Genarray.t ->
-  unit ->
-  unit
-(** Copies the bigarray (or its interval) into the device memory. [host_offset] and [length] are in
-    numbers of elements. See {!memcpy_H_to_D_unsafe}. *)
+  val memcpy_peer :
+    ?kind:('a, 'b) Bigarray.kind ->
+    ?length:int ->
+    ?size_in_bytes:int ->
+    dst:t ->
+    dst_ctx:Context.t ->
+    src:t ->
+    src_ctx:Context.t ->
+    unit ->
+    unit
+  (** Copies between memory positions on two different devices. The size to copy can optionally be
+      provided in numbers of elements via [kind] and [length]. Provide either both [kind] and
+      [length], or just [size_in_bytes]. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1ge1f5c7771544fee150ada8853c7cbf4a}
+        cuMemcpyPeer}. *)
 
-val alloc_and_memcpy : ('a, 'b, 'c) Bigarray.Genarray.t -> deviceptr
-(** Combines {!mem_alloc} and {!memcpy_H_to_D}. *)
+  val mem_free : t -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
+        cuMemFree}. *)
 
-type stream
-(** Stores a stream pointer and manages lifetimes of kernel launch arguments. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gb946c7f02e09efd788a204718015d88a}
-      CUstream}. *)
+  val memset_d8 : t -> Unsigned.uchar -> length:int -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g6e582bf866e9e2fb014297bfaf354d7b}
+        cuMemsetD8}. *)
 
-val memcpy_H_to_D_async_unsafe :
-  dst:deviceptr -> src:unit Ctypes.ptr -> size_in_bytes:int -> stream -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g1572263fe2597d7ba4f6964597a354a3}
-      cuMemcpyHtoDAsync}. *)
+  val memset_d16 : t -> Unsigned.ushort -> length:int -> unit
+  (** [length] is in number of elements. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g7d805e610054392a4d11e8a8bf5eb35c}
+        cuMemsetD16}. *)
 
-val memcpy_H_to_D_async :
-  ?host_offset:int ->
-  ?length:int ->
-  dst:deviceptr ->
-  src:('a, 'b, 'c) Bigarray.Genarray.t ->
-  stream ->
-  unit
-(** Copies the bigarray (or its interval) into the device memory asynchronously. [host_offset] and
-    [length] are in numbers of elements. See {!memcpy_H_to_D_async_unsafe}. *)
+  val memset_d32 : t -> Unsigned.uint32 -> length:int -> unit
+  (** [length] is in number of elements. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g983e8d8759acd1b64326317481fbf132}
+        cuMemsetD32}. *)
+end
 
-(** Parameters to pass to a kernel. *)
-type kernel_param =
-  | Tensor of deviceptr
-  | Int of int  (** Passed as C [int]. *)
-  | Size_t of Unsigned.size_t
-  | Single of float  (** Passed as C [float]. *)
-  | Double of float  (** Passed as C [double]. *)
-[@@deriving sexp_of]
+module Module : sig
+  (** Compute device classes. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge443308cb7ed1d52b85b487305779184}
+        enum CUjit_target}. *)
+  type jit_target =
+    | COMPUTE_30
+    | COMPUTE_32
+    | COMPUTE_35
+    | COMPUTE_37
+    | COMPUTE_50
+    | COMPUTE_52
+    | COMPUTE_53
+    | COMPUTE_60
+    | COMPUTE_61
+    | COMPUTE_62
+    | COMPUTE_70
+    | COMPUTE_72
+    | COMPUTE_75
+    | COMPUTE_80
+    | COMPUTE_86
+    | COMPUTE_87
+    | COMPUTE_89
+    | COMPUTE_90
+    | COMPUTE_90A  (** Compute device class 9.0 with accelerated features. *)
+  [@@deriving sexp]
 
-val no_stream : stream
-(** The NULL stream which is the main synchronization stream of a device. Manages lifetimes of the
-    corresponding kernel launch parameters. *)
+  (** Cubin matching fallback strategies. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g4a1a92ea65e18b06907b981848c282f2}
+        CUjit_fallback}. *)
+  type jit_fallback = PREFER_PTX | PREFER_BINARY [@@deriving sexp]
 
-val launch_kernel :
-  func ->
-  grid_dim_x:int ->
-  ?grid_dim_y:int ->
-  ?grid_dim_z:int ->
-  block_dim_x:int ->
-  ?block_dim_y:int ->
-  ?block_dim_z:int ->
-  shared_mem_bytes:int ->
-  stream ->
-  kernel_param list ->
-  unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EXEC.html#group__CUDA__EXEC_1gb8f3dc3031b40da29d5f9a7139e52e15}
-      cuLaunchKernel}. *)
+  (** Caching modes for dlcm. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gce011cfe2d6b1fb734da48a6cf48fd04}
+        CUjit_cacheMode}. *)
+  type jit_cache_mode =
+    | NONE
+    | CG  (** Compile with L1 cache disabled. *)
+    | CA  (** Compile with L1 cache enabled. *)
+  [@@deriving sexp]
 
-val ctx_synchronize : unit -> unit
-(** Blocks for the current context's tasks to complete. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g7a54725f28d34b8c6299f0c6ca579616}
-      cuCtxSynchronize}. *)
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g5527fa8030d5cabedc781a04dbd1997d}
+        CUjit_option}. *)
+  type jit_option =
+    | MAX_REGISTERS of int  (** Max number of registers that a thread may use. *)
+    | THREADS_PER_BLOCK of int
+        (** Specifies minimum number of threads per block to target compilation for or returns the
+            number of threads the compiler actually targeted. Cannot be combined with [TARGET]. *)
+    | WALL_TIME of { milliseconds : float }  (**  *)
+    | INFO_LOG_BUFFER of bigstring
+    | ERROR_LOG_BUFFER of bigstring
+    | OPTIMIZATION_LEVEL of int
+        (** 0 to 4, with 4 being the default and highest level of optimizations. *)
+    | TARGET_FROM_CUCONTEXT
+    | TARGET of jit_target
+    | FALLBACK_STRATEGY of jit_fallback
+    | GENERATE_DEBUG_INFO of bool  (** Helpful for cuda-gdb. *)
+    | LOG_VERBOSE of bool
+    | GENERATE_LINE_INFO of bool  (** Helpful for cuda-gdb. *)
+    | CACHE_MODE of jit_cache_mode
+    | POSITION_INDEPENDENT_CODE of bool
+  [@@deriving sexp]
 
-val memcpy_D_to_H_unsafe : dst:unit Ctypes.ptr -> src:deviceptr -> size_in_bytes:int -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g3480368ee0208a98f75019c9a8450893}
-      cuMemcpyDtoH}. *)
+  type func
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gba6128b948022f495706d93bc2cea9c8}
+        CUfunction}. *)
 
-val memcpy_D_to_H :
-  ?host_offset:int ->
-  ?length:int ->
-  dst:('a, 'b, 'c) Bigarray.Genarray.t ->
-  src:deviceptr ->
-  unit ->
-  unit
-(** Copies from the device memory into the bigarray (or its interval). [host_offset] and [length]
-    are in numbers of elements. See {!memcpy_D_to_H_unsafe}. *)
+  type t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g9e4ef4dcfba4662b2299acb8d049a1ef}
+        CUmodule}. *)
 
-val memcpy_D_to_H_async_unsafe :
-  dst:unit Ctypes.ptr -> src:deviceptr -> size_in_bytes:int -> stream -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g56f30236c7c5247f8e061b59d3268362}
-      cuMemcpyDtoHAsync}. *)
+  val load_data_ex : Nvrtc.compile_to_ptx_result -> jit_option list -> t
+  (** Currently, the image passed via this call is the PTX source. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g9e8047e9dbf725f0cd7cafd18bfd4d12}
+        cuModuleLoadDataEx}. *)
 
-val memcpy_D_to_H_async :
-  ?host_offset:int ->
-  ?length:int ->
-  dst:('a, 'b, 'c) Bigarray.Genarray.t ->
-  src:deviceptr ->
-  stream ->
-  unit
-(** Copies from the device memory into the bigarray (or its interval) asynchronously. [host_offset]
-    and [length] are in numbers of elements. See {!memcpy_D_to_H_async_unsafe}. *)
+  val get_function : t -> name:string -> func
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1ga52be009b0d4045811b30c965e1cb2cf}
+        cuModuleGetFunction}. *)
 
-val memcpy_D_to_D :
-  ?kind:('a, 'b) Bigarray.kind ->
-  ?length:int ->
-  ?size_in_bytes:int ->
-  dst:deviceptr ->
-  src:deviceptr ->
-  unit ->
-  unit
-(** Copies between two memory positions on the same device. The size to copy can optionally be
-    provided in numbers of elements via [kind] and [length]. Provide either both [kind] and
-    [length], or just [size_in_bytes]. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g1725774abf8b51b91945f3336b778c8b}
-      cuMemcpyDtoD}. *)
+  val unload : t -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g8ea3d716524369de3763104ced4ea57b}
+        cuModuleUnload}. *)
 
-val memcpy_D_to_D_async :
-  ?kind:('a, 'b) Bigarray.kind ->
-  ?length:int ->
-  ?size_in_bytes:int ->
-  dst:deviceptr ->
-  src:deviceptr ->
-  stream ->
-  unit
-(** Copies between two memory positions on the same device asynchronously. The size to copy can
-    optionally be provided in numbers of elements via [kind] and [length]. Provide either both
-    [kind] and [length], or just [size_in_bytes]. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g39ea09ba682b8eccc9c3e0c04319b5c8}
-      cuMemcpyDtoDAsync}. *)
+  val get_global : t -> name:string -> Deviceptr.t * Unsigned.size_t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1gf3e43672e26073b1081476dbf47a86ab}
+        cuModuleGetGlobal}. *)
+end
 
-val memcpy_peer :
-  ?kind:('a, 'b) Bigarray.kind ->
-  ?length:int ->
-  ?size_in_bytes:int ->
-  dst:deviceptr ->
-  dst_ctx:context ->
-  src:deviceptr ->
-  src_ctx:context ->
-  unit ->
-  unit
-(** Copies between memory positions on two different devices. The size to copy can optionally be
-    provided in numbers of elements via [kind] and [length]. Provide either both [kind] and
-    [length], or just [size_in_bytes]. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1ge1f5c7771544fee150ada8853c7cbf4a}
-      cuMemcpyPeer}. *)
+module Stream : sig
+  type t
+  (** Stores a stream pointer and manages lifetimes of kernel launch arguments. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gb946c7f02e09efd788a204718015d88a}
+        CUstream}. *)
 
-val memcpy_peer_async :
-  ?kind:('a, 'b) Bigarray.kind ->
-  ?length:int ->
-  ?size_in_bytes:int ->
-  dst:deviceptr ->
-  dst_ctx:context ->
-  src:deviceptr ->
-  src_ctx:context ->
-  stream ->
-  unit
-(** Copies between memory positions on two different devices asynchronously. The size to copy can
-    optionally be provided in numbers of elements via [kind] and [length]. Provide either both
-    [kind] and [length], or just [size_in_bytes]. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g82fcecb38018e64b98616a8ac30112f2}
-      cuMemcpyPeerAsync}. *)
+  val memcpy_H_to_D_unsafe :
+    dst:Deviceptr.t -> src:unit Ctypes.ptr -> size_in_bytes:int -> t -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g1572263fe2597d7ba4f6964597a354a3}
+        cuMemcpyHtoDAsync}. *)
 
-val ctx_disable_peer_access : context -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g5b4b6936ea868d4954ce4d841a3b4810}
-      cuCtxDisablePeerAccess}. *)
+  val memcpy_H_to_D :
+    ?host_offset:int ->
+    ?length:int ->
+    dst:Deviceptr.t ->
+    src:('a, 'b, 'c) Bigarray.Genarray.t ->
+    t ->
+    unit
+  (** Copies the bigarray (or its interval) into the device memory asynchronously. [host_offset] and
+      [length] are in numbers of elements. See {!memcpy_H_to_D_async_unsafe}. *)
 
-val ctx_enable_peer_access : ?flags:Unsigned.uint -> context -> unit
-(** Flags are unused. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g0889ec6728e61c05ed359551d67b3f5a}
-      cuCtxEnablePeerAccess}. *)
+  (** Parameters to pass to a kernel. *)
+  type kernel_param =
+    | Tensor of Deviceptr.t
+    | Int of int  (** Passed as C [int]. *)
+    | Size_t of Unsigned.size_t
+    | Single of float  (** Passed as C [float]. *)
+    | Double of float  (** Passed as C [double]. *)
+  [@@deriving sexp_of]
 
-val device_can_access_peer : dst:deviceptr -> src:deviceptr -> bool
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g496bdaae1f632ebfb695b99d2c40f19e}
-      cuDeviceCanAccessPeer}. *)
+  val no_stream : t
+  (** The NULL stream which is the main synchronization stream of a device. Manages lifetimes of the
+      corresponding kernel launch parameters. *)
 
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g578d7cf687ce20f7e99468e8c14e22de}
-      CUdevice_P2PAttribute}. *)
-type p2p_attribute =
-  | PERFORMANCE_RANK of int
-  | ACCESS_SUPPORTED of bool
-  | NATIVE_ATOMIC_SUPPORTED of bool
-  | CUDA_ARRAY_ACCESS_SUPPORTED of bool
+  val launch_kernel :
+    Module.func ->
+    grid_dim_x:int ->
+    ?grid_dim_y:int ->
+    ?grid_dim_z:int ->
+    block_dim_x:int ->
+    ?block_dim_y:int ->
+    ?block_dim_z:int ->
+    shared_mem_bytes:int ->
+    t ->
+    kernel_param list ->
+    unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EXEC.html#group__CUDA__EXEC_1gb8f3dc3031b40da29d5f9a7139e52e15}
+        cuLaunchKernel}. *)
 
-val device_get_p2p_attributes : dst:deviceptr -> src:deviceptr -> p2p_attribute list
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g4c55c60508f8eba4546b51f2ee545393}
-      cuDeviceGetP2PAttribute}. *)
+  val memcpy_D_to_H_unsafe :
+    dst:unit Ctypes.ptr -> src:Deviceptr.t -> size_in_bytes:int -> t -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g56f30236c7c5247f8e061b59d3268362}
+        cuMemcpyDtoHAsync}. *)
 
-val mem_free : deviceptr -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
-      cuMemFree}. *)
+  val memcpy_D_to_H :
+    ?host_offset:int ->
+    ?length:int ->
+    dst:('a, 'b, 'c) Bigarray.Genarray.t ->
+    src:Deviceptr.t ->
+    t ->
+    unit
+  (** Copies from the device memory into the bigarray (or its interval) asynchronously.
+      [host_offset] and [length] are in numbers of elements. See {!memcpy_D_to_H_async_unsafe}. *)
 
-val module_unload : module_ -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g8ea3d716524369de3763104ced4ea57b}
-      cuModuleUnload}. *)
+  val memcpy_D_to_D :
+    ?kind:('a, 'b) Bigarray.kind ->
+    ?length:int ->
+    ?size_in_bytes:int ->
+    dst:Deviceptr.t ->
+    src:Deviceptr.t ->
+    t ->
+    unit
+  (** Copies between two memory positions on the same device asynchronously. The size to copy can
+      optionally be provided in numbers of elements via [kind] and [length]. Provide either both
+      [kind] and [length], or just [size_in_bytes]. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g39ea09ba682b8eccc9c3e0c04319b5c8}
+        cuMemcpyDtoDAsync}. *)
 
-val ctx_destroy : context -> unit
-(** See
-    {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}
-      ctxDestroy}. *)
+  val memcpy_peer :
+    ?kind:('a, 'b) Bigarray.kind ->
+    ?length:int ->
+    ?size_in_bytes:int ->
+    dst:Deviceptr.t ->
+    dst_ctx:Context.t ->
+    src:Deviceptr.t ->
+    src_ctx:Context.t ->
+    t ->
+    unit
+  (** Copies between memory positions on two different devices asynchronously. The size to copy can
+      optionally be provided in numbers of elements via [kind] and [length]. Provide either both
+      [kind] and [length], or just [size_in_bytes]. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g82fcecb38018e64b98616a8ac30112f2}
+        cuMemcpyPeerAsync}. *)
 
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g17c5d5f9b585aa2d6f121847d1a78f4c}
-      CUmemAttach_flags}. *)
-type attach_mem =
-  | GLOBAL  (** Memory can be accessed by any stream on any device. *)
-  | HOST  (** Memory cannot be accessed from devices. *)
-  | SINGLE_stream  (** Memory can only be accessed by a single stream. *)
-[@@deriving sexp]
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g17c5d5f9b585aa2d6f121847d1a78f4c}
+        CUmemAttach_flags}. *)
+  type attach_mem =
+    | GLOBAL  (** Memory can be accessed by any stream on any device. *)
+    | HOST  (** Memory cannot be accessed from devices. *)
+    | SINGLE_stream  (** Memory can only be accessed by a single stream. *)
+  [@@deriving sexp]
 
-val stream_attach_mem_async : stream -> deviceptr -> int -> attach_mem -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g6e468d680e263e7eba02a56643c50533}
-      cuStreamAttachMemAsync}. *)
+  val attach_mem : t -> Deviceptr.t -> int -> attach_mem -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g6e468d680e263e7eba02a56643c50533}
+        cuStreamAttachMemAsync}. *)
 
-val stream_create : ?non_blocking:bool -> ?lower_priority:int -> unit -> stream
-(** Lower [lower_priority] numbers represent higher priorities, the default is [0]. Currently the
-    streams are not automatically destroyed, use {!stream_destroy}. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g95c1a8c7c3dacb13091692dd9c7f7471}
-      cuStreamCreateWithPriority}. *)
+  val create : ?non_blocking:bool -> ?lower_priority:int -> unit -> t
+  (** Lower [lower_priority] numbers represent higher priorities, the default is [0]. Currently the
+      streams are not automatically destroyed, use {!stream_destroy}. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g95c1a8c7c3dacb13091692dd9c7f7471}
+        cuStreamCreateWithPriority}. *)
 
-val stream_destroy : stream -> unit
-(** See
-    {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__STREAM_g244c8833de4596bcd31a06cdf21ee758.html}
-      cuStreamDestroy}. *)
+  val destroy : t -> unit
+  (** See
+      {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__STREAM_g244c8833de4596bcd31a06cdf21ee758.html}
+        cuStreamDestroy}. *)
 
-val stream_get_context : stream -> context
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g1107907025eaa3387fdc590a9379a681}
-      cuStreamGetCtx}. *)
+  val get_context : t -> Context.t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g1107907025eaa3387fdc590a9379a681}
+        cuStreamGetCtx}. *)
 
-val stream_get_id : stream -> Unsigned.uint64
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g5dafd2b6f48caeb13d5110a7f21e60e3}
-      cuStreamGetId}. *)
+  val get_id : t -> Unsigned.uint64
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g5dafd2b6f48caeb13d5110a7f21e60e3}
+        cuStreamGetId}. *)
 
-val stream_is_ready : stream -> bool
-(** Returns [false] when the querying status is [CUDA_ERROR_NOT_READY], and [true] if it is
-    [CUDA_SUCCESS]. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g1b0d24bbe97fa68e4bc511fb6adfeb0b}
-      cuStreamQuery}. *)
+  val is_ready : t -> bool
+  (** Returns [false] when the querying status is [CUDA_ERROR_NOT_READY], and [true] if it is
+      [CUDA_SUCCESS]. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g1b0d24bbe97fa68e4bc511fb6adfeb0b}
+        cuStreamQuery}. *)
 
-val stream_synchronize : stream -> unit
-(** Waits until a stream's tasks are completed. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g15e49dd91ec15991eb7c0a741beb7dad}
-      cuStreamSynchronize}. *)
+  val synchronize : t -> unit
+  (** Waits until a stream's tasks are completed. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g15e49dd91ec15991eb7c0a741beb7dad}
+        cuStreamSynchronize}. *)
 
-val memset_d8 : deviceptr -> Unsigned.uchar -> length:int -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g6e582bf866e9e2fb014297bfaf354d7b}
-      cuMemsetD8}. *)
+  val memset_d8 : Deviceptr.t -> Unsigned.uchar -> length:int -> t -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gaef08a7ccd61112f94e82f2b30d43627}
+        cuMemsetD8Async}. *)
 
-val memset_d16 : deviceptr -> Unsigned.ushort -> length:int -> unit
-(** [length] is in number of elements. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g7d805e610054392a4d11e8a8bf5eb35c}
-      cuMemsetD16}. *)
+  val memset_d16 : Deviceptr.t -> Unsigned.ushort -> length:int -> t -> unit
+  (** [length] is in number of elements. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gf731438877dd8ec875e4c43d848c878c}
+        cuMemsetD16Async}. *)
 
-val memset_d32 : deviceptr -> Unsigned.uint32 -> length:int -> unit
-(** [length] is in number of elements. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g983e8d8759acd1b64326317481fbf132}
-      cuMemsetD32}. *)
-
-val memset_d8_async : deviceptr -> Unsigned.uchar -> length:int -> stream -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gaef08a7ccd61112f94e82f2b30d43627}
-      cuMemsetD8Async}. *)
-
-val memset_d16_async : deviceptr -> Unsigned.ushort -> length:int -> stream -> unit
-(** [length] is in number of elements. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gf731438877dd8ec875e4c43d848c878c}
-      cuMemsetD16Async}. *)
-
-val memset_d32_async : deviceptr -> Unsigned.uint32 -> length:int -> stream -> unit
-(** [length] is in number of elements. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g58229da5d30f1c0cdf667b320ec2c0f5}
-      cuMemsetD32Async}. *)
-
-val module_get_global : module_ -> name:string -> deviceptr * Unsigned.size_t
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1gf3e43672e26073b1081476dbf47a86ab}
-      cuModuleGetGlobal}. *)
-
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g637aab2eadb52e1c1c048b8bad9592d1}
-      CUcomputemode}. *)
-type computemode =
-  | DEFAULT  (** Multiple contexts allowed per device. *)
-  | PROHIBITED  (** No contexts can be created on this device at this time. *)
-  | EXCLUSIVE_PROCESS
-      (** Only one context used by a single process can be present on this device at a time. *)
-[@@deriving sexp]
-
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf34334d1d6892847a5d05be7ca8db3c6}
-      CUflushGPUDirectRDMAWritesOptions}. *)
-type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
-
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g450a23153d86fce0afe30e25d63caef9}
-      CUmemAllocationHandleType}. *)
-type mem_allocation_handle_type = NONE | POSIX_FILE_DESCRIPTOR | WIN32 | WIN32_KMT | FABRIC
-[@@deriving sexp]
-
-type device_attributes = {
-  name : string;
-      (** See
-          {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1gef75aa30df95446a845f2a7b9fffbb7f}
-            cuDeviceGetName}. *)
-  max_threads_per_block : int;
-  max_block_dim_x : int;
-  max_block_dim_y : int;
-  max_block_dim_z : int;
-  max_grid_dim_x : int;
-  max_grid_dim_y : int;
-  max_grid_dim_z : int;
-  max_shared_memory_per_block : int;  (** In bytes. *)
-  total_constant_memory : int;  (** In bytes. *)
-  warp_size : int;  (** In threads. *)
-  max_pitch : int;  (** In bytes. *)
-  max_registers_per_block : int;  (** 32-bit registers. *)
-  clock_rate : int;  (** In kilohertz. *)
-  texture_alignment : int;
-  multiprocessor_count : int;
-  kernel_exec_timeout : bool;
-  integrated : bool;
-  can_map_host_memory : bool;
-  compute_mode : computemode;
-  maximum_texture1d_width : int;
-  maximum_texture2d_width : int;
-  maximum_texture2d_height : int;
-  maximum_texture3d_width : int;
-  maximum_texture3d_height : int;
-  maximum_texture3d_depth : int;
-  maximum_texture2d_layered_width : int;
-  maximum_texture2d_layered_height : int;
-  maximum_texture2d_layered_layers : int;
-  surface_alignment : int;
-  concurrent_kernels : bool;
-      (** Whether the device supports executing multiple kernels within the same context
-          simultaneously. *)
-  ecc_enabled : bool;  (** Whether error correction is supported and enabled on the device. *)
-  pci_bus_id : int;
-  pci_device_id : int;  (** PCI device (also known as slot) identifier of the device. *)
-  tcc_driver : bool;
-  memory_clock_rate : int;  (** In kilohertz. *)
-  global_memory_bus_width : int;  (** In bits. *)
-  l2_cache_size : int;  (** In bytes. *)
-  max_threads_per_multiprocessor : int;
-  async_engine_count : int;
-  unified_addressing : bool;
-  maximum_texture1d_layered_width : int;
-  maximum_texture1d_layered_layers : int;
-  maximum_texture2d_gather_width : int;
-  maximum_texture2d_gather_height : int;
-  maximum_texture3d_width_alternate : int;
-  maximum_texture3d_height_alternate : int;
-  maximum_texture3d_depth_alternate : int;
-  pci_domain_id : int;
-  texture_pitch_alignment : int;
-  maximum_texturecubemap_width : int;
-  maximum_texturecubemap_layered_width : int;
-  maximum_texturecubemap_layered_layers : int;
-  maximum_surface1d_width : int;
-  maximum_surface2d_width : int;
-  maximum_surface2d_height : int;
-  maximum_surface3d_width : int;
-  maximum_surface3d_height : int;
-  maximum_surface3d_depth : int;
-  maximum_surface1d_layered_width : int;
-  maximum_surface1d_layered_layers : int;
-  maximum_surface2d_layered_width : int;
-  maximum_surface2d_layered_height : int;
-  maximum_surface2d_layered_layers : int;
-  maximum_surfacecubemap_width : int;
-  maximum_surfacecubemap_layered_width : int;
-  maximum_surfacecubemap_layered_layers : int;
-  maximum_texture2d_linear_width : int;
-  maximum_texture2d_linear_height : int;
-  maximum_texture2d_linear_pitch : int;  (** In bytes. *)
-  maximum_texture2d_mipmapped_width : int;
-  maximum_texture2d_mipmapped_height : int;
-  compute_capability_major : int;
-  compute_capability_minor : int;
-  maximum_texture1d_mipmapped_width : int;
-  stream_priorities_supported : bool;
-  global_l1_cache_supported : bool;
-  local_l1_cache_supported : bool;
-  max_shared_memory_per_multiprocessor : int;  (** In bytes. *)
-  max_registers_per_multiprocessor : int;  (** 32-bit registers. *)
-  managed_memory : bool;
-  multi_gpu_board : bool;
-  multi_gpu_board_group_id : int;
-  host_native_atomic_supported : bool;
-  single_to_double_precision_perf_ratio : int;
-  pageable_memory_access : bool;
-      (** Device supports coherently accessing pageable memory without calling cudaHostRegister. *)
-  concurrent_managed_access : bool;
-  compute_preemption_supported : bool;
-  can_use_host_pointer_for_registered_mem : bool;
-  cooperative_launch : bool;
-  max_shared_memory_per_block_optin : int;
-  can_flush_remote_writes : bool;
-  host_register_supported : bool;
-  pageable_memory_access_uses_host_page_tables : bool;
-  direct_managed_mem_access_from_host : bool;
-  virtual_memory_management_supported : bool;
-  handle_type_posix_file_descriptor_supported : bool;
-  handle_type_win32_handle_supported : bool;
-  handle_type_win32_kmt_handle_supported : bool;
-  max_blocks_per_multiprocessor : int;
-  generic_compression_supported : bool;
-  max_persisting_l2_cache_size : int;  (** In bytes. *)
-  max_access_policy_window_size : int;  (** For [CUaccessPolicyWindow::num_bytes]. *)
-  gpu_direct_rdma_with_cuda_vmm_supported : bool;
-  reserved_shared_memory_per_block : int;  (** In bytes. *)
-  sparse_cuda_array_supported : bool;
-  read_only_host_register_supported : bool;
-  timeline_semaphore_interop_supported : bool;
-  memory_pools_supported : bool;
-  gpu_direct_rdma_supported : bool;
-      (** See {{:https://docs.nvidia.com/cuda/gpudirect-rdma/} GPUDirect RDMA}. *)
-  gpu_direct_rdma_flush_writes_options : flush_GPU_direct_RDMA_writes_options list;
-  gpu_direct_rdma_writes_ordering : bool;
-  mempool_supported_handle_types : mem_allocation_handle_type list;
-      (** Handle types supported with mempool based IPC. *)
-  cluster_launch : bool;
-  deferred_mapping_cuda_array_supported : bool;
-  can_use_64_bit_stream_mem_ops : bool;
-  can_use_stream_wait_value_nor : bool;
-  dma_buf_supported : bool;
-  ipc_event_supported : bool;
-  mem_sync_domain_count : int;  (** Number of memory domains the device supports. *)
-  tensor_map_access_supported : bool;
-  unified_function_pointers : bool;
-  multicast_supported : bool;  (** Device supports switch multicast and reduction operations. *)
-}
-[@@deriving sexp]
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g9c3e1414f0ad901d3278a4d6645fc266}
-      cuDeviceGetAttribute}. *)
-
-val device_get_attributes : device -> device_attributes
-(** Populates all the device attributes. See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g9c3e1414f0ad901d3278a4d6645fc266}
-      cuDeviceGetAttribute}. *)
-
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge24c2d4214af24139020f1aecaf32665}
-      enum CUlimit}. *)
-type limit =
-  | STACK_SIZE
-  | PRINTF_FIFO_SIZE
-  | MALLOC_HEAP_SIZE
-  | DEV_RUNTIME_SYNC_DEPTH  (** GPU device runtime launch synchronize depth. *)
-  | DEV_RUNTIME_PENDING_LAUNCH_COUNT
-  | MAX_L2_FETCH_GRANULARITY  (** Between 0 and 128, in bytes, it is a hint. *)
-  | PERSISTING_L2_CACHE_SIZE
-[@@deriving sexp]
-
-val ctx_set_limit : limit -> int -> unit
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g0651954dfb9788173e60a9af7201e65a}
-      cuCtxSetLimit}. *)
-
-val ctx_get_limit : limit -> int
-(** See
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g9f2d47d1745752aa16da7ed0d111b6a8}
-      cuCtxGetLimit}. *)
+  val memset_d32 : Deviceptr.t -> Unsigned.uint32 -> length:int -> t -> unit
+  (** [length] is in number of elements. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g58229da5d30f1c0cdf667b320ec2c0f5}
+        cuMemsetD32Async}. *)
+end

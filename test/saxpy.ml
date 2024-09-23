@@ -1,6 +1,6 @@
 (* If the test fails, to verify your CUDA and NVRTC installation, follow the following instructions:
-   https://docs.nvidia.com/cuda/nvrtc/index.html#code-saxpy-cpp
-   and see where the OCaml version diverges. *)
+   https://docs.nvidia.com/cuda/nvrtc/index.html#code-saxpy-cpp and see where the OCaml version
+   diverges. *)
 
 let kernel =
   {|
@@ -17,30 +17,31 @@ let%expect_test "SAXPY" =
   let num_threads = 128 in
   let module Cu = Cudajit in
   let prog =
-    Cu.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ] ~with_debug:true
+    Cu.Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
+      ~with_debug:true
   in
   Cu.init ();
-  if Cu.device_get_count () > 0 then (
-    let device = Cu.device_get ~ordinal:0 in
-    let context = Cu.ctx_create [] device in
-    let module_ = Cu.module_load_data_ex prog [] in
-    let kernel = Cu.module_get_function module_ ~name:"saxpy" in
+  if Cu.Device.get_count () > 0 then (
+    let device = Cu.Device.get ~ordinal:0 in
+    let context = Cu.Context.create [] device in
+    let module_ = Cu.Module.load_data_ex prog [] in
+    let kernel = Cu.Module.get_function module_ ~name:"saxpy" in
     let size = num_threads * num_blocks in
     let module Host = Bigarray.Genarray in
     let a = 5.1 in
     let hX =
       Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx -> Float.of_int idx.(0))
     in
-    let dX = Cu.alloc_and_memcpy hX in
+    let dX = Cu.Deviceptr.alloc_and_memcpy hX in
     let hY =
       Host.init Bigarray.Float32 Bigarray.C_layout [| size |] (fun idx ->
           Float.of_int @@ (idx.(0) * 2))
     in
-    let dY = Cu.alloc_and_memcpy hY in
+    let dY = Cu.Deviceptr.alloc_and_memcpy hY in
     let hOut = Host.create Bigarray.Float32 Bigarray.C_layout [| size |] in
-    let dOut = Cu.alloc_and_memcpy hOut in
-    Cu.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads ~shared_mem_bytes:0
-      Cu.no_stream
+    let dOut = Cu.Deviceptr.alloc_and_memcpy hOut in
+    Cu.Stream.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads
+      ~shared_mem_bytes:0 Cu.Stream.no_stream
       [
         Single a;
         Tensor dX;
@@ -48,13 +49,13 @@ let%expect_test "SAXPY" =
         Tensor dOut;
         Size_t Unsigned.Size_t.(mul (of_int num_threads) @@ of_int num_blocks);
       ];
-    Cu.ctx_synchronize ();
-    Cu.memcpy_D_to_H ~dst:hOut ~src:dOut ();
-    Cu.mem_free dX;
-    Cu.mem_free dY;
-    Cu.mem_free dOut;
-    Cu.module_unload module_;
-    Cu.ctx_destroy context;
+    Cu.Context.synchronize ();
+    Cu.Deviceptr.memcpy_D_to_H ~dst:hOut ~src:dOut ();
+    Cu.Deviceptr.mem_free dX;
+    Cu.Deviceptr.mem_free dY;
+    Cu.Deviceptr.mem_free dOut;
+    Cu.Module.unload module_;
+    Cu.Context.destroy context;
     Format.set_margin 110;
     for i = 0 to size - 1 do
       let ( ! ) arr = Host.get arr [| i |] in

@@ -1,4 +1,14 @@
-## [0.4.1] current
+## [0.5.0] current
+
+### Added
+
+- TODO: CUDA events.
+
+### Changed
+
+- Partitioned the API into modules.
+
+## [0.4.1] 2024-09-12
 
 ### Fixed
 
