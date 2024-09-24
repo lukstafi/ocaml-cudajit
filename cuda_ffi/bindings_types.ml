@@ -162,6 +162,11 @@ type cu_stream = cu_stream_t structure ptr
 
 let cu_stream : cu_stream typ = typedef (ptr @@ structure "CUstream_st") "CUstream"
 
+type cu_event_t
+type cu_event = cu_event_t structure ptr
+
+let cu_event : cu_event typ = typedef (ptr @@ structure "CUevent_st") "CUevent"
+
 type cu_jit_target =
   | CU_TARGET_COMPUTE_30
   | CU_TARGET_COMPUTE_32
@@ -1541,4 +1546,13 @@ module Types (T : Ctypes.TYPE) = struct
       ~unexpected:(fun error_code -> CU_STREAM_FLAGS_UNCATEGORIZED error_code)
       "CUstream_flags"
       [ (CU_STREAM_DEFAULT, cu_stream_default); (CU_STREAM_NON_BLOCKING, cu_stream_non_blocking) ]
+
+  let cu_event_default = T.constant "CU_EVENT_DEFAULT" T.int64_t
+  let cu_event_blocking_sync = T.constant "CU_EVENT_BLOCKING_SYNC" T.int64_t
+  let cu_event_disable_timing = T.constant "CU_EVENT_DISABLE_TIMING" T.int64_t
+  let cu_event_interprocess = T.constant "CU_EVENT_INTERPROCESS" T.int64_t
+  let cu_event_wait_default = T.constant "CU_EVENT_WAIT_DEFAULT" T.int64_t
+  let cu_event_wait_external = T.constant "CU_EVENT_WAIT_EXTERNAL" T.int64_t
+  let cu_event_record_default = T.constant "CU_EVENT_RECORD_DEFAULT" T.int64_t
+  let cu_event_record_external = T.constant "CU_EVENT_RECORD_EXTERNAL" T.int64_t
 end

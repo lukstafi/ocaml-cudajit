@@ -739,3 +739,59 @@ module Stream : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g58229da5d30f1c0cdf667b320ec2c0f5}
         cuMemsetD32Async}. *)
 end
+
+(** CUDA events can be used for synchronization between streams without blocking the CPU, and to
+    time the on-device execution. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT}
+      Event Management}. *)
+module Event : sig
+  type t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g6d740185cf0953636d4ae37f68d7559b}
+        CUevent}. *)
+
+  val create : ?blocking_sync:bool -> ?enable_timing:bool -> ?interprocess:bool -> unit -> t
+  (** Creates an event {i for the current context}. All of [blocking_sync], [enable_timing] and
+      [interprocess] are by default false. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g450687e75f3ff992fe01662a43d9d3db}
+        cuEventCreate} and
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g5ae04079c671c8e659a3a27c7b23f629}
+        CUevent_flags}. *)
+
+  val destroy : t -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
+        cuEventDestroy}. *)
+
+  val elapsed_time : start:t -> end_:t -> float
+  (** Returns (an upper bound on) elapsed time in milliseconds with a resolution of around 0.5
+      microseconds. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1gdfb1178807353bbcaa9e245da497cf97}
+        cuEventElapsedTime}. *)
+
+  val query : t -> bool
+  (** Returns [true] precisely when all work captured by the most recent call to {!record} has been
+      completed. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g6f0704d755066b0ee705749ae911deef}
+        cuEventQuery}. *)
+
+  val record : ?external_:bool -> t -> Stream.t -> unit
+  (** Captures in the event the contents of the stream, i.e. the work scheduled on it. [external_]
+      defaults to false (cudajit as of version 0.5 does not expose stream capture). See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1ge577e0c132d9c4961f220d79f6762c4b}
+        cuEventRecordWithFlags}. *)
+
+  val synchronize : t -> unit
+  (** Blocks until the completion of all work captured in the event by the most recent call to
+      {!record}. NOTE: if the event was created without [~blocking_sync:true], then the CPU thread
+      will busy-wait. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g9e520d34e51af7f5375610bca4add99c}
+        cuEventSynchronize}. *)
+
+  val wait : ?external_:bool -> Stream.t -> t -> unit
+  (** Future work submitted to the stream will wait for the completion of all work captured in the
+      event by the most recent call to {!record}. [external_] defaults to false (cudajit as of
+      version 0.5 does not expose stream capture). See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g6a898b652dfc6aa1d5c8d97062618b2f}
+        cuStreamWaitEvent}. *)
+end

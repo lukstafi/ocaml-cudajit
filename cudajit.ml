@@ -1633,3 +1633,60 @@ module Stream = struct
     check "cu_memset_d32_async"
     @@ Cuda.cu_memset_d32_async dev v (Unsigned.Size_t.of_int length) stream.stream
 end
+
+module Event = struct
+  type t = cu_event
+
+  let uint_of_cu_event_flags ~blocking_sync ~enable_timing ~interprocess =
+    let open Cuda_ffi.Types_generated in
+    let open Unsigned.UInt in
+    let default = Unsigned.UInt.of_int64 cu_event_default in
+    let blocking_sync = if blocking_sync then of_int64 cu_event_blocking_sync else zero in
+    let disable_timing = if enable_timing then zero else of_int64 cu_event_disable_timing in
+    let interprocess = if interprocess then of_int64 cu_event_interprocess else zero in
+    List.fold_left
+      (fun flags flag -> Infix.(flags lor flag))
+      default
+      [ blocking_sync; disable_timing; interprocess ]
+
+  let create ?(blocking_sync = false) ?(enable_timing = false) ?(interprocess = false) () =
+    let open Ctypes in
+    let event = allocate_n cu_event ~count:1 in
+    check "cu_event_create"
+    @@ Cuda.cu_event_create event
+         (uint_of_cu_event_flags ~blocking_sync ~enable_timing ~interprocess);
+    !@event
+
+  let destroy event = check "cu_event_destroy" @@ Cuda.cu_event_destroy event
+
+  let elapsed_time ~start ~end_ =
+    let open Ctypes in
+    let result = allocate float 0.0 in
+    check "cu_event_elapsed_time" @@ Cuda.cu_event_elapsed_time result start end_;
+    !@result
+
+  let query event =
+    match Cuda.cu_event_query event with
+    | CUDA_SUCCESS -> true
+    | CUDA_ERROR_NOT_READY -> false
+    | error ->
+        check "cu_event_query" error;
+        false
+
+  let record ?(external_ = false) event stream =
+    let open Cuda_ffi.Types_generated in
+    let flags =
+      Unsigned.UInt.of_int64
+      @@ if external_ then cu_event_record_default else cu_event_record_external
+    in
+    check "cu_event_record_with_flags" @@ Cuda.cu_event_record_with_flags event stream.stream flags
+
+  let synchronize event = check "cu_event_synchronize" @@ Cuda.cu_event_synchronize event
+
+  let wait ?(external_ = false) stream event =
+    let open Cuda_ffi.Types_generated in
+    let flags =
+      Unsigned.UInt.of_int64 @@ if external_ then cu_event_wait_default else cu_event_wait_external
+    in
+    check "cu_stream_wait_event" @@ Cuda.cu_stream_wait_event stream.stream event flags
+end

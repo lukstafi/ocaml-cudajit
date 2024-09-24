@@ -171,4 +171,21 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let cu_stream_synchronize =
     F.foreign "cuStreamSynchronize" F.(cu_stream @-> returning E.cu_result)
+
+  let cu_event_create =
+    F.foreign "cuEventCreate" F.(ptr cu_event @-> uint @-> returning E.cu_result)
+
+  let cu_event_destroy = F.foreign "cuEventDestroy" F.(cu_event @-> returning E.cu_result)
+
+  let cu_event_elapsed_time =
+    F.foreign "cuEventElapsedTime" F.(ptr float @-> cu_event @-> cu_event @-> returning E.cu_result)
+
+  let cu_event_record_with_flags =
+    F.foreign "cuEventRecordWithFlags" F.(cu_event @-> cu_stream @-> uint @-> returning E.cu_result)
+
+  let cu_event_query = F.foreign "cuEventQuery" F.(cu_event @-> returning E.cu_result)
+  let cu_event_synchronize = F.foreign "cuEventSynchronize" F.(cu_event @-> returning E.cu_result)
+
+  let cu_stream_wait_event =
+    F.foreign "cuStreamWaitEvent" F.(cu_stream @-> cu_event @-> uint @-> returning E.cu_result)
 end
