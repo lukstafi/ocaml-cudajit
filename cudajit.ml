@@ -1076,13 +1076,17 @@ module Context = struct
     | USER_COREDUMP_ENABLE -> Unsigned.UInt.of_int64 cu_ctx_user_coredump_enable
     | SYNC_MEMOPS -> Unsigned.UInt.of_int64 cu_ctx_sync_memops
 
+  let destroy ctx = check "cu_ctx_destroy" @@ Cuda.cu_ctx_destroy ctx
+
   let create (flags : flags) device =
     let open Ctypes in
     let ctx = allocate_n cu_context ~count:1 in
     let open Unsigned.UInt in
     let flags = List.fold_left (fun flags flag -> Infix.(flags lor uint_of_flag flag)) zero flags in
     check "cu_ctx_create" @@ Cuda.cu_ctx_create ctx flags device;
-    !@ctx
+    let ctx = !@ctx in
+    Stdlib.Gc.finalise destroy ctx;
+    ctx
 
   let get_flags () : flags =
     let open Ctypes in
@@ -1184,8 +1188,6 @@ module Context = struct
     let value = allocate size_t Unsigned.Size_t.zero in
     check "cu_ctx_set_limit" @@ Cuda.cu_ctx_get_limit value (cu_of_limit limit);
     Unsigned.Size_t.to_int !@value
-
-  let destroy ctx = check "cu_ctx_destroy" @@ Cuda.cu_ctx_destroy ctx
 end
 
 let bigarray_start_not_managed arr = Ctypes_bigarray.unsafe_address arr
@@ -1563,6 +1565,10 @@ module Stream = struct
     | false -> Unsigned.UInt.of_int64 cu_stream_default
     | true -> Unsigned.UInt.of_int64 cu_stream_non_blocking
 
+  let destroy stream =
+    check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream;
+    stream.args_lifetimes <- []
+
   let create ?(non_blocking = false) ?(lower_priority = 0) () =
     let open Ctypes in
     let stream = allocate_n cu_stream ~count:1 in
@@ -1570,11 +1576,9 @@ module Stream = struct
     @@ Cuda.cu_stream_create_with_priority stream
          (uint_of_cu_stream_flags ~non_blocking)
          lower_priority;
-    { args_lifetimes = []; stream = !@stream }
-
-  let destroy stream =
-    check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream;
-    stream.args_lifetimes <- []
+    let stream = { args_lifetimes = []; stream = !@stream } in
+    Stdlib.Gc.finalise destroy stream;
+    stream
 
   let get_context stream =
     let open Ctypes in
@@ -1649,15 +1653,17 @@ module Event = struct
       default
       [ blocking_sync; disable_timing; interprocess ]
 
+  let destroy event = check "cu_event_destroy" @@ Cuda.cu_event_destroy event
+
   let create ?(blocking_sync = false) ?(enable_timing = false) ?(interprocess = false) () =
     let open Ctypes in
     let event = allocate_n cu_event ~count:1 in
     check "cu_event_create"
     @@ Cuda.cu_event_create event
          (uint_of_cu_event_flags ~blocking_sync ~enable_timing ~interprocess);
-    !@event
-
-  let destroy event = check "cu_event_destroy" @@ Cuda.cu_event_destroy event
+    let event = !@event in
+    Gc.finalise destroy event;
+    event
 
   let elapsed_time ~start ~end_ =
     let open Ctypes in

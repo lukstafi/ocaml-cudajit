@@ -23,7 +23,7 @@ let%expect_test "SAXPY" =
   Cu.init ();
   if Cu.Device.get_count () > 0 then (
     let device = Cu.Device.get ~ordinal:0 in
-    let context = Cu.Context.create [] device in
+    let _context = Cu.Context.create [] device in
     let module_ = Cu.Module.load_data_ex prog [] in
     let kernel = Cu.Module.get_function module_ ~name:"saxpy" in
     let size = num_threads * num_blocks in
@@ -55,7 +55,6 @@ let%expect_test "SAXPY" =
     Cu.Deviceptr.mem_free dY;
     Cu.Deviceptr.mem_free dOut;
     Cu.Module.unload module_;
-    Cu.Context.destroy context;
     Format.set_margin 110;
     for i = 0 to size - 1 do
       let ( ! ) arr = Host.get arr [| i |] in

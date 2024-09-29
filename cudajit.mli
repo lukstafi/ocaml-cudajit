@@ -300,10 +300,13 @@ module Context : sig
         CUcontext}. *)
 
   val create : flags -> Device.t -> t
-  (** You should call {!ctx_destroy} when done using the context (no finalizer attached). The
-      context is pushed to the CPU-thread-local stack. See
+  (** The context is pushed to the CPU-thread-local stack. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g65dc0012348bc84810e2103a40d8e2cf}
-        cuCtxCreate}. *)
+        cuCtxCreate}
+
+      The context value is finalized using
+      {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}
+        ctxDestroy}. *)
 
   val get_flags : unit -> flags
   (** See
@@ -356,11 +359,6 @@ module Context : sig
   (** Flags are unused. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g0889ec6728e61c05ed359551d67b3f5a}
         cuCtxEnablePeerAccess}. *)
-
-  val destroy : t -> unit
-  (** See
-      {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}
-        ctxDestroy}. *)
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge24c2d4214af24139020f1aecaf32665}
@@ -693,13 +691,11 @@ module Stream : sig
         cuStreamAttachMemAsync}. *)
 
   val create : ?non_blocking:bool -> ?lower_priority:int -> unit -> t
-  (** Lower [lower_priority] numbers represent higher priorities, the default is [0]. Currently the
-      streams are not automatically destroyed, use {!stream_destroy}. See
+  (** Lower [lower_priority] numbers represent higher priorities, the default is [0]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g95c1a8c7c3dacb13091692dd9c7f7471}
-        cuStreamCreateWithPriority}. *)
+        cuStreamCreateWithPriority}.
 
-  val destroy : t -> unit
-  (** See
+      The stream value is finalized using
       {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__STREAM_g244c8833de4596bcd31a06cdf21ee758.html}
         cuStreamDestroy}. *)
 
@@ -756,10 +752,9 @@ module Event : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g450687e75f3ff992fe01662a43d9d3db}
         cuEventCreate} and
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g5ae04079c671c8e659a3a27c7b23f629}
-        CUevent_flags}. *)
+        CUevent_flags}.
 
-  val destroy : t -> unit
-  (** See
+      The event value is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
         cuEventDestroy}. *)
 

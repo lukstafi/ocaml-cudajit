@@ -7,6 +7,7 @@
 ### Changed
 
 - Partitioned the API into modules.
+- Removed `destroy` functions from the interface, attaching them as finalizers.
 
 ### Fixed
 
