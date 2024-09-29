@@ -14,7 +14,7 @@ let prog = Cu.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast
 let () =
   Cu.init ();
   let device = Cu.device_get ~ordinal:0 in
-  let _context = Cu.ctx_create ~flags:0 device in
+  let context = Cu.ctx_create ~flags:0 device in
   let module_ = Cu.module_load_data_ex prog [] in
   let kernel = Cu.module_get_function module_ ~name:"saxpy" in
   ...
@@ -34,12 +34,14 @@ let () =
   Cu.memcpy_D_to_H ~dst:hOut ~src:dOut ();
   Cu.mem_free dX;
   ...
-  Cu.module_unload module_
+  Cu.module_unload module_;
+  (* Keep the context alive up till here. *)
+  ignore (Sys.opaque_identity context)
 ```
 
 (the `...` are parts omitted for presentation brevity).
 You can see how a kernel is compiled and launched, how on-device tensors are created, retrieved to host
-(i.e. the CPU), and released. `_context` is (or might be) destroyed when it is finalized by GC.
+(i.e. the CPU), and released.
 
 Note that you don't need to add the include path to the `compile_to_ptx` options.
 
