@@ -760,7 +760,8 @@ module Event : sig
 
   val elapsed_time : start:t -> end_:t -> float
   (** Returns (an upper bound on) elapsed time in milliseconds with a resolution of around 0.5
-      microseconds. See
+      microseconds. Both events must have completed ([query start = true] and [query end_ = true])
+      before calling [elapsed_time]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1gdfb1178807353bbcaa9e245da497cf97}
         cuEventElapsedTime}. *)
 
@@ -793,7 +794,7 @@ end
 
 (** This module builds on top of functionality more directly exposed by {!Event}. It optimizes
     resource management for use-cases where events are not reused: there's only one call to
-    [record], and it's immediately after [create]. *)
+    {!Event.record}, and it's immediately after {!Event.create}. *)
 module Delimited_event : sig
   type t
   (** An delimited event encapsulates {!Event.t} and is owned by a stream. It records its owner at
@@ -812,16 +813,15 @@ module Delimited_event : sig
   (** Combines {!Event.create} and {!Event.record} to create an event owned by the given stream. *)
 
   val is_released : t -> bool
-  (** Returns true if the delimited event is already released via a call to
+  (** Returns true if the delimited event is already released using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
-        cuEventDestroy}. The event can be released via either {!synchronize}, or
-      {!Stream.synchronize}. *)
+        cuEventDestroy}. The event will be released by {!synchronize} and {!Stream.synchronize}. *)
 
   val query : t -> bool
   (** See {!Event.query}. [query event] returns [true] when [event] is already released. *)
 
   val synchronize : t -> unit
-  (** See {!Event.synchronize}. [synchronize event] is a no-op if [is_destroyed event] is true. *)
+  (** See {!Event.synchronize}. [synchronize event] is a no-op if [event] is already released. *)
 
   val wait : ?external_:bool -> Stream.t -> t -> unit
   (** See {!Event.wait}. [wait stream event] is a no-op if [event] is already released. *)
