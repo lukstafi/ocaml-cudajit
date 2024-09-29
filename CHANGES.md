@@ -3,6 +3,7 @@
 ### Added
 
 - CUDA events.
+- Delimited events: they are owned by a stream they record, and are automatically destroyed after synchronization.
 
 ### Changed
 

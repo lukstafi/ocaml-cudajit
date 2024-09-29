@@ -1040,9 +1040,27 @@ end
 
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 type lifetime = Remember : 'a -> lifetime
-type stream = { mutable args_lifetimes : lifetime list; stream : cu_stream }
+type delimited_event = { event : cu_event; mutable is_destroyed : bool }
 
-let no_stream = { args_lifetimes = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
+let destroy_event event = check "cu_event_destroy" @@ Cuda.cu_event_destroy event
+
+type stream = {
+  mutable args_lifetimes : lifetime list;
+  mutable owned_events : delimited_event list;
+  stream : cu_stream;
+}
+
+let release_stream stream =
+  stream.args_lifetimes <- [];
+  List.iter
+    (fun event ->
+      if not event.is_destroyed then destroy_event event.event;
+      event.is_destroyed <- false)
+    stream.owned_events;
+  stream.owned_events <- []
+
+let no_stream =
+  { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
 module Context = struct
   type t = cu_context
@@ -1151,7 +1169,7 @@ module Context = struct
 
   let synchronize () =
     check "cu_ctx_synchronize" @@ Cuda.cu_ctx_synchronize ();
-    no_stream.args_lifetimes <- []
+    release_stream no_stream
 
   let disable_peer_access ctx =
     check "cu_ctx_disable_peer_access" @@ Cuda.cu_ctx_disable_peer_access ctx
@@ -1521,7 +1539,8 @@ module Stream = struct
     | Double of float
   [@@deriving sexp_of]
 
-  let no_stream = { args_lifetimes = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
+  let no_stream =
+    { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
   let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
       ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
@@ -1566,8 +1585,8 @@ module Stream = struct
     | true -> Unsigned.UInt.of_int64 cu_stream_non_blocking
 
   let destroy stream =
-    check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream;
-    stream.args_lifetimes <- []
+    release_stream stream;
+    check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream
 
   let create ?(non_blocking = false) ?(lower_priority = 0) () =
     let open Ctypes in
@@ -1576,7 +1595,7 @@ module Stream = struct
     @@ Cuda.cu_stream_create_with_priority stream
          (uint_of_cu_stream_flags ~non_blocking)
          lower_priority;
-    let stream = { args_lifetimes = []; stream = !@stream } in
+    let stream = { args_lifetimes = []; owned_events = []; stream = !@stream } in
     Stdlib.Gc.finalise destroy stream;
     stream
 
@@ -1597,12 +1616,13 @@ module Stream = struct
     | CUDA_ERROR_NOT_READY -> false
     | e ->
         check "cu_stream_query" e;
+        (* We do not destroy delimited events, but any kernel arguments no longer needed. *)
         stream.args_lifetimes <- [];
         true
 
   let synchronize stream =
     check "cu_stream_synchronize" @@ Cuda.cu_stream_synchronize stream.stream;
-    stream.args_lifetimes <- []
+    release_stream stream
 
   let memcpy_D_to_H_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr src) ~size_in_bytes stream =
     check "cu_memcpy_D_to_H_async"
@@ -1653,7 +1673,7 @@ module Event = struct
       default
       [ blocking_sync; disable_timing; interprocess ]
 
-  let destroy event = check "cu_event_destroy" @@ Cuda.cu_event_destroy event
+  let destroy event = destroy_event event
 
   let create ?(blocking_sync = false) ?(enable_timing = false) ?(interprocess = false) () =
     let open Ctypes in
@@ -1695,4 +1715,36 @@ module Event = struct
       Unsigned.UInt.of_int64 @@ if external_ then cu_event_wait_default else cu_event_wait_external
     in
     check "cu_stream_wait_event" @@ Cuda.cu_stream_wait_event stream.stream event flags
+end
+
+module Delimited_event = struct
+  type t = delimited_event
+
+  let elapsed_time ~start ~end_ =
+    if start.is_destroyed || end_.is_destroyed then
+      invalid_arg "Delimited_event.elapsed_time: one of the events is already destroyed";
+    Event.elapsed_time ~start:start.event ~end_:end_.event
+
+  let query event =
+    if event.is_destroyed then invalid_arg "Delimited_event.query: the event is already destroyed";
+    Event.query event.event
+
+  let record ?blocking_sync ?enable_timing ?interprocess ?external_ stream =
+    let event = Event.create ?blocking_sync ?enable_timing ?interprocess () in
+    Event.record ?external_ event stream;
+    let result = { event; is_destroyed = false } in
+    stream.owned_events <- result :: stream.owned_events;
+    result
+
+  let synchronize event =
+    if not event.is_destroyed then (
+      Event.synchronize event.event;
+      destroy_event event.event;
+      event.is_destroyed <- true)
+
+  let wait ?external_ stream event =
+    if event.is_destroyed then invalid_arg "Delimited_event.wait: the event is already destroyed";
+    Event.wait ?external_ stream event.event
+
+  let is_destroyed event = event.is_destroyed
 end
