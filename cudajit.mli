@@ -797,8 +797,10 @@ end
 module Delimited_event : sig
   type t
   (** An delimited event encapsulates {!Event.t} and is owned by a stream. It records its owner at
-      creation, and gets destroyed when either it or its owner are synchronized (or if neither
-      happens, when it is garbage-collected). *)
+      creation, and gets released (using
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
+        cuEventDestroy}) when either it or its owner are synchronized (or if neither happens, when
+      it is garbage-collected). *)
 
   val record :
     ?blocking_sync:bool ->
@@ -809,24 +811,18 @@ module Delimited_event : sig
     t
   (** Combines {!Event.create} and {!Event.record} to create an event owned by the given stream. *)
 
-  val is_destroyed : t -> bool
+  val is_released : t -> bool
   (** Returns true if the delimited event is already released via a call to
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
         cuEventDestroy}. The event can be released via either {!synchronize}, or
       {!Stream.synchronize}. *)
 
-  val elapsed_time : start:t -> end_:t -> float
-  (** See {!Event.elapsed_time}. [elapsed_time ~start ~end_] raises [Invalid_argument] if either
-      [start] or [end_] is already destroyed. *)
-
   val query : t -> bool
-  (** See {!Event.query}. [query event] raises [Invalid_argument] if [event] is already
-      destroyed. *)
+  (** See {!Event.query}. [query event] returns [true] when [event] is already released. *)
 
   val synchronize : t -> unit
   (** See {!Event.synchronize}. [synchronize event] is a no-op if [is_destroyed event] is true. *)
 
   val wait : ?external_:bool -> Stream.t -> t -> unit
-  (** See {!Event.wait}. [wait stream event] raises [Invalid_argument] if [event] is already
-      destroyed. *)
+  (** See {!Event.wait}. [wait stream event] is a no-op if [event] is already released. *)
 end

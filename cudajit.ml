@@ -1040,7 +1040,7 @@ end
 
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 type lifetime = Remember : 'a -> lifetime
-type delimited_event = { event : cu_event; mutable is_destroyed : bool }
+type delimited_event = { event : cu_event; mutable is_released : bool }
 
 let destroy_event event = check "cu_event_destroy" @@ Cuda.cu_event_destroy event
 
@@ -1054,8 +1054,8 @@ let release_stream stream =
   stream.args_lifetimes <- [];
   List.iter
     (fun event ->
-      if not event.is_destroyed then destroy_event event.event;
-      event.is_destroyed <- false)
+      if not event.is_released then destroy_event event.event;
+      event.is_released <- true)
     stream.owned_events;
   stream.owned_events <- []
 
@@ -1720,31 +1720,23 @@ end
 module Delimited_event = struct
   type t = delimited_event
 
-  let elapsed_time ~start ~end_ =
-    if start.is_destroyed || end_.is_destroyed then
-      invalid_arg "Delimited_event.elapsed_time: one of the events is already destroyed";
-    Event.elapsed_time ~start:start.event ~end_:end_.event
-
-  let query event =
-    if event.is_destroyed then invalid_arg "Delimited_event.query: the event is already destroyed";
-    Event.query event.event
+  let query event = if event.is_released then true else Event.query event.event
 
   let record ?blocking_sync ?enable_timing ?interprocess ?external_ stream =
     let event = Event.create ?blocking_sync ?enable_timing ?interprocess () in
     Event.record ?external_ event stream;
-    let result = { event; is_destroyed = false } in
+    let result = { event; is_released = false } in
     stream.owned_events <- result :: stream.owned_events;
     result
 
   let synchronize event =
-    if not event.is_destroyed then (
+    if not event.is_released then (
       Event.synchronize event.event;
       destroy_event event.event;
-      event.is_destroyed <- true)
+      event.is_released <- true)
 
   let wait ?external_ stream event =
-    if event.is_destroyed then invalid_arg "Delimited_event.wait: the event is already destroyed";
-    Event.wait ?external_ stream event.event
+    if not event.is_released then Event.wait ?external_ stream event.event
 
-  let is_destroyed event = event.is_destroyed
+  let is_released event = event.is_released
 end
