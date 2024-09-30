@@ -78,11 +78,6 @@ module Device : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g8bdd1cc7201304b01357b8034f6587cb}
         cuDeviceGet}. *)
 
-  val primary_ctx_release : t -> unit
-  (** The context is automatically reset once the last reference to it is released. See
-      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1gf2a8bc16f8df0c88031f6a1ba3d6e8ad}
-        cuDevicePrimaryCtxRelease}. *)
-
   val primary_ctx_reset : t -> unit
   (** Destroys all allocations and resets all state on the primary context. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g5d38802e8600340283958a117466ce12}
@@ -300,7 +295,8 @@ module Context : sig
         CUcontext}. *)
 
   val create : flags -> Device.t -> t
-  (** The context is pushed to the CPU-thread-local stack. See
+  (** NOTE: In most cases it is recommended to use {!get_primary} instead! The context is pushed to
+      the CPU-thread-local stack. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g65dc0012348bc84810e2103a40d8e2cf}
         cuCtxCreate}
 
@@ -314,10 +310,14 @@ module Context : sig
         cuCtxGetFlags}. *)
 
   val get_primary : Device.t -> t
-  (** You should always call {!Device.primary_ctx_release} once done using the retained context. The
-      context is {i not} pushed to the stack. See
+  (** The context is {i not} pushed to the stack. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g9051f2d5c31501997a6cb0530290a300}
-        cuDevicePrimaryCtxRetain}. *)
+        cuDevicePrimaryCtxRetain}.
+
+      The context is finalized using
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1gf2a8bc16f8df0c88031f6a1ba3d6e8ad}
+        cuDevicePrimaryCtxRelease}. The underlying CUDA context will be reset once the last
+      reference to it is released. *)
 
   val get_device : unit -> Device.t
   (** See
@@ -803,12 +803,7 @@ module Delimited_event : sig
         cuEventDestroy}) when either it or its owner are synchronized (or if neither happens, when
       it is garbage-collected). *)
 
-  val record :
-    ?blocking_sync:bool ->
-    ?interprocess:bool ->
-    ?external_:bool ->
-    Stream.t ->
-    t
+  val record : ?blocking_sync:bool -> ?interprocess:bool -> ?external_:bool -> Stream.t -> t
   (** Combines {!Event.create} and {!Event.record} to create an event owned by the given stream. *)
 
   val is_released : t -> bool

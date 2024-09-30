@@ -1149,12 +1149,6 @@ module Context = struct
         SYNC_MEMOPS;
       ]
 
-  let get_primary device =
-    let open Ctypes in
-    let ctx = allocate_n cu_context ~count:1 in
-    check "cu_device_primary_ctx_retain" @@ Cuda.cu_device_primary_ctx_retain ctx device;
-    !@ctx
-
   let get_device () =
     let open Ctypes in
     let device = allocate Cuda_ffi.Types_generated.cu_device (Cu_device 0) in
@@ -1175,6 +1169,14 @@ module Context = struct
 
   let push_current ctx = check "cu_ctx_push_current" @@ Cuda.cu_ctx_push_current ctx
   let set_current ctx = check "cu_ctx_set_current" @@ Cuda.cu_ctx_set_current ctx
+
+  let get_primary device =
+    let open Ctypes in
+    let ctx = allocate_n cu_context ~count:1 in
+    check "cu_device_primary_ctx_retain" @@ Cuda.cu_device_primary_ctx_retain ctx device;
+    let ctx = !@ctx in
+    Stdlib.Gc.finalise (fun _ -> Device.primary_ctx_release device) ctx;
+    ctx
 
   let synchronize () =
     check "cu_ctx_synchronize" @@ Cuda.cu_ctx_synchronize ();
