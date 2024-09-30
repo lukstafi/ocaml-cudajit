@@ -80,6 +80,15 @@ type result = cu_result [@@deriving sexp]
 
 exception Cuda_error of { status : result; message : string }
 
+let cuda_error_printer = function
+  | Cuda_error { status; message } ->
+      ignore @@ Format.flush_str_formatter ();
+      Format.fprintf Format.str_formatter "%s:@ %a" message Sexplib0.Sexp.pp_hum
+        (sexp_of_result status);
+      Some (Format.flush_str_formatter ())
+  | _ -> None
+
+let () = Printexc.register_printer cuda_error_printer
 let check message status = if status <> CUDA_SUCCESS then raise @@ Cuda_error { status; message }
 let init ?(flags = 0) () = check "cu_init" @@ Cuda.cu_init flags
 
