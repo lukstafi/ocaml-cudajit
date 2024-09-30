@@ -133,75 +133,75 @@ let%expect_test "SAXPY half precision compilation" =
     NNN
     .address_size 64
 
-    // .globl	saxpy
+    	// .globl	saxpy
 
     .visible .entry saxpy(
-    .param .align 2 .b8 saxpy_param_0[2],
-    .param .u64 saxpy_param_1,
-    .param .u64 saxpy_param_2,
-    .param .u64 saxpy_param_3,
-    .param .u64 saxpy_param_4
+    	.param .align 2 .b8 saxpy_param_0[2],
+    	.param .u64 saxpy_param_1,
+    	.param .u64 saxpy_param_2,
+    	.param .u64 saxpy_param_3,
+    	.param .u64 saxpy_param_4
     )
     {
-    .reg .pred 	%p<2>;
-    .reg .b16 	%rs<8>;
-    .reg .f32 	%f<7>;
-    .reg .b32 	%r<5>;
-    .reg .b64 	%rd<13>;
+    	.reg .pred 	%p<2>;
+    	.reg .b16 	%rs<8>;
+    	.reg .f32 	%f<7>;
+    	.reg .b32 	%r<5>;
+    	.reg .b64 	%rd<13>;
 
 
-    ld.param.u16 	%rs1, [saxpy_param_0];
-    ld.param.u64 	%rd2, [saxpy_param_1];
-    ld.param.u64 	%rd3, [saxpy_param_2];
-    ld.param.u64 	%rd4, [saxpy_param_3];
-    ld.param.u64 	%rd5, [saxpy_param_4];
-    mov.u32 	%r1, %ctaid.x;
-    mov.u32 	%r2, %ntid.x;
-    mov.u32 	%r3, %tid.x;
-    mad.lo.s32 	%r4, %r1, %r2, %r3;
-    cvt.u64.u32 	%rd1, %r4;
-    setp.ge.u64 	%p1, %rd1, %rd5;
-    @%p1 bra 	$L__BB0_2;
+    	ld.param.u16 	%rs1, [saxpy_param_0];
+    	ld.param.u64 	%rd2, [saxpy_param_1];
+    	ld.param.u64 	%rd3, [saxpy_param_2];
+    	ld.param.u64 	%rd4, [saxpy_param_3];
+    	ld.param.u64 	%rd5, [saxpy_param_4];
+    	mov.u32 	%r1, %ctaid.x;
+    	mov.u32 	%r2, %ntid.x;
+    	mov.u32 	%r3, %tid.x;
+    	mad.lo.s32 	%r4, %r1, %r2, %r3;
+    	cvt.u64.u32 	%rd1, %r4;
+    	setp.ge.u64 	%p1, %rd1, %rd5;
+    	@%p1 bra 	$L__BB0_2;
 
-    cvta.to.global.u64 	%rd6, %rd2;
-    shl.b64 	%rd7, %rd1, 1;
-    add.s64 	%rd8, %rd6, %rd7;
-    ld.global.u16 	%rs3, [%rd8];
-    // begin inline asm
-    {  cvt.f32.f16 %f1, %rs1;}
+    	cvta.to.global.u64 	%rd6, %rd2;
+    	shl.b64 	%rd7, %rd1, 1;
+    	add.s64 	%rd8, %rd6, %rd7;
+    	ld.global.u16 	%rs3, [%rd8];
+    	// begin inline asm
+    	{  cvt.f32.f16 %f1, %rs1;}
 
-    // end inline asm
-    // begin inline asm
-    {  cvt.f32.f16 %f2, %rs3;}
+    	// end inline asm
+    	// begin inline asm
+    	{  cvt.f32.f16 %f2, %rs3;}
 
-    // end inline asm
-    mul.ftz.f32 	%f3, %f1, %f2;
-    // begin inline asm
-    {  cvt.rn.f16.f32 %rs4, %f3;}
+    	// end inline asm
+    	mul.ftz.f32 	%f3, %f1, %f2;
+    	// begin inline asm
+    	{  cvt.rn.f16.f32 %rs4, %f3;}
 
-    // end inline asm
-    cvta.to.global.u64 	%rd9, %rd3;
-    add.s64 	%rd10, %rd9, %rd7;
-    ld.global.u16 	%rs6, [%rd10];
-    // begin inline asm
-    {  cvt.f32.f16 %f4, %rs4;}
+    	// end inline asm
+    	cvta.to.global.u64 	%rd9, %rd3;
+    	add.s64 	%rd10, %rd9, %rd7;
+    	ld.global.u16 	%rs6, [%rd10];
+    	// begin inline asm
+    	{  cvt.f32.f16 %f4, %rs4;}
 
-    // end inline asm
-    // begin inline asm
-    {  cvt.f32.f16 %f5, %rs6;}
+    	// end inline asm
+    	// begin inline asm
+    	{  cvt.f32.f16 %f5, %rs6;}
 
-    // end inline asm
-    add.ftz.f32 	%f6, %f4, %f5;
-    // begin inline asm
-    {  cvt.rn.f16.f32 %rs7, %f6;}
+    	// end inline asm
+    	add.ftz.f32 	%f6, %f4, %f5;
+    	// begin inline asm
+    	{  cvt.rn.f16.f32 %rs7, %f6;}
 
-    // end inline asm
-    cvta.to.global.u64 	%rd11, %rd4;
-    add.s64 	%rd12, %rd11, %rd7;
-    st.global.u16 	[%rd12], %rs7;
+    	// end inline asm
+    	cvta.to.global.u64 	%rd11, %rd4;
+    	add.s64 	%rd12, %rd11, %rd7;
+    	st.global.u16 	[%rd12], %rs7;
 
     $L__BB0_2:
-    ret;
+    	ret;
 
     }
     |}]
