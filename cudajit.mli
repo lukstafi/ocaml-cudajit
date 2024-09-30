@@ -756,7 +756,8 @@ module Event : sig
 
       The event value is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
-        cuEventDestroy}. *)
+        cuEventDestroy}. This is safe because the event resources are only released when the event
+      completes, so waiting streams are not affected by the finalization. *)
 
   val elapsed_time : start:t -> end_:t -> float
   (** Returns (an upper bound on) elapsed time in milliseconds with a resolution of around 0.5
