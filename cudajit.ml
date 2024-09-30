@@ -1731,8 +1731,8 @@ module Delimited_event = struct
 
   let query event = if event.is_released then true else Event.query event.event
 
-  let record ?blocking_sync ?enable_timing ?interprocess ?external_ stream =
-    let event = Event.create ?blocking_sync ?enable_timing ?interprocess () in
+  let record ?blocking_sync ?interprocess ?external_ stream =
+    let event = Event.create ?blocking_sync ~enable_timing:false ?interprocess () in
     Event.record ?external_ event stream;
     let result = { event; is_released = false } in
     stream.owned_events <- result :: stream.owned_events;

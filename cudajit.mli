@@ -805,7 +805,6 @@ module Delimited_event : sig
 
   val record :
     ?blocking_sync:bool ->
-    ?enable_timing:bool ->
     ?interprocess:bool ->
     ?external_:bool ->
     Stream.t ->
