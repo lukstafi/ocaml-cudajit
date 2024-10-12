@@ -118,6 +118,14 @@ module Device = struct
   let primary_ctx_reset device =
     check "cu_device_primary_ctx_reset" @@ Cuda.cu_device_primary_ctx_reset device
 
+  let get_free_and_total_mem () = 
+    let open Ctypes in
+    let free = allocate size_t Unsigned.Size_t.zero in
+    let total = allocate size_t Unsigned.Size_t.zero in
+    check "cu_mem_get_info" @@ Cuda.cu_mem_get_info free total;
+    Unsigned.Size_t.to_int !@free, Unsigned.Size_t.to_int !@total
+
+
   type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS [@@deriving sexp]
   type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
 

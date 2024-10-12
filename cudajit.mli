@@ -83,6 +83,12 @@ module Device : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g5d38802e8600340283958a117466ce12}
         cuDevicePrimaryCtxReset}. *)
 
+  val get_free_and_total_mem : unit -> int * int
+  (** Gets the free memory on the device of the current context according to the OS, and the total
+      memory on the device. See:
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g808f555540d0143a331cc42aa98835c0}
+        cuMemGetInfo}. *)
+
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g578d7cf687ce20f7e99468e8c14e22de}
         CUdevice_P2PAttribute}. *)

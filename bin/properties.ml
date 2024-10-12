@@ -10,10 +10,11 @@ let () =
       let props = Cu.Device.get_attributes dev in
       Cu.Context.set_current @@ Cu.Context.get_primary dev;
       let ctx_flags = Cu.Context.get_flags () in
-      Format.printf "GPU #%d:@ %a@\nContext properties:@ %a@\n%!" ordinal Sexplib0.Sexp.pp_hum
-        (Cu.Device.sexp_of_attributes props)
-        Sexplib0.Sexp.pp_hum
+      let free, total = Cu.Device.get_free_and_total_mem () in
+      Format.printf "GPU #%d:@ Free mem: %d,@ total mem: %d,@ context properties:@ %a@\n%!" ordinal
+        free total Sexplib0.Sexp.pp_hum
         (Cu.Context.sexp_of_flags ctx_flags);
+      Format.printf "Attributes:@ %a\n%%!" Sexplib0.Sexp.pp_hum (Cu.Device.sexp_of_attributes props);
       Format.printf "Default limits:@ %a\n%%!" Sexplib0.Sexp.pp_hum
         (Sexplib0.Sexp_conv.(
            sexp_of_list (fun li ->

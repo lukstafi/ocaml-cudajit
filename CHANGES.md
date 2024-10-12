@@ -1,3 +1,9 @@
+## [0.5.1] current
+
+### Added
+
+- `get_free_and_total_mem`.
+
 ## [0.5.0] 2024-09-25
 
 ### Added

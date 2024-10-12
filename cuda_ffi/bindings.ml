@@ -127,6 +127,9 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "cuMemsetD32Async"
       F.(cu_deviceptr @-> uint32_t @-> size_t @-> cu_stream @-> returning E.cu_result)
 
+  let cu_mem_get_info =
+    F.foreign "cuMemGetInfo" F.(ptr size_t @-> ptr size_t @-> returning E.cu_result)
+
   let cu_module_get_global =
     F.foreign "cuModuleGetGlobal_v2"
       F.(ptr cu_deviceptr @-> ptr size_t @-> cu_module @-> string @-> returning E.cu_result)
