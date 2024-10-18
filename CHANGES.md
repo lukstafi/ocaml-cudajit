@@ -5,6 +5,7 @@
 - `get_free_and_total_mem`.
 - Multiple missing `sexp_of` conversions.
 - `cuda_call_callback` to help in debugging.
+- `is_success` functions.
 
 ## [0.5.0] 2024-09-25
 

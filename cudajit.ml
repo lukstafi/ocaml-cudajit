@@ -19,6 +19,7 @@ module Nvrtc = struct
     | _ -> None
 
   let () = Printexc.register_printer error_printer
+  let is_success = function NVRTC_SUCCESS -> true | _ -> false
 
   type compile_to_ptx_result = {
     log : string option;
@@ -94,6 +95,7 @@ let cuda_error_printer = function
   | _ -> None
 
 let () = Printexc.register_printer cuda_error_printer
+let is_success = function CUDA_SUCCESS -> true | _ -> false
 let cuda_call_callback : (message:string -> status:result -> unit) option ref = ref None
 
 let check message status =

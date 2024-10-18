@@ -11,6 +11,8 @@ module Nvrtc : sig
       snake-case variant of the offending CUDA function name (see {!Nvrtc_ffi.Bindings.Functions}
       for the direct funciton bindings). *)
 
+  val is_success : result -> bool
+
   type compile_to_ptx_result [@@deriving sexp_of]
   (** The values passed from {!compile_to_ptx} to {!module_load_data_ex}. Currently, cudajit
       converts the result of [nvrtc_compile_program] to human-readable PTX assembly before passing
@@ -51,6 +53,8 @@ exception Cuda_error of { status : result; message : string }
 (** Error codes returned by CUDA functions are converted to exceptions. The message stores a
     snake-case variant of the offending CUDA function name (see {!Cuda_ffi.Bindings.Functions} for
     the direct funciton bindings). *)
+
+val is_success : result -> bool
 
 val cuda_call_callback : (message:string -> status:result -> unit) option ref
 (** The function called after every {!Cuda_ffi.Bindings.Functions} call. [message] is the snake-case
