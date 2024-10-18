@@ -1062,7 +1062,7 @@ end
 
 let sexp_of_voidp ptr =
   Sexplib0.Sexp.Atom
-    ("@" ^ Unsigned.UInt64.to_hexstring @@ Unsigned.UInt64.of_string @@ Nativeint.to_string
+    ("@" ^ Unsigned.UInt64.to_hexstring @@ Unsigned.UInt64.of_int64 @@ Int64.of_nativeint
    @@ Ctypes.raw_address_of_ptr ptr)
 
 let sexp_of_cu_event (event : cu_event) = sexp_of_voidp @@ Ctypes.to_voidp event
