@@ -20,7 +20,12 @@ module Nvrtc = struct
 
   let () = Printexc.register_printer error_printer
 
-  type compile_to_ptx_result = { log : string option; ptx : char Ctypes.ptr; ptx_length : int }
+  type compile_to_ptx_result = {
+    log : string option;
+    ptx : (char Ctypes.ptr[@sexp.opaque]);
+    ptx_length : int;
+  }
+  [@@deriving sexp_of]
 
   let compile_to_ptx ~cu_src ~name ~options ~with_debug =
     let open Ctypes in
@@ -98,7 +103,7 @@ let string_of_deviceptr (Deviceptr id) = Unsigned.UInt64.to_hexstring id
 let sexp_of_deviceptr ptr = Sexplib0.Sexp.Atom (string_of_deviceptr ptr)
 
 module Device = struct
-  type t = cu_device
+  type t = cu_device [@@deriving sexp]
 
   let get_count () =
     let open Ctypes in
@@ -118,13 +123,12 @@ module Device = struct
   let primary_ctx_reset device =
     check "cu_device_primary_ctx_reset" @@ Cuda.cu_device_primary_ctx_reset device
 
-  let get_free_and_total_mem () = 
+  let get_free_and_total_mem () =
     let open Ctypes in
     let free = allocate size_t Unsigned.Size_t.zero in
     let total = allocate size_t Unsigned.Size_t.zero in
     check "cu_mem_get_info" @@ Cuda.cu_mem_get_info free total;
-    Unsigned.Size_t.to_int !@free, Unsigned.Size_t.to_int !@total
-
+    (Unsigned.Size_t.to_int !@free, Unsigned.Size_t.to_int !@total)
 
   type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS [@@deriving sexp]
   type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
@@ -134,6 +138,7 @@ module Device = struct
     | ACCESS_SUPPORTED of bool
     | NATIVE_ATOMIC_SUPPORTED of bool
     | CUDA_ARRAY_ACCESS_SUPPORTED of bool
+  [@@deriving sexp]
 
   let get_p2p_attributes ~dst ~src =
     let open Ctypes in

@@ -11,7 +11,7 @@ module Nvrtc : sig
       snake-case variant of the offending CUDA function name (see {!Cuda_ffi.C.Functions} and
       {!Nvrtc_ffi.C.Functions} for the direct funciton bindings). *)
 
-  type compile_to_ptx_result
+  type compile_to_ptx_result [@@deriving sexp_of]
   (** The values passed from {!compile_to_ptx} to {!module_load_data_ex}. Currently, cudajit
       converts the result of [nvrtc_compile_program] to human-readable PTX assembly before passing
       it to the [cu_module_load_data_ex] function. *)
@@ -63,7 +63,7 @@ val init : ?flags:int -> unit -> unit
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX}
       Primary Context Management}. *)
 module Device : sig
-  type t
+  type t [@@deriving sexp]
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g41ca2a24a242b36ef2ca77330b5fb72a}
         CUdevice}. *)
@@ -97,6 +97,7 @@ module Device : sig
     | ACCESS_SUPPORTED of bool
     | NATIVE_ATOMIC_SUPPORTED of bool
     | CUDA_ARRAY_ACCESS_SUPPORTED of bool
+  [@@deriving sexp]
 
   val get_p2p_attributes : dst:t -> src:t -> p2p_attribute list
   (** See
