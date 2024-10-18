@@ -94,7 +94,12 @@ let cuda_error_printer = function
   | _ -> None
 
 let () = Printexc.register_printer cuda_error_printer
-let check message status = if status <> CUDA_SUCCESS then raise @@ Cuda_error { status; message }
+let cuda_call_callback : (message:string -> status:result -> unit) option ref = ref None
+
+let check message status =
+  (match !cuda_call_callback with None -> () | Some callback -> callback ~message ~status);
+  if status <> CUDA_SUCCESS then raise @@ Cuda_error { status; message }
+
 let init ?(flags = 0) () = check "cu_init" @@ Cuda.cu_init flags
 
 type deviceptr = Deviceptr of Unsigned.uint64
