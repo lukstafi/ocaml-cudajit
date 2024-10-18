@@ -3,7 +3,7 @@
 ### Added
 
 - `get_free_and_total_mem`.
-- A couple missing `sexp` conversions.
+- Multiple missing `sexp_of` conversions.
 
 ## [0.5.0] 2024-09-25
 

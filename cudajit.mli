@@ -748,7 +748,7 @@ end
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT}
       Event Management}. *)
 module Event : sig
-  type t
+  type t [@@deriving sexp_of]
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g6d740185cf0953636d4ae37f68d7559b}
         CUevent}. *)

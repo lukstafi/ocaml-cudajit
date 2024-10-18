@@ -1084,13 +1084,15 @@ let release_stream stream =
 let no_stream =
   { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
+let sexp_of_voidp ptr =
+  Sexplib0.Sexp.Atom
+    ("@" ^ Unsigned.UInt64.to_hexstring @@ Unsigned.UInt64.of_string @@ Nativeint.to_string
+   @@ Ctypes.raw_address_of_ptr ptr)
+
 module Context = struct
   type t = cu_context
 
-  let sexp_of_t (ctx : t) =
-    Sexplib0.Sexp.Atom
-      ("@" ^ Unsigned.UInt64.to_hexstring @@ Unsigned.UInt64.of_string @@ Nativeint.to_string
-     @@ Ctypes.raw_address_of_ptr @@ Ctypes.to_voidp ctx)
+  let sexp_of_t (ctx : t) = sexp_of_voidp @@ Ctypes.to_voidp ctx
 
   type flag =
     | SCHED_AUTO
@@ -1689,6 +1691,8 @@ end
 
 module Event = struct
   type t = cu_event
+
+  let sexp_of_t (event : t) = sexp_of_voidp @@ Ctypes.to_voidp event
 
   let uint_of_cu_event_flags ~blocking_sync ~enable_timing ~interprocess =
     let open Cuda_ffi.Types_generated in
