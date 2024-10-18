@@ -587,7 +587,7 @@ end
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM}
       Stream Management}. *)
 module Stream : sig
-  type t
+  type t [@@deriving sexp_of]
   (** Stores a stream pointer and manages lifetimes of kernel launch arguments. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gb946c7f02e09efd788a204718015d88a}
         CUstream}. *)
@@ -804,7 +804,7 @@ end
     resource management for use-cases where events are not reused: there's only one call to
     {!Event.record}, and it's immediately after {!Event.create}. *)
 module Delimited_event : sig
-  type t
+  type t [@@deriving sexp_of]
   (** An delimited event encapsulates {!Event.t} and is owned by a stream. It records its owner at
       creation, and gets released (using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}

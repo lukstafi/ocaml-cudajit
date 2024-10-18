@@ -1060,17 +1060,26 @@ module Device = struct
     }
 end
 
+let sexp_of_voidp ptr =
+  Sexplib0.Sexp.Atom
+    ("@" ^ Unsigned.UInt64.to_hexstring @@ Unsigned.UInt64.of_string @@ Nativeint.to_string
+   @@ Ctypes.raw_address_of_ptr ptr)
+
+let sexp_of_cu_event (event : cu_event) = sexp_of_voidp @@ Ctypes.to_voidp event
+
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 type lifetime = Remember : 'a -> lifetime
-type delimited_event = { event : cu_event; mutable is_released : bool }
+type delimited_event = { event : cu_event; mutable is_released : bool } [@@deriving sexp_of]
 
 let destroy_event event = check "cu_event_destroy" @@ Cuda.cu_event_destroy event
+let sexp_of_cu_stream (cu_stream : cu_stream) = sexp_of_voidp @@ Ctypes.to_voidp cu_stream
 
 type stream = {
-  mutable args_lifetimes : lifetime list;
+  mutable args_lifetimes : (lifetime list[@sexp.opaque]);
   mutable owned_events : delimited_event list;
   stream : cu_stream;
 }
+[@@deriving sexp_of]
 
 let release_stream stream =
   stream.args_lifetimes <- [];
@@ -1083,11 +1092,6 @@ let release_stream stream =
 
 let no_stream =
   { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
-
-let sexp_of_voidp ptr =
-  Sexplib0.Sexp.Atom
-    ("@" ^ Unsigned.UInt64.to_hexstring @@ Unsigned.UInt64.of_string @@ Nativeint.to_string
-   @@ Ctypes.raw_address_of_ptr ptr)
 
 module Context = struct
   type t = cu_context
@@ -1549,7 +1553,7 @@ module Module = struct
 end
 
 module Stream = struct
-  type t = stream
+  type t = stream [@@deriving sexp_of]
 
   let memcpy_H_to_D_unsafe ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) ~size_in_bytes stream =
     check "cu_memcpy_H_to_D_async"
@@ -1690,9 +1694,7 @@ module Stream = struct
 end
 
 module Event = struct
-  type t = cu_event
-
-  let sexp_of_t (event : t) = sexp_of_voidp @@ Ctypes.to_voidp event
+  type t = cu_event [@@deriving sexp_of]
 
   let uint_of_cu_event_flags ~blocking_sync ~enable_timing ~interprocess =
     let open Cuda_ffi.Types_generated in
@@ -1751,7 +1753,7 @@ module Event = struct
 end
 
 module Delimited_event = struct
-  type t = delimited_event
+  type t = delimited_event [@@deriving sexp_of]
 
   let query event = if event.is_released then true else Event.query event.event
 
