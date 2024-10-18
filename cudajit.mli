@@ -296,7 +296,7 @@ module Context : sig
 
   type flags = flag list [@@deriving sexp]
 
-  type t
+  type t [@@deriving sexp_of]
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf9f5bd81658f866613785b3a0bb7d7d9}
         CUcontext}. *)

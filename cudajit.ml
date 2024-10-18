@@ -1087,6 +1087,11 @@ let no_stream =
 module Context = struct
   type t = cu_context
 
+  let sexp_of_t (ctx : t) =
+    Sexplib0.Sexp.Atom
+      ("@" ^ Unsigned.UInt64.to_hexstring @@ Unsigned.UInt64.of_string @@ Nativeint.to_string
+     @@ Ctypes.raw_address_of_ptr @@ Ctypes.to_voidp ctx)
+
   type flag =
     | SCHED_AUTO
     | SCHED_SPIN
