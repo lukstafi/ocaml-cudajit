@@ -56,7 +56,7 @@ exception Cuda_error of { status : result; message : string }
 
 val is_success : result -> bool
 
-val cuda_call_callback : (message:string -> status:result -> unit) option ref
+val cuda_call_hook : (message:string -> status:result -> unit) option ref
 (** The function called after every {!Cuda_ffi.Bindings.Functions} call. [message] is the snake-case
     variant of the corresponding CUDA function name. *)
 
