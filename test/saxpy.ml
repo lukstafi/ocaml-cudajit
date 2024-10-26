@@ -55,7 +55,6 @@ let%expect_test "SAXPY" =
     Cu.Deviceptr.mem_free dX;
     Cu.Deviceptr.mem_free dY;
     Cu.Deviceptr.mem_free dOut;
-    Cu.Module.unload module_;
     (* Keep the context around up till here. *)
     ignore (Sys.opaque_identity context);
     Format.set_margin 110;
@@ -64,6 +63,8 @@ let%expect_test "SAXPY" =
       Format.printf "%.1f * %.1f + %.1f = %.2f;@ " a !hX !hY !hOut
     done;
     Format.print_newline ();
+    (* See if the finalizers run. *)
+    Gc.full_major ();
     [%expect
       {|
       cu_init
@@ -84,7 +85,6 @@ let%expect_test "SAXPY" =
       cu_mem_free
       cu_mem_free
       cu_mem_free
-      cu_module_unload
       5.1 * 0.0 + 0.0 = 0.00; 5.1 * 1.0 + 2.0 = 7.10; 5.1 * 2.0 + 4.0 = 14.20; 5.1 * 3.0 + 6.0 = 21.30;
       5.1 * 4.0 + 8.0 = 28.40; 5.1 * 5.0 + 10.0 = 35.50; 5.1 * 6.0 + 12.0 = 42.60; 5.1 * 7.0 + 14.0 = 49.70;
       5.1 * 8.0 + 16.0 = 56.80; 5.1 * 9.0 + 18.0 = 63.90; 5.1 * 10.0 + 20.0 = 71.00; 5.1 * 11.0 + 22.0 = 78.10;
@@ -1449,5 +1449,8 @@ let%expect_test "SAXPY" =
       5.1 * 4087.0 + 8174.0 = 29017.70; 5.1 * 4088.0 + 8176.0 = 29024.80; 5.1 * 4089.0 + 8178.0 = 29031.90;
       5.1 * 4090.0 + 8180.0 = 29039.00; 5.1 * 4091.0 + 8182.0 = 29046.10; 5.1 * 4092.0 + 8184.0 = 29053.20;
       5.1 * 4093.0 + 8186.0 = 29060.30; 5.1 * 4094.0 + 8188.0 = 29067.40; 5.1 * 4095.0 + 8190.0 = 29074.50;
+
+      cu_module_unload
+      cu_ctx_destroy
       |}]);
   Cu.cuda_call_hook := None
