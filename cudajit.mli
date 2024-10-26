@@ -572,17 +572,16 @@ module Module : sig
   val load_data_ex : Nvrtc.compile_to_ptx_result -> jit_option list -> t
   (** Currently, the image passed via this call is the PTX source. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g9e8047e9dbf725f0cd7cafd18bfd4d12}
-        cuModuleLoadDataEx}. *)
+        cuModuleLoadDataEx}.
+
+      The module is finalized using
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g8ea3d716524369de3763104ced4ea57b}
+        cuModuleUnload}. *)
 
   val get_function : t -> name:string -> func
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1ga52be009b0d4045811b30c965e1cb2cf}
         cuModuleGetFunction}. *)
-
-  val unload : t -> unit
-  (** See
-      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g8ea3d716524369de3763104ced4ea57b}
-        cuModuleUnload}. *)
 
   val get_global : t -> name:string -> Deviceptr.t * Unsigned.size_t
   (** See

@@ -1536,12 +1536,17 @@ module Module = struct
              | POSITION_INDEPENDENT_CODE c -> [ bi2vp c ])
            options
     in
-    check "cu_module_load_data_ex"
-    @@ Cuda.cu_module_load_data_ex cu_mod
-         (coerce (ptr char) (ptr void) ptx.Nvrtc.ptx)
-         n_opts (CArray.start c_options)
-    @@ CArray.start c_opts_args;
-    !@cu_mod
+    let unload cu_mod = check "cu_module_unload" @@ Cuda.cu_module_unload cu_mod in
+    let result =
+      check "cu_module_load_data_ex"
+      @@ Cuda.cu_module_load_data_ex cu_mod
+           (coerce (ptr char) (ptr void) ptx.Nvrtc.ptx)
+           n_opts (CArray.start c_options)
+      @@ CArray.start c_opts_args;
+      !@cu_mod
+    in
+    Gc.finalise unload result;
+    result
 
   let get_function module_ ~name =
     let open Ctypes in
@@ -1555,8 +1560,6 @@ module Module = struct
     let size_in_bytes = allocate size_t Unsigned.Size_t.zero in
     check "cu_module_get_global" @@ Cuda.cu_module_get_global device size_in_bytes module_ name;
     (Deviceptr !@device, !@size_in_bytes)
-
-  let unload cu_mod = check "cu_module_unload" @@ Cuda.cu_module_unload cu_mod
 end
 
 module Stream = struct

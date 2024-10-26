@@ -7,6 +7,10 @@
 - `cuda_call_hook` to help in debugging.
 - `is_success` functions.
 
+### Changes
+
+- Removed `Module.unload`, instead `Module.load_data_ex` attaches an unload as a finalizer.
+
 ## [0.5.0] 2024-09-25
 
 ### Added
