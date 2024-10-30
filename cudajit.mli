@@ -417,7 +417,11 @@ module Deviceptr : sig
   val mem_alloc : size_in_bytes:int -> t
   (** The memory is aligned, is not cleared. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gb82d2a09844a58dd9e744dc31e8aa467}
-        cuMemAlloc}. *)
+        cuMemAlloc}.
+
+      The pointer is finalized using
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
+        cuMemFree}. *)
 
   val memcpy_H_to_D_unsafe : dst:t -> src:unit Ctypes.ptr -> size_in_bytes:int -> unit
   (** See
@@ -471,11 +475,6 @@ module Deviceptr : sig
       [length], or just [size_in_bytes]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1ge1f5c7771544fee150ada8853c7cbf4a}
         cuMemcpyPeer}. *)
-
-  val mem_free : t -> unit
-  (** See
-      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
-        cuMemFree}. *)
 
   val memset_d8 : t -> Unsigned.uchar -> length:int -> unit
   (** See

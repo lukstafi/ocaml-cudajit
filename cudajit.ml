@@ -1319,7 +1319,10 @@ module Deviceptr = struct
     let open Ctypes in
     let deviceptr = allocate_n cu_deviceptr ~count:1 in
     check "cu_mem_alloc" @@ Cuda.cu_mem_alloc deviceptr @@ Unsigned.Size_t.of_int size_in_bytes;
-    Deviceptr !@deviceptr
+    let finalize (Deviceptr ptr) = check "cu_mem_free" @@ Cuda.cu_mem_free ptr in
+    let result = Deviceptr !@deviceptr in
+    Gc.finalise finalize result;
+    result
 
   let memcpy_H_to_D_unsafe ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) ~size_in_bytes =
     check "cu_memcpy_H_to_D" @@ Cuda.cu_memcpy_H_to_D dst src
@@ -1353,8 +1356,6 @@ module Deviceptr = struct
     check "cu_memcpy_peer"
     @@ Cuda.cu_memcpy_peer dst dst_ctx src src_ctx
     @@ Unsigned.Size_t.of_int size_in_bytes
-
-  let mem_free (Deviceptr dev) = check "cu_mem_free" @@ Cuda.cu_mem_free dev
 
   let memset_d8 (Deviceptr dev) v ~length =
     check "cu_memset_d8" @@ Cuda.cu_memset_d8 dev v @@ Unsigned.Size_t.of_int length
