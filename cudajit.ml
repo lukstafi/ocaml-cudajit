@@ -1537,7 +1537,12 @@ module Module = struct
              | POSITION_INDEPENDENT_CODE c -> [ bi2vp c ])
            options
     in
-    let unload cu_mod = check "cu_module_unload" @@ Cuda.cu_module_unload cu_mod in
+    let context = Context.get_current () in
+    let unload cu_mod =
+      Context.push_current context;
+      check "cu_module_unload" @@ Cuda.cu_module_unload cu_mod;
+      ignore (Context.pop_current () : cu_context)
+    in
     let result =
       check "cu_module_load_data_ex"
       @@ Cuda.cu_module_load_data_ex cu_mod

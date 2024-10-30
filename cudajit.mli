@@ -421,7 +421,9 @@ module Deviceptr : sig
 
       The pointer is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
-        cuMemFree}. *)
+        cuMemFree}. This is safe
+      {{:https://stackoverflow.com/questions/70767180/cumemallocing-memory-in-one-cuda-context-and-freeing-it-in-another-why-does}
+        without needing to set the proper context}. *)
 
   val memcpy_H_to_D_unsafe : dst:t -> src:unit Ctypes.ptr -> size_in_bytes:int -> unit
   (** See
@@ -575,7 +577,8 @@ module Module : sig
 
       The module is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g8ea3d716524369de3763104ced4ea57b}
-        cuModuleUnload}. *)
+        cuModuleUnload}. The finalizer captures the context when [load_data_ex] is called to
+      temporarily push it on the stack for unloading. *)
 
   val get_function : t -> name:string -> func
   (** See
@@ -710,7 +713,9 @@ module Stream : sig
 
       The stream value is finalized using
       {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__STREAM_g244c8833de4596bcd31a06cdf21ee758.html}
-        cuStreamDestroy}. *)
+        cuStreamDestroy}. This is safe
+      {{:https://stackoverflow.com/questions/64663943/how-to-destroy-a-stream-that-was-created-on-a-specific-device}
+        without needing to set the proper context}. *)
 
   val get_context : t -> Context.t
   (** See
@@ -770,7 +775,8 @@ module Event : sig
       The event value is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
         cuEventDestroy}. This is safe because the event resources are only released when the event
-      completes, so waiting streams are not affected by the finalization. *)
+      completes, so waiting streams are not affected by the finalization. Note: I assume destroying
+      an event is safe without setting the proper context. *)
 
   val elapsed_time : start:t -> end_:t -> float
   (** Returns (an upper bound on) elapsed time in milliseconds with a resolution of around 0.5

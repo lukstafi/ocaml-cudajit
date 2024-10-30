@@ -1,4 +1,4 @@
-## [0.6.0] current
+## [0.6.0] 2024-10-31
 
 ### Added
 
@@ -9,7 +9,7 @@
 
 ### Changes
 
-- Removed `Module.unload`, instead `Module.load_data_ex` attaches an unload as a finalizer.
+- Removed `Module.unload`, instead `Module.load_data_ex` attaches an unload as a finalizer (with context capture).
 - Removed `Deviceptr.mem_free`, instead it is attached as a finalizer.
 
 ## [0.5.0] 2024-09-25

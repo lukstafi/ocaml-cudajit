@@ -68,6 +68,7 @@ let%expect_test "SAXPY" =
       cu_device_get_count
       cu_device_get
       cu_ctx_create
+      cu_ctx_get_current
       cu_module_load_data_ex
       cu_module_get_function
       cu_mem_alloc
@@ -1447,7 +1448,9 @@ let%expect_test "SAXPY" =
       cu_mem_free
       cu_mem_free
       cu_mem_free
+      cu_ctx_push_current
       cu_module_unload
+      cu_ctx_pop_current
       cu_ctx_destroy
       |}]);
   Cu.cuda_call_hook := None
