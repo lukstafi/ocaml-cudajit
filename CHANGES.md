@@ -6,11 +6,16 @@
 - Multiple missing `sexp_of` conversions.
 - `cuda_call_hook` to help in debugging.
 - `is_success` functions.
+- TODO: `mem_alloc_async` and `mem_free_async`. `mem_free_async` is attached as a finalizer by `mem_alloc_async` (with stream capture).
 
-### Changes
+### Changed
 
 - Removed `Module.unload`, instead `Module.load_data_ex` attaches an unload as a finalizer (with context capture).
-- Removed `Deviceptr.mem_free`, instead it is attached as a finalizer.
+- `Deviceptr.mem_free` is attached as a finalizer, but still available for "tight" memory management.
+
+### Fixed
+
+- Now detecting use-after-free for device memory pointers.
 
 ## [0.5.0] 2024-09-25
 

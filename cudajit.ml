@@ -85,13 +85,13 @@ end
 type result = cu_result [@@deriving sexp]
 
 exception Cuda_error of { status : result; message : string }
+exception Use_after_free of { func : string; arg : string }
 
 let cuda_error_printer = function
   | Cuda_error { status; message } ->
-      ignore @@ Format.flush_str_formatter ();
-      Format.fprintf Format.str_formatter "%s:@ %a" message Sexplib0.Sexp.pp_hum
-        (sexp_of_result status);
-      Some (Format.flush_str_formatter ())
+      Some (Format.asprintf "%s:@ %a" message Sexplib0.Sexp.pp_hum (sexp_of_result status))
+  | Use_after_free { func; arg } ->
+      Some (Format.sprintf "Use-after-free in %s: argument %s" func arg)
   | _ -> None
 
 let () = Printexc.register_printer cuda_error_printer
@@ -102,12 +102,26 @@ let check message status =
   (match !cuda_call_hook with None -> () | Some callback -> callback ~message ~status);
   if status <> CUDA_SUCCESS then raise @@ Cuda_error { status; message }
 
+let check_freed ~func args =
+  List.iter
+    (fun (arg, freed) -> if Atomic.get freed then raise @@ Use_after_free { func; arg })
+    args
+
 let init ?(flags = 0) () = check "cu_init" @@ Cuda.cu_init flags
 
-type deviceptr = Deviceptr of Unsigned.uint64
+type memptr = Unsigned.uint64
 
-let string_of_deviceptr (Deviceptr id) = Unsigned.UInt64.to_hexstring id
-let sexp_of_deviceptr ptr = Sexplib0.Sexp.Atom (string_of_deviceptr ptr)
+let string_of_memptr ptr = Unsigned.UInt64.to_hexstring ptr
+let sexp_of_memptr ptr = Sexplib0.Sexp.Atom (string_of_memptr ptr)
+
+type atomic_bool = bool Atomic.t
+
+let sexp_of_atomic_bool flag = sexp_of_bool @@ Atomic.get flag
+
+type deviceptr = Deviceptr of { ptr : memptr; freed : atomic_bool } [@@deriving sexp_of]
+
+(* TODO: check if cuda detects use-after-free, if not consider adding *_safe function variants that
+   check the [freed] field. *)
 
 module Device = struct
   type t = cu_device [@@deriving sexp]
@@ -1313,23 +1327,29 @@ let get_size_in_bytes ?kind ?length ?size_in_bytes provenance =
 module Deviceptr = struct
   type t = deviceptr [@@deriving sexp_of]
 
-  let string_of = string_of_deviceptr
+  let string_of (Deviceptr { ptr; freed }) =
+    let addr = string_of_memptr ptr in
+    if Atomic.get freed then addr ^ "/FREED" else addr
+
+  let mem_free (Deviceptr { ptr; freed }) =
+    if Atomic.compare_and_set freed false true then check "cu_mem_free" @@ Cuda.cu_mem_free ptr
 
   let mem_alloc ~size_in_bytes =
     let open Ctypes in
     let deviceptr = allocate_n cu_deviceptr ~count:1 in
     check "cu_mem_alloc" @@ Cuda.cu_mem_alloc deviceptr @@ Unsigned.Size_t.of_int size_in_bytes;
-    let finalize (Deviceptr ptr) = check "cu_mem_free" @@ Cuda.cu_mem_free ptr in
-    let result = Deviceptr !@deviceptr in
-    Gc.finalise finalize result;
+    let result = Deviceptr { ptr = !@deviceptr; freed = Atomic.make false } in
+    Gc.finalise mem_free result;
     result
 
-  let memcpy_H_to_D_unsafe ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) ~size_in_bytes =
+  let memcpy_H_to_D_unsafe ~dst:(Deviceptr { ptr = dst; freed }) ~(src : unit Ctypes.ptr)
+      ~size_in_bytes =
+    check_freed ~func:"Deviceptr.memcpy_H_to_D" [ ("dst", freed) ];
     check "cu_memcpy_H_to_D" @@ Cuda.cu_memcpy_H_to_D dst src
     @@ Unsigned.Size_t.of_int size_in_bytes
 
-  let memcpy_H_to_D ?host_offset ?length ~dst:(Deviceptr dst) ~src () =
-    memcpy_H_to_D_impl ?host_offset ?length ~dst:(Deviceptr dst) ~src memcpy_H_to_D_unsafe
+  let memcpy_H_to_D ?host_offset ?length ~dst ~src () =
+    memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy_H_to_D_unsafe
 
   let alloc_and_memcpy src =
     let size_in_bytes = Bigarray.Genarray.size_in_bytes src in
@@ -1337,34 +1357,42 @@ module Deviceptr = struct
     memcpy_H_to_D ~dst ~src ();
     dst
 
-  let memcpy_D_to_H_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr src) ~size_in_bytes =
+  let memcpy_D_to_H_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr { ptr = src; freed })
+      ~size_in_bytes =
+    check_freed ~func:"Deviceptr.memcpy_D_to_H" [ ("src", freed) ];
     check "cu_memcpy_D_to_H" @@ Cuda.cu_memcpy_D_to_H dst src
     @@ Unsigned.Size_t.of_int size_in_bytes
 
   let memcpy_D_to_H ?host_offset ?length ~dst ~src () =
     memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy_D_to_H_unsafe
 
-  let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) () =
+  let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
+      ~src:(Deviceptr { ptr = src; freed = src_freed }) () =
+    check_freed ~func:"Deviceptr.memcpy_D_to_D" [ ("dst", dst_freed); ("src", src_freed) ];
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D" in
     check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src
     @@ Unsigned.Size_t.of_int size_in_bytes
 
   (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
-  let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src)
-      ~src_ctx () =
+  let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
+      ~dst_ctx ~src:(Deviceptr { ptr = src; freed = src_freed }) ~src_ctx () =
+    check_freed ~func:"Deviceptr.memcpy_peer" [ ("dst", dst_freed); ("src", src_freed) ];
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer" in
     check "cu_memcpy_peer"
     @@ Cuda.cu_memcpy_peer dst dst_ctx src src_ctx
     @@ Unsigned.Size_t.of_int size_in_bytes
 
-  let memset_d8 (Deviceptr dev) v ~length =
-    check "cu_memset_d8" @@ Cuda.cu_memset_d8 dev v @@ Unsigned.Size_t.of_int length
+  let memset_d8 (Deviceptr { ptr; freed }) v ~length =
+    check_freed ~func:"Deviceptr.memset_d8" [ ("ptr", freed) ];
+    check "cu_memset_d8" @@ Cuda.cu_memset_d8 ptr v @@ Unsigned.Size_t.of_int length
 
-  let memset_d16 (Deviceptr dev) v ~length =
-    check "cu_memset_d16" @@ Cuda.cu_memset_d16 dev v @@ Unsigned.Size_t.of_int length
+  let memset_d16 (Deviceptr { ptr; freed }) v ~length =
+    check_freed ~func:"Deviceptr.memset_d16" [ ("ptr", freed) ];
+    check "cu_memset_d16" @@ Cuda.cu_memset_d16 ptr v @@ Unsigned.Size_t.of_int length
 
-  let memset_d32 (Deviceptr dev) v ~length =
-    check "cu_memset_d32" @@ Cuda.cu_memset_d32 dev v @@ Unsigned.Size_t.of_int length
+  let memset_d32 (Deviceptr { ptr; freed }) v ~length =
+    check_freed ~func:"Deviceptr.memset_d32" [ ("ptr", freed) ];
+    check "cu_memset_d32" @@ Cuda.cu_memset_d32 ptr v @@ Unsigned.Size_t.of_int length
 end
 
 module Module = struct
@@ -1562,21 +1590,23 @@ module Module = struct
 
   let get_global module_ ~name =
     let open Ctypes in
-    let device = allocate_n cu_deviceptr ~count:1 in
+    let devptr = allocate_n cu_deviceptr ~count:1 in
     let size_in_bytes = allocate size_t Unsigned.Size_t.zero in
-    check "cu_module_get_global" @@ Cuda.cu_module_get_global device size_in_bytes module_ name;
-    (Deviceptr !@device, !@size_in_bytes)
+    check "cu_module_get_global" @@ Cuda.cu_module_get_global devptr size_in_bytes module_ name;
+    (Deviceptr { ptr = !@devptr; freed = Atomic.make false }, !@size_in_bytes)
 end
 
 module Stream = struct
   type t = stream [@@deriving sexp_of]
 
-  let memcpy_H_to_D_unsafe ~dst:(Deviceptr dst) ~(src : unit Ctypes.ptr) ~size_in_bytes stream =
+  let memcpy_H_to_D_unsafe ~dst:(Deviceptr { ptr = dst; freed }) ~(src : unit Ctypes.ptr)
+      ~size_in_bytes stream =
+    check_freed ~func:"Stream.memcpy_H_to_D" [ ("dst", freed) ];
     check "cu_memcpy_H_to_D_async"
     @@ Cuda.cu_memcpy_H_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
-  let memcpy_H_to_D ?host_offset ?length ~dst:(Deviceptr dst) ~src =
-    memcpy_H_to_D_impl ?host_offset ?length ~dst:(Deviceptr dst) ~src memcpy_H_to_D_unsafe
+  let memcpy_H_to_D ?host_offset ?length ~dst ~src =
+    memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy_H_to_D_unsafe
 
   type size_t = Unsigned.size_t
 
@@ -1597,22 +1627,26 @@ module Stream = struct
       ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
     let i2u = Unsigned.UInt.of_int in
     let open Ctypes in
+    let p = ptr in
     let kernel_params =
-      List.map
-        (function
-          | Tensor (Deviceptr dev) -> coerce (ptr uint64_t) (ptr void) @@ allocate uint64_t dev
-          | Int i -> coerce (ptr int) (ptr void) @@ allocate int i
-          | Size_t u -> coerce (ptr size_t) (ptr void) @@ allocate size_t u
-          | Single u -> coerce (ptr float) (ptr void) @@ allocate float u
-          | Double u -> coerce (ptr double) (ptr void) @@ allocate double u)
+      List.mapi
+        (fun i -> function
+          | Tensor (Deviceptr { ptr; freed }) ->
+              check_freed ~func:"Stream.launch_kernel"
+                [ ("kernel (from 0) parameter " ^ Int.to_string i, freed) ];
+              coerce (p uint64_t) (p void) @@ allocate uint64_t ptr
+          | Int i -> coerce (p int) (p void) @@ allocate int i
+          | Size_t u -> coerce (p size_t) (p void) @@ allocate size_t u
+          | Single u -> coerce (p float) (p void) @@ allocate float u
+          | Double u -> coerce (p double) (p void) @@ allocate double u)
         kernel_params
     in
-    let c_kernel_params = kernel_params |> CArray.of_list (ptr void) in
+    let c_kernel_params = kernel_params |> CArray.of_list (p void) in
     check "cu_launch_kernel"
     @@ Cuda.cu_launch_kernel func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z)
          (i2u block_dim_x) (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream.stream
          (CArray.start c_kernel_params)
-    @@ coerce (ptr void) (ptr @@ ptr void) null;
+    @@ coerce (p void) (p @@ ptr void) null;
     stream.args_lifetimes <- Remember (kernel_params, c_kernel_params) :: stream.args_lifetimes
 
   type attach_mem = GLOBAL | HOST | SINGLE_stream [@@deriving sexp]
@@ -1624,9 +1658,10 @@ module Stream = struct
     | HOST -> Unsigned.UInt.of_int64 cu_mem_attach_host
     | SINGLE_stream -> Unsigned.UInt.of_int64 cu_mem_attach_single
 
-  let attach_mem stream (Deviceptr device) length flag =
+  let attach_mem stream (Deviceptr { ptr; freed }) length flag =
+    check_freed ~func:"Stream.attach_mem" [ ("ptr", freed) ];
     check "cu_stream_attach_mem_async"
-    @@ Cuda.cu_stream_attach_mem_async stream.stream device (Unsigned.Size_t.of_int length)
+    @@ Cuda.cu_stream_attach_mem_async stream.stream ptr (Unsigned.Size_t.of_int length)
     @@ uint_of_attach_mem flag
 
   let uint_of_cu_stream_flags ~non_blocking =
@@ -1675,38 +1710,46 @@ module Stream = struct
     check "cu_stream_synchronize" @@ Cuda.cu_stream_synchronize stream.stream;
     release_stream stream
 
-  let memcpy_D_to_H_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr src) ~size_in_bytes stream =
+  let memcpy_D_to_H_unsafe ~(dst : unit Ctypes.ptr) ~src:(Deviceptr { ptr = src; freed })
+      ~size_in_bytes stream =
+    check_freed ~func:"Stream.memcpy_D_to_H" [ ("src", freed) ];
     check "cu_memcpy_D_to_H_async"
     @@ Cuda.cu_memcpy_D_to_H_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
   let memcpy_D_to_H ?host_offset ?length ~dst ~src =
     memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy_D_to_H_unsafe
 
-  let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~src:(Deviceptr src) stream =
+  let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
+      ~src:(Deviceptr { ptr = src; freed = src_freed }) stream =
+    check_freed ~func:"Stream.memcpy_D_to_D" [ ("dst", dst_freed); ("src", src_freed) ];
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D_async" in
     check "cu_memcpy_D_to_D_async"
     @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
   (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
-  let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr dst) ~dst_ctx ~src:(Deviceptr src)
-      ~src_ctx stream =
+  let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
+      ~dst_ctx ~src:(Deviceptr { ptr = src; freed = src_freed }) ~src_ctx stream =
+    check_freed ~func:"Stream.memcpy_peer" [ ("dst", dst_freed); ("src", src_freed) ];
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer_async" in
     check "cu_memcpy_peer_async"
     @@ Cuda.cu_memcpy_peer_async dst dst_ctx src src_ctx
          (Unsigned.Size_t.of_int size_in_bytes)
          stream.stream
 
-  let memset_d8 (Deviceptr dev) v ~length stream =
+  let memset_d8 (Deviceptr { ptr; freed }) v ~length stream =
+    check_freed ~func:"Stream.memset_d8" [ ("ptr", freed) ];
     check "cu_memset_d8_async"
-    @@ Cuda.cu_memset_d8_async dev v (Unsigned.Size_t.of_int length) stream.stream
+    @@ Cuda.cu_memset_d8_async ptr v (Unsigned.Size_t.of_int length) stream.stream
 
-  let memset_d16 (Deviceptr dev) v ~length stream =
+  let memset_d16 (Deviceptr { ptr; freed }) v ~length stream =
+    check_freed ~func:"Stream.memset_d16" [ ("ptr", freed) ];
     check "cu_memset_d16_async"
-    @@ Cuda.cu_memset_d16_async dev v (Unsigned.Size_t.of_int length) stream.stream
+    @@ Cuda.cu_memset_d16_async ptr v (Unsigned.Size_t.of_int length) stream.stream
 
-  let memset_d32 (Deviceptr dev) v ~length stream =
+  let memset_d32 (Deviceptr { ptr; freed }) v ~length stream =
+    check_freed ~func:"Stream.memset_d32" [ ("ptr", freed) ];
     check "cu_memset_d32_async"
-    @@ Cuda.cu_memset_d32_async dev v (Unsigned.Size_t.of_int length) stream.stream
+    @@ Cuda.cu_memset_d32_async ptr v (Unsigned.Size_t.of_int length) stream.stream
 end
 
 module Event = struct

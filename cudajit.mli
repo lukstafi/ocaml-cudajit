@@ -425,6 +425,11 @@ module Deviceptr : sig
       {{:https://stackoverflow.com/questions/70767180/cumemallocing-memory-in-one-cuda-context-and-freeing-it-in-another-why-does}
         without needing to set the proper context}. *)
 
+  val mem_free : t -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
+        cuMemFree}. *)
+
   val memcpy_H_to_D_unsafe : dst:t -> src:unit Ctypes.ptr -> size_in_bytes:int -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g4d32266788c440b0220b1a9ba5795169}
