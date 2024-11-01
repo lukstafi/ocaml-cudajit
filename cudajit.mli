@@ -606,6 +606,20 @@ module Stream : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gb946c7f02e09efd788a204718015d88a}
         CUstream}. *)
 
+  val mem_alloc : t -> size_in_bytes:int -> Deviceptr.t
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC_1g13413273e84a641bce1929eae9e6501f}
+        cuMemAllocAsync}.
+
+      The pointer is finalized using
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC_1g41acf4131f672a2a75cd93d3241f10cf}
+        cuMemFreeAsync}. *)
+
+  val mem_free : t -> Deviceptr.t -> unit
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC_1g41acf4131f672a2a75cd93d3241f10cf}
+        cuMemFreeAsync}. *)
+
   val memcpy_H_to_D_unsafe :
     dst:Deviceptr.t -> src:unit Ctypes.ptr -> size_in_bytes:int -> t -> unit
   (** See

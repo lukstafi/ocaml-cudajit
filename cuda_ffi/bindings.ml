@@ -43,6 +43,10 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let cu_mem_alloc =
     F.foreign "cuMemAlloc" F.(ptr cu_deviceptr @-> size_t @-> returning E.cu_result)
 
+  let cu_mem_alloc_async =
+    F.foreign "cuMemAllocAsync"
+      F.(ptr cu_deviceptr @-> size_t @-> cu_stream @-> returning E.cu_result)
+
   let cu_memcpy_H_to_D =
     F.foreign "cuMemcpyHtoD" F.(cu_deviceptr @-> ptr void @-> size_t @-> returning E.cu_result)
 
@@ -103,6 +107,10 @@ module Functions (F : Ctypes.FOREIGN) = struct
         @-> returning E.cu_result)
 
   let cu_mem_free = F.foreign "cuMemFree" F.(cu_deviceptr @-> returning E.cu_result)
+
+  let cu_mem_free_async =
+    F.foreign "cuMemFreeAsync" F.(cu_deviceptr @-> cu_stream @-> returning E.cu_result)
+
   let cu_module_unload = F.foreign "cuModuleUnload" F.(cu_module @-> returning E.cu_result)
   let cu_ctx_destroy = F.foreign "cuCtxDestroy" F.(cu_context @-> returning E.cu_result)
 

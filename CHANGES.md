@@ -6,7 +6,7 @@
 - Multiple missing `sexp_of` conversions.
 - `cuda_call_hook` to help in debugging.
 - `is_success` functions.
-- TODO: `mem_alloc_async` and `mem_free_async`. `mem_free_async` is attached as a finalizer by `mem_alloc_async` (with stream capture).
+- `mem_alloc_async` and `mem_free_async`. `mem_free_async` is attached as a finalizer by `mem_alloc_async` (with stream capture).
 
 ### Changed
 

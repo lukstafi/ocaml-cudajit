@@ -1599,6 +1599,19 @@ end
 module Stream = struct
   type t = stream [@@deriving sexp_of]
 
+  let mem_free stream (Deviceptr { ptr; freed }) =
+    if Atomic.compare_and_set freed false true then
+      check "cu_mem_free_async" @@ Cuda.cu_mem_free_async ptr stream.stream
+
+  let mem_alloc stream ~size_in_bytes =
+    let open Ctypes in
+    let deviceptr = allocate_n cu_deviceptr ~count:1 in
+    check "cu_mem_alloc_async"
+    @@ Cuda.cu_mem_alloc_async deviceptr (Unsigned.Size_t.of_int size_in_bytes) stream.stream;
+    let result = Deviceptr { ptr = !@deviceptr; freed = Atomic.make false } in
+    Gc.finalise (mem_free stream) result;
+    result
+
   let memcpy_H_to_D_unsafe ~dst:(Deviceptr { ptr = dst; freed }) ~(src : unit Ctypes.ptr)
       ~size_in_bytes stream =
     check_freed ~func:"Stream.memcpy_H_to_D" [ ("dst", freed) ];
