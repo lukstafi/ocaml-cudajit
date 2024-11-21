@@ -1103,11 +1103,23 @@ type stream = {
 }
 [@@deriving sexp_of]
 
+let get_stream_context stream =
+  let open Ctypes in
+  let ctx = allocate_n cu_context ~count:1 in
+  check "cu_stream_get_ctx" @@ Cuda.cu_stream_get_ctx stream.stream ctx;
+  !@ctx
+
+let set_current_context ctx = check "cu_ctx_set_current" @@ Cuda.cu_ctx_set_current ctx
+
 let release_stream stream =
   stream.args_lifetimes <- [];
+  let ctx_unset = ref true in
   List.iter
     (fun event ->
       if not event.is_released then (
+        if !ctx_unset then (
+          set_current_context @@ get_stream_context stream;
+          ctx_unset := false);
         destroy_event event.event;
         event.is_released <- true))
     stream.owned_events;
@@ -1220,7 +1232,7 @@ module Context = struct
     !@ctx
 
   let push_current ctx = check "cu_ctx_push_current" @@ Cuda.cu_ctx_push_current ctx
-  let set_current ctx = check "cu_ctx_set_current" @@ Cuda.cu_ctx_set_current ctx
+  let set_current = set_current_context
 
   let get_primary device =
     let open Ctypes in
@@ -1711,11 +1723,7 @@ module Stream = struct
     Stdlib.Gc.finalise destroy stream;
     stream
 
-  let get_context stream =
-    let open Ctypes in
-    let ctx = allocate_n cu_context ~count:1 in
-    check "cu_stream_get_ctx" @@ Cuda.cu_stream_get_ctx stream.stream ctx;
-    !@ctx
+  let get_context = get_stream_context
 
   let get_id stream =
     let open Ctypes in
