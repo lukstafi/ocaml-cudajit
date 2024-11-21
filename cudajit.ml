@@ -1096,6 +1096,7 @@ let destroy_event event = check "cu_event_destroy" @@ Cuda.cu_event_destroy even
 let sexp_of_cu_stream (cu_stream : cu_stream) = sexp_of_voidp @@ Ctypes.to_voidp cu_stream
 
 type stream = {
+  lifetime : (lifetime[@sexp.opaque]);
   mutable args_lifetimes : (lifetime list[@sexp.opaque]);
   mutable owned_events : delimited_event list;
   stream : cu_stream;
@@ -1106,13 +1107,19 @@ let release_stream stream =
   stream.args_lifetimes <- [];
   List.iter
     (fun event ->
-      if not event.is_released then destroy_event event.event;
-      event.is_released <- true)
+      if not event.is_released then (
+        destroy_event event.event;
+        event.is_released <- true))
     stream.owned_events;
   stream.owned_events <- []
 
 let no_stream =
-  { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
+  {
+    args_lifetimes = [];
+    owned_events = [];
+    stream = Ctypes.(coerce (ptr void) cu_stream null);
+    lifetime = Remember ();
+  }
 
 module Context = struct
   type t = cu_context
@@ -1634,7 +1641,12 @@ module Stream = struct
   [@@deriving sexp_of]
 
   let no_stream =
-    { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
+    {
+      args_lifetimes = [];
+      owned_events = [];
+      stream = Ctypes.(coerce (ptr void) cu_stream null);
+      lifetime = Remember ();
+    }
 
   let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
       ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
@@ -1687,14 +1699,15 @@ module Stream = struct
     release_stream stream;
     check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream
 
-  let create ?(non_blocking = false) ?(lower_priority = 0) () =
+  let create ?keep_alive ?(non_blocking = false) ?(lower_priority = 0) () =
     let open Ctypes in
     let stream = allocate_n cu_stream ~count:1 in
     check "cu_stream_create_with_priority"
     @@ Cuda.cu_stream_create_with_priority stream
          (uint_of_cu_stream_flags ~non_blocking)
          lower_priority;
-    let stream = { args_lifetimes = []; owned_events = []; stream = !@stream } in
+    let lifetime = Remember keep_alive in
+    let stream = { args_lifetimes = []; owned_events = []; stream = !@stream; lifetime } in
     Stdlib.Gc.finalise destroy stream;
     stream
 

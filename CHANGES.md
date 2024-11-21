@@ -1,5 +1,9 @@
 ## [0.6.1] current
 
+### Changed
+
+- `Stream.create` has a new optional argument `keep_alive` to prevent e.g. finalizing the stream's context before the stream.
+
 ### Fixed
 
 - Docu-comment typo.

@@ -727,14 +727,15 @@ module Stream : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g6e468d680e263e7eba02a56643c50533}
         cuStreamAttachMemAsync}. *)
 
-  val create : ?non_blocking:bool -> ?lower_priority:int -> unit -> t
+  val create : ?keep_alive:'a -> ?non_blocking:bool -> ?lower_priority:int -> unit -> t
   (** Lower [lower_priority] numbers represent higher priorities, the default is [0]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g95c1a8c7c3dacb13091692dd9c7f7471}
         cuStreamCreateWithPriority}.
 
-      The stream value is finalized using
+      [keep_alive] is kept in the returned value. One use-case is to prevent finalizing the stream's
+      context before the stream. The stream value is finalized using
       {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__STREAM_g244c8833de4596bcd31a06cdf21ee758.html}
-        cuStreamDestroy}. This is safe
+        cuStreamDestroy}. This is meant to be safe
       {{:https://stackoverflow.com/questions/64663943/how-to-destroy-a-stream-that-was-created-on-a-specific-device}
         without needing to set the proper context}. *)
 
