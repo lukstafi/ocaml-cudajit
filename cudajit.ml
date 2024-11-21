@@ -1810,7 +1810,7 @@ module Event = struct
     let open Cuda_ffi.Types_generated in
     let flags =
       Unsigned.UInt.of_int64
-      @@ if external_ then cu_event_record_default else cu_event_record_external
+      @@ if external_ then cu_event_record_external else cu_event_record_default
     in
     check "cu_event_record_with_flags" @@ Cuda.cu_event_record_with_flags event stream.stream flags
 
@@ -1819,7 +1819,7 @@ module Event = struct
   let wait ?(external_ = false) stream event =
     let open Cuda_ffi.Types_generated in
     let flags =
-      Unsigned.UInt.of_int64 @@ if external_ then cu_event_wait_default else cu_event_wait_external
+      Unsigned.UInt.of_int64 @@ if external_ then cu_event_wait_external else cu_event_wait_default
     in
     check "cu_stream_wait_event" @@ Cuda.cu_stream_wait_event stream.stream event flags
 end

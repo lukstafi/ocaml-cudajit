@@ -1,4 +1,11 @@
-## [0.6.0] 2024-10-31
+## [0.6.1] current
+
+### Fixed
+
+- Docu-comment typo.
+- The flags `cu_event_wait_external` and `cu_event_wait_default` were switched around for `record ?external_` and `wait ?external_` event functions.
+
+## [0.6.0] 2024-11-01
 
 ### Added
 
@@ -6,7 +13,7 @@
 - Multiple missing `sexp_of` conversions.
 - `cuda_call_hook` to help in debugging.
 - `is_success` functions.
-- `mem_alloc_async` and `mem_free_async`. `mem_free_async` is attached as a finalizer by `mem_alloc_async` (with stream capture).
+- `mem_alloc_async` i.e. `Stream.mem_alloc`, and `mem_free_async` i.e. `Stream.mem_free`. `Stream.mem_free` is attached as a finalizer by `Stream.mem_alloc` (with stream capture).
 
 ### Changed
 

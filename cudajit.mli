@@ -679,7 +679,9 @@ module Stream : sig
     t ->
     unit
   (** Copies from the device memory into the bigarray (or its interval) asynchronously.
-      [host_offset] and [length] are in numbers of elements. See {!memcpy_D_to_H_async_unsafe}. *)
+      [host_offset] and [length] are in numbers of elements. See {!memcpy_D_to_H_unsafe} and
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g56f30236c7c5247f8e061b59d3268362}
+        cuMemcpyDtoHAsync}. *)
 
   val memcpy_D_to_D :
     ?kind:('a, 'b) Bigarray.kind ->
