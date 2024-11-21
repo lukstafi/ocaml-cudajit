@@ -1782,13 +1782,18 @@ module Event = struct
 
   let destroy event = destroy_event event
 
-  let create ?(blocking_sync = false) ?(enable_timing = false) ?(interprocess = false) () =
+  let create_event ?(blocking_sync = false) ?(enable_timing = false) ?(interprocess = false) () =
     let open Ctypes in
     let event = allocate_n cu_event ~count:1 in
     check "cu_event_create"
     @@ Cuda.cu_event_create event
          (uint_of_cu_event_flags ~blocking_sync ~enable_timing ~interprocess);
     let event = !@event in
+    Gc.finalise destroy event;
+    event
+
+  let create ?blocking_sync ?enable_timing ?interprocess () =
+    let event = create_event ?blocking_sync ?enable_timing ?interprocess () in
     Gc.finalise destroy event;
     event
 
@@ -1830,7 +1835,7 @@ module Delimited_event = struct
   let query event = if event.is_released then true else Event.query event.event
 
   let record ?blocking_sync ?interprocess ?external_ stream =
-    let event = Event.create ?blocking_sync ~enable_timing:false ?interprocess () in
+    let event = Event.create_event ?blocking_sync ~enable_timing:false ?interprocess () in
     Event.record ?external_ event stream;
     let result = { event; is_released = false } in
     stream.owned_events <- result :: stream.owned_events;
@@ -1839,8 +1844,9 @@ module Delimited_event = struct
   let synchronize event =
     if not event.is_released then (
       Event.synchronize event.event;
-      destroy_event event.event;
-      event.is_released <- true)
+      if not event.is_released then (
+        destroy_event event.event;
+        event.is_released <- true))
 
   let wait ?external_ stream event =
     if not event.is_released then Event.wait ?external_ stream event.event

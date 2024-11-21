@@ -4,6 +4,7 @@
 
 - Docu-comment typo.
 - The flags `cu_event_wait_external` and `cu_event_wait_default` were switched around for `record ?external_` and `wait ?external_` event functions.
+- Don't destroy released (destroyed) events in `Delimited_event.synchronize`.
 
 ## [0.6.0] 2024-11-01
 
