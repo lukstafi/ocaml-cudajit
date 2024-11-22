@@ -1096,7 +1096,6 @@ let destroy_event event = check "cu_event_destroy" @@ Cuda.cu_event_destroy even
 let sexp_of_cu_stream (cu_stream : cu_stream) = sexp_of_voidp @@ Ctypes.to_voidp cu_stream
 
 type stream = {
-  lifetime : (lifetime[@sexp.opaque]);
   mutable args_lifetimes : (lifetime list[@sexp.opaque]);
   mutable owned_events : delimited_event list;
   stream : cu_stream;
@@ -1111,6 +1110,11 @@ let get_stream_context stream =
 
 let set_current_context ctx = check "cu_ctx_set_current" @@ Cuda.cu_ctx_set_current ctx
 
+let release_event event =
+  if not event.is_released then (
+    destroy_event event.event;
+    event.is_released <- true)
+
 let release_stream stream =
   stream.args_lifetimes <- [];
   let ctx_unset = ref true in
@@ -1120,18 +1124,12 @@ let release_stream stream =
         if !ctx_unset then (
           set_current_context @@ get_stream_context stream;
           ctx_unset := false);
-        destroy_event event.event;
-        event.is_released <- true))
+        release_event event))
     stream.owned_events;
   stream.owned_events <- []
 
 let no_stream =
-  {
-    args_lifetimes = [];
-    owned_events = [];
-    stream = Ctypes.(coerce (ptr void) cu_stream null);
-    lifetime = Remember ();
-  }
+  { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
 module Context = struct
   type t = cu_context
@@ -1653,12 +1651,7 @@ module Stream = struct
   [@@deriving sexp_of]
 
   let no_stream =
-    {
-      args_lifetimes = [];
-      owned_events = [];
-      stream = Ctypes.(coerce (ptr void) cu_stream null);
-      lifetime = Remember ();
-    }
+    { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
   let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
       ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
@@ -1711,15 +1704,14 @@ module Stream = struct
     release_stream stream;
     check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream
 
-  let create ?keep_alive ?(non_blocking = false) ?(lower_priority = 0) () =
+  let create ?(non_blocking = false) ?(lower_priority = 0) () =
     let open Ctypes in
     let stream = allocate_n cu_stream ~count:1 in
     check "cu_stream_create_with_priority"
     @@ Cuda.cu_stream_create_with_priority stream
          (uint_of_cu_stream_flags ~non_blocking)
          lower_priority;
-    let lifetime = Remember keep_alive in
-    let stream = { args_lifetimes = []; owned_events = []; stream = !@stream; lifetime } in
+    let stream = { args_lifetimes = []; owned_events = []; stream = !@stream } in
     Stdlib.Gc.finalise destroy stream;
     stream
 
@@ -1810,7 +1802,6 @@ module Event = struct
     @@ Cuda.cu_event_create event
          (uint_of_cu_event_flags ~blocking_sync ~enable_timing ~interprocess);
     let event = !@event in
-    Gc.finalise destroy event;
     event
 
   let create ?blocking_sync ?enable_timing ?interprocess () =
@@ -1865,9 +1856,7 @@ module Delimited_event = struct
   let synchronize event =
     if not event.is_released then (
       Event.synchronize event.event;
-      if not event.is_released then (
-        destroy_event event.event;
-        event.is_released <- true))
+      release_event event)
 
   let wait ?external_ stream event =
     if not event.is_released then Event.wait ?external_ stream event.event
