@@ -3,7 +3,7 @@
 ### Added
 
 - Debug number of total and unreleased events in a stream.
-
+- Debug the total number of non-garbage-collected streams across all devices.
 
 ### Fixed
 

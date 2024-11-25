@@ -777,6 +777,9 @@ module Stream : sig
   val total_unreleased_unfinished_delimited_events : t -> int * int * int
   (** Debug information about delimited events carried by the stream: total, unreleased (i.e. not
       destroyed), unfinished. *)
+
+  val get_total_live_streams : unit -> int
+  (** The total non-garbage-collected streams across all devices. *)
 end
 
 (** CUDA events can be used for synchronization between streams without blocking the CPU, and to

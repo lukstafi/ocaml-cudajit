@@ -1716,13 +1716,18 @@ module Stream = struct
     | false -> Unsigned.UInt.of_int64 cu_stream_default
     | true -> Unsigned.UInt.of_int64 cu_stream_non_blocking
 
+  let total_live_streams = Atomic.make 0
+  let get_total_live_streams () = Atomic.get total_live_streams
+
   let destroy stream =
     release_stream stream;
+    Atomic.decr total_live_streams;
     check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream
 
   let create ?(non_blocking = false) ?(lower_priority = 0) () =
     let open Ctypes in
     let stream = allocate_n cu_stream ~count:1 in
+    Atomic.incr total_live_streams;
     check "cu_stream_create_with_priority"
     @@ Cuda.cu_stream_create_with_priority stream
          (uint_of_cu_stream_flags ~non_blocking)
