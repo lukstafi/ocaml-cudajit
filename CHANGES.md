@@ -1,4 +1,9 @@
-## [0.6.1] 2024-11-22
+## [0.6.1] 2024-11-26
+
+### Added
+
+- Debug number of total and unreleased events in a stream.
+
 
 ### Fixed
 

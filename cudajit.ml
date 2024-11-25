@@ -1110,6 +1110,14 @@ let get_stream_context stream =
 
 let set_current_context ctx = check "cu_ctx_set_current" @@ Cuda.cu_ctx_set_current ctx
 
+let query_event event =
+  match Cuda.cu_event_query event with
+  | CUDA_SUCCESS -> true
+  | CUDA_ERROR_NOT_READY -> false
+  | error ->
+      check "cu_event_query" error;
+      false
+
 let release_event event =
   if not event.is_released then (
     destroy_event event.event;
@@ -1653,6 +1661,14 @@ module Stream = struct
   let no_stream =
     { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
 
+  let total_unreleased_unfinished_delimited_events stream =
+    List.fold_left
+      (fun (tot, unr, unf) e ->
+        ( tot + 1,
+          (if not e.is_released then unr + 1 else unr),
+          if (not e.is_released) && query_event e.event then unf + 1 else unf ))
+      (0, 0, 0) stream.owned_events
+
   let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
       ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
     let i2u = Unsigned.UInt.of_int in
@@ -1815,13 +1831,7 @@ module Event = struct
     check "cu_event_elapsed_time" @@ Cuda.cu_event_elapsed_time result start end_;
     !@result
 
-  let query event =
-    match Cuda.cu_event_query event with
-    | CUDA_SUCCESS -> true
-    | CUDA_ERROR_NOT_READY -> false
-    | error ->
-        check "cu_event_query" error;
-        false
+  let query = query_event
 
   let record ?(external_ = false) event stream =
     let open Cuda_ffi.Types_generated in

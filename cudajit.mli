@@ -773,6 +773,10 @@ module Stream : sig
   (** [length] is in number of elements. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g58229da5d30f1c0cdf667b320ec2c0f5}
         cuMemsetD32Async}. *)
+
+  val total_unreleased_unfinished_delimited_events : t -> int * int * int
+  (** Debug information about delimited events carried by the stream: total, unreleased (i.e. not
+      destroyed), unfinished. *)
 end
 
 (** CUDA events can be used for synchronization between streams without blocking the CPU, and to
