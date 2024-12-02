@@ -1,9 +1,10 @@
-## [0.6.1] 2024-11-26
+## [0.6.1] 2024-12-02
 
 ### Added
 
 - Debug number of total and unreleased events in a stream.
 - Debug the total number of non-garbage-collected streams across all devices.
+- Verifies that compilation options fit in a set of characters: alphanumeric and a few interpunction.
 
 ### Fixed
 

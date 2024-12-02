@@ -38,17 +38,51 @@ module Nvrtc = struct
       else "/usr/local/cuda"
     in
     let cuda_path = Sys.getenv_opt "CUDA_PATH" |> Option.value ~default in
-    let options = ("-I" ^ Filename.concat cuda_path "include") :: options in
+    let options = Array.of_list @@ (("-I" ^ Filename.concat cuda_path "include") :: options) in
     let status =
       Nvrtc_funs.nvrtc_create_program prog cu_src name 0 (from_voidp string null)
         (from_voidp string null)
     in
     if status <> NVRTC_SUCCESS then
       raise @@ Nvrtc_error { status; message = "nvrtc_create_program " ^ name };
-    let num_options = List.length options in
-    let c_options = CArray.make (ptr char) num_options in
-
-    List.iteri (fun i v -> CArray.of_string v |> CArray.start |> CArray.set c_options i) options;
+    let num_options = Array.length options in
+    let get_c_options options =
+      let c_options = CArray.make (ptr char) num_options in
+      Array.iteri (fun i v -> CArray.of_string v |> CArray.start |> CArray.set c_options i) options;
+      c_options
+    in
+    let c_options = get_c_options options in
+    let valid_options =
+      snd
+      @@ CArray.fold_left
+           (fun (i, valid) pchar ->
+             if not valid then (i + 1, false)
+             else
+               let old_str = options.(i) in
+               let str = Ctypes.string_from_ptr pchar ~length:(String.length old_str) in
+               ( i + 1,
+                 String.for_all
+                   (function
+                     | 'a' .. 'z'
+                     | 'A' .. 'Z'
+                     | '0' .. '9'
+                     | '-' | '_' | ':' | '/' | '\\' | ' ' | '"' | '.' | ';' | '&' | '#' | '%' | ','
+                       ->
+                         true
+                     | _ -> false)
+                   str ))
+           (0, true) c_options
+    in
+    let default_options = [ "--use_fast_math"; "--device-debug" ] in
+    let c_options =
+      if valid_options then c_options
+      else (
+        Printf.printf
+          "WARNING: Cudajit.Nvrtc.compile_to_ptx garbled options %s, using %s instead\n%!"
+          (String.concat ", " @@ Array.to_list options)
+          (String.concat ", " default_options);
+        get_c_options @@ Array.of_list default_options)
+    in
     let status = Nvrtc_funs.nvrtc_compile_program !@prog num_options @@ CArray.start c_options in
     let log_msg log = Option.value log ~default:"no compilation log" in
     let error prefix status log =
