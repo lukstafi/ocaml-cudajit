@@ -28,7 +28,7 @@
   "Bindings to manually selected parts of `lcuda` and `lnvrtc`, with a few types and conversion functions to facilitate use.")
  (depends
   (ocaml
-   (>= 4.12))
+   (>= 4.13))
   dune
   (ctypes
    (>= 0.14.0))

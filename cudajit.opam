@@ -13,7 +13,7 @@ homepage: "https://github.com/lukstafi/ocaml-cudajit"
 doc: "https://github.com/lukstafi/ocaml-cudajit/blob/master/README.md"
 bug-reports: "https://github.com/lukstafi/ocaml-cudajit/issues"
 depends: [
-  "ocaml" {>= "4.12"}
+  "ocaml" {>= "4.13"}
   "dune" {>= "3.11"}
   "ctypes" {>= "0.14.0"}
   "ctypes-foreign"
