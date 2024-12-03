@@ -28,7 +28,7 @@ jobs:
       with:
         method: network
         sub-packages: '[ "cudart", "cudart-dev", "runtime", "nvrtc", "nvrtc-dev" ]'
-    - uses: ocaml/setup-ocaml@v2
+    - uses: ocaml/setup-ocaml@v3.0.15
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
         dune-cache: true
