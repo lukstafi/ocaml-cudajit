@@ -11,7 +11,7 @@ jobs:
       matrix:
         os:
           # - ubuntu-latest
-          - ubuntu-20.04
+          - ubuntu-24.04
           # - windows-latest
           # - windows-2019
           # Either the waiting queue for FreeBSD is very long, or it is not available.
@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
-    - uses: Jimver/cuda-toolkit@v0.2.15
+    - uses: Jimver/cuda-toolkit@v0.2.19
       id: cuda-toolkit
       with:
         method: network
