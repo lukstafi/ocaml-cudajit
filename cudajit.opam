@@ -44,3 +44,4 @@ post-messages: [
   "NOTE: double-check if CUDA drivers for Windows are installed and Linux libraries don't hide WSL stubs; see: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#network-repo-installation-for-wsl"
   {failure & conf-cuda-config:is_wsl}
 ]
+x-maintenance-intent: ["(latest)"]
