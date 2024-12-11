@@ -4,7 +4,8 @@
     {{:https://docs.nvidia.com/cuda/nvrtc/index.html} The User guide for the NVRTC library}. *)
 module Nvrtc : sig
   type result [@@deriving sexp]
-  (** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}. *)
+  (** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}.
+  *)
 
   exception Nvrtc_error of { status : result; message : string }
   (** Error codes returned by CUDA functions are converted to exceptions. The message stores a
@@ -22,11 +23,11 @@ module Nvrtc : sig
     cu_src:string -> name:string -> options:string list -> with_debug:bool -> compile_to_ptx_result
   (** Performs a cascade of calls:
       {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv418nvrtcCreateProgramP12nvrtcProgramPKcPKciPPCKcPPCKc}
-        nvrtcCreateProgram},
+       nvrtcCreateProgram},
       {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv419nvrtcCompileProgram12nvrtcProgramiPPCKc}
-        nvrtcCompileProgram},
+       nvrtcCompileProgram},
       {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcGetPTX12nvrtcProgramPc}
-        nvrtcGetPTX}. If you store [cu_src] as a file, pass the file name including the extension as
+       nvrtcGetPTX}. If you store [cu_src] as a file, pass the file name including the extension as
       [name]. [options] can include for example ["--use_fast_math"] or ["--device-debug"]. If
       [with_debug] is [true], the compilation log is included even in case of compilation success
       (see {!compilation_log}).
@@ -36,18 +37,18 @@ module Nvrtc : sig
   val string_from_ptx : compile_to_ptx_result -> string
   (** The stored PTX (i.e. NVIDIA assembly language) source, see
       {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcGetPTX12nvrtcProgramPc}
-        nvrtcGetPTX}. *)
+       nvrtcGetPTX}. *)
 
   val compilation_log : compile_to_ptx_result -> string option
   (** The stored side output of the compilation, see
       {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv418nvrtcGetProgramLog12nvrtcProgramPc}
-        nvrtcGetProgramLog}. *)
+       nvrtcGetProgramLog}. *)
 end
 
 type result [@@deriving sexp]
 (** See
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gc6c391505e117393cc2558fff6bfc2e9}
-      enum CUresult}. *)
+     enum CUresult}. *)
 
 exception Cuda_error of { status : result; message : string }
 (** Error codes returned by CUDA functions are converted to exceptions. The message stores a
@@ -63,43 +64,43 @@ val cuda_call_hook : (message:string -> status:result -> unit) option ref
 val init : ?flags:int -> unit -> unit
 (** Must be called before any other function. Currently [flags] is unused. See
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__INITIALIZE.html#group__CUDA__INITIALIZE_1g0a2f1517e1bd8502c7194c3a8c134bc3}
-      cuInit}. *)
+     cuInit}. *)
 
 (** Managing a CUDA GPU device and its primary context. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE}
-      Device Management} and
+     Device Management} and
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX}
-      Primary Context Management}. *)
+     Primary Context Management}. *)
 module Device : sig
   type t [@@deriving sexp]
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g41ca2a24a242b36ef2ca77330b5fb72a}
-        CUdevice}. *)
+       CUdevice}. *)
 
   val get_count : unit -> int
   (** Returns the number of Nvidia devices. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g52b5ce05cb8c5fb6831b2c0ff2887c74}
-        cuDeviceGetCount}. *)
+       cuDeviceGetCount}. *)
 
   val get : ordinal:int -> t
   (** Returns the given device. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g8bdd1cc7201304b01357b8034f6587cb}
-        cuDeviceGet}. *)
+       cuDeviceGet}. *)
 
   val primary_ctx_reset : t -> unit
   (** Destroys all allocations and resets all state on the primary context. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g5d38802e8600340283958a117466ce12}
-        cuDevicePrimaryCtxReset}. *)
+       cuDevicePrimaryCtxReset}. *)
 
   val get_free_and_total_mem : unit -> int * int
   (** Gets the free memory on the device of the current context according to the OS, and the total
       memory on the device. See:
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g808f555540d0143a331cc42aa98835c0}
-        cuMemGetInfo}. *)
+       cuMemGetInfo}. *)
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g578d7cf687ce20f7e99468e8c14e22de}
-        CUdevice_P2PAttribute}. *)
+       CUdevice_P2PAttribute}. *)
   type p2p_attribute =
     | PERFORMANCE_RANK of int
     | ACCESS_SUPPORTED of bool
@@ -110,16 +111,16 @@ module Device : sig
   val get_p2p_attributes : dst:t -> src:t -> p2p_attribute list
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g4c55c60508f8eba4546b51f2ee545393}
-        cuDeviceGetP2PAttribute}. *)
+       cuDeviceGetP2PAttribute}. *)
 
   val can_access_peer : dst:t -> src:t -> bool
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g496bdaae1f632ebfb695b99d2c40f19e}
-        cuDeviceCanAccessPeer}. *)
+       cuDeviceCanAccessPeer}. *)
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g637aab2eadb52e1c1c048b8bad9592d1}
-        CUcomputemode}. *)
+       CUcomputemode}. *)
   type computemode =
     | DEFAULT  (** Multiple contexts allowed per device. *)
     | PROHIBITED  (** No contexts can be created on this device at this time. *)
@@ -129,12 +130,12 @@ module Device : sig
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf34334d1d6892847a5d05be7ca8db3c6}
-        CUflushGPUDirectRDMAWritesOptions}. *)
+       CUflushGPUDirectRDMAWritesOptions}. *)
   type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g450a23153d86fce0afe30e25d63caef9}
-        CUmemAllocationHandleType}. *)
+       CUmemAllocationHandleType}. *)
   type mem_allocation_handle_type = NONE | POSIX_FILE_DESCRIPTOR | WIN32 | WIN32_KMT | FABRIC
   [@@deriving sexp]
 
@@ -142,7 +143,7 @@ module Device : sig
     name : string;
         (** See
             {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1gef75aa30df95446a845f2a7b9fffbb7f}
-              cuDeviceGetName}. *)
+             cuDeviceGetName}. *)
     max_threads_per_block : int;
     max_block_dim_x : int;
     max_block_dim_y : int;
@@ -230,7 +231,8 @@ module Device : sig
     host_native_atomic_supported : bool;
     single_to_double_precision_perf_ratio : int;
     pageable_memory_access : bool;
-        (** Device supports coherently accessing pageable memory without calling cudaHostRegister. *)
+        (** Device supports coherently accessing pageable memory without calling cudaHostRegister.
+        *)
     concurrent_managed_access : bool;
     compute_preemption_supported : bool;
     can_use_host_pointer_for_registered_mem : bool;
@@ -274,21 +276,21 @@ module Device : sig
   [@@deriving sexp]
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g9c3e1414f0ad901d3278a4d6645fc266}
-        cuDeviceGetAttribute}. *)
+       cuDeviceGetAttribute}. *)
 
   val get_attributes : t -> attributes
   (** Populates all the device attributes. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g9c3e1414f0ad901d3278a4d6645fc266}
-        cuDeviceGetAttribute}. *)
+       cuDeviceGetAttribute}. *)
 end
 
 (** All CUDA tasks are run under a context, usually under the current context. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX} Context
-      Management}. *)
+     Management}. *)
 module Context : sig
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g9f889e28a45a295b5c8ce13aa05f6cd4}
-        enum CUctx_flags}. *)
+       enum CUctx_flags}. *)
   type flag =
     | SCHED_AUTO  (** Automatic scheduling. *)
     | SCHED_SPIN  (** Instruct CUDA to actively spin when waiting for results from the GPU. *)
@@ -307,77 +309,77 @@ module Context : sig
   type t [@@deriving sexp_of]
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf9f5bd81658f866613785b3a0bb7d7d9}
-        CUcontext}. *)
+       CUcontext}. *)
 
   val create : flags -> Device.t -> t
   (** NOTE: In most cases it is recommended to use {!get_primary} instead! The context is pushed to
       the CPU-thread-local stack. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g65dc0012348bc84810e2103a40d8e2cf}
-        cuCtxCreate}
+       cuCtxCreate}
 
       The context value is finalized using
       {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}
-        ctxDestroy}. *)
+       ctxDestroy}. *)
 
   val get_flags : unit -> flags
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gf81eef983c1e3b2ef4f166d7a930c86d}
-        cuCtxGetFlags}. *)
+       cuCtxGetFlags}. *)
 
   val get_primary : Device.t -> t
   (** The context is {i not} pushed to the stack. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1g9051f2d5c31501997a6cb0530290a300}
-        cuDevicePrimaryCtxRetain}.
+       cuDevicePrimaryCtxRetain}.
 
       The context is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX_1gf2a8bc16f8df0c88031f6a1ba3d6e8ad}
-        cuDevicePrimaryCtxRelease}. The underlying CUDA context will be reset once the last
-      reference to it is released. *)
+       cuDevicePrimaryCtxRelease}. The underlying CUDA context will be reset once the last reference
+      to it is released. *)
 
   val get_device : unit -> Device.t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g4e84b109eba36cdaaade167f34ae881e}
-        cuCtxGetDevice}. *)
+       cuCtxGetDevice}. *)
 
   val pop_current : unit -> t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g2fac188026a062d92e91a8687d0a7902}
-        cuCtxPopCurrent}. *)
+       cuCtxPopCurrent}. *)
 
   val get_current : unit -> t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g8f13165846b73750693640fb3e8380d0}
-        cuCtxGetCurrent}. *)
+       cuCtxGetCurrent}. *)
 
   val push_current : t -> unit
   (** Pushes a context on the current CPU thread. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gb02d4c850eb16f861fe5a29682cc90ba}
-        cuCtxPushCurrent}. *)
+       cuCtxPushCurrent}. *)
 
   val set_current : t -> unit
   (** If there exists a CUDA context stack on the calling CPU thread, this will replace the top of
       that stack with ctx. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1gbe562ee6258b4fcc272ca6478ca2a2f7}
-        cuCtxSetCurrent}. *)
+       cuCtxSetCurrent}. *)
 
   val synchronize : unit -> unit
   (** Blocks for the current context's tasks to complete. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g7a54725f28d34b8c6299f0c6ca579616}
-        cuCtxSynchronize}. *)
+       cuCtxSynchronize}. *)
 
   val disable_peer_access : t -> unit
   (** Disables peer access between the current context and the given context. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g5b4b6936ea868d4954ce4d841a3b4810}
-        cuCtxDisablePeerAccess}. *)
+       cuCtxDisablePeerAccess}. *)
 
   val enable_peer_access : ?flags:Unsigned.uint -> t -> unit
   (** Flags are unused. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PEER__ACCESS.html#group__CUDA__PEER__ACCESS_1g0889ec6728e61c05ed359551d67b3f5a}
-        cuCtxEnablePeerAccess}. *)
+       cuCtxEnablePeerAccess}. *)
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge24c2d4214af24139020f1aecaf32665}
-        enum CUlimit}. *)
+       enum CUlimit}. *)
   type limit =
     | STACK_SIZE
     | PRINTF_FIFO_SIZE
@@ -391,12 +393,12 @@ module Context : sig
   val set_limit : limit -> int -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g0651954dfb9788173e60a9af7201e65a}
-        cuCtxSetLimit}. *)
+       cuCtxSetLimit}. *)
 
   val get_limit : limit -> int
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g9f2d47d1745752aa16da7ed0d111b6a8}
-        cuCtxGetLimit}. *)
+       cuCtxGetLimit}. *)
 end
 
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
@@ -404,12 +406,12 @@ type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.
 (** This module introduces the type of pointers into on-device global memory, and stream-independent
     memory management functions. All functions from this module run synchronously. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM} Memory
-      Management}. *)
+     Management}. *)
 module Deviceptr : sig
   type t [@@deriving sexp_of]
   (** A pointer to a memory location on a device. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g183f7b0d8ad008ea2a5fd552537ace4e}
-        CUdeviceptr}. *)
+       CUdeviceptr}. *)
 
   val string_of : t -> string
   (** Hexadecimal representation of the pointer. *)
@@ -417,23 +419,23 @@ module Deviceptr : sig
   val mem_alloc : size_in_bytes:int -> t
   (** The memory is aligned, is not cleared. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gb82d2a09844a58dd9e744dc31e8aa467}
-        cuMemAlloc}.
+       cuMemAlloc}.
 
       The pointer is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
-        cuMemFree}. This is safe
+       cuMemFree}. This is safe
       {{:https://stackoverflow.com/questions/70767180/cumemallocing-memory-in-one-cuda-context-and-freeing-it-in-another-why-does}
-        without needing to set the proper context}. *)
+       without needing to set the proper context}. *)
 
   val mem_free : t -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
-        cuMemFree}. *)
+       cuMemFree}. *)
 
   val memcpy_H_to_D_unsafe : dst:t -> src:unit Ctypes.ptr -> size_in_bytes:int -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g4d32266788c440b0220b1a9ba5795169}
-        cuMemcpyHtoD}. *)
+       cuMemcpyHtoD}. *)
 
   val memcpy_H_to_D :
     ?host_offset:int -> ?length:int -> dst:t -> src:('a, 'b, 'c) Bigarray.Genarray.t -> unit -> unit
@@ -446,7 +448,7 @@ module Deviceptr : sig
   val memcpy_D_to_H_unsafe : dst:unit Ctypes.ptr -> src:t -> size_in_bytes:int -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g3480368ee0208a98f75019c9a8450893}
-        cuMemcpyDtoH}. *)
+       cuMemcpyDtoH}. *)
 
   val memcpy_D_to_H :
     ?host_offset:int -> ?length:int -> dst:('a, 'b, 'c) Bigarray.Genarray.t -> src:t -> unit -> unit
@@ -465,7 +467,7 @@ module Deviceptr : sig
       provided in numbers of elements via [kind] and [length]. Provide either both [kind] and
       [length], or just [size_in_bytes]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g1725774abf8b51b91945f3336b778c8b}
-        cuMemcpyDtoD}. *)
+       cuMemcpyDtoD}. *)
 
   val memcpy_peer :
     ?kind:('a, 'b) Bigarray.kind ->
@@ -481,31 +483,31 @@ module Deviceptr : sig
       provided in numbers of elements via [kind] and [length]. Provide either both [kind] and
       [length], or just [size_in_bytes]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1ge1f5c7771544fee150ada8853c7cbf4a}
-        cuMemcpyPeer}. *)
+       cuMemcpyPeer}. *)
 
   val memset_d8 : t -> Unsigned.uchar -> length:int -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g6e582bf866e9e2fb014297bfaf354d7b}
-        cuMemsetD8}. *)
+       cuMemsetD8}. *)
 
   val memset_d16 : t -> Unsigned.ushort -> length:int -> unit
   (** [length] is in number of elements. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g7d805e610054392a4d11e8a8bf5eb35c}
-        cuMemsetD16}. *)
+       cuMemsetD16}. *)
 
   val memset_d32 : t -> Unsigned.uint32 -> length:int -> unit
   (** [length] is in number of elements. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g983e8d8759acd1b64326317481fbf132}
-        cuMemsetD32}. *)
+       cuMemsetD32}. *)
 end
 
 (** A CUDA module type represents CUDA code that's ready to execute, i.e. is loaded. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE}
-      Module Management}. *)
+     Module Management}. *)
 module Module : sig
   (** Compute device classes. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1ge443308cb7ed1d52b85b487305779184}
-        enum CUjit_target}. *)
+       enum CUjit_target}. *)
   type jit_target =
     | COMPUTE_30
     | COMPUTE_32
@@ -530,12 +532,12 @@ module Module : sig
 
   (** Cubin matching fallback strategies. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g4a1a92ea65e18b06907b981848c282f2}
-        CUjit_fallback}. *)
+       CUjit_fallback}. *)
   type jit_fallback = PREFER_PTX | PREFER_BINARY [@@deriving sexp]
 
   (** Caching modes for dlcm. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gce011cfe2d6b1fb734da48a6cf48fd04}
-        CUjit_cacheMode}. *)
+       CUjit_cacheMode}. *)
   type jit_cache_mode =
     | NONE
     | CG  (** Compile with L1 cache disabled. *)
@@ -544,7 +546,7 @@ module Module : sig
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g5527fa8030d5cabedc781a04dbd1997d}
-        CUjit_option}. *)
+       CUjit_option}. *)
   type jit_option =
     | MAX_REGISTERS of int  (** Max number of registers that a thread may use. *)
     | THREADS_PER_BLOCK of int
@@ -568,63 +570,63 @@ module Module : sig
   type func
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gba6128b948022f495706d93bc2cea9c8}
-        CUfunction}. *)
+       CUfunction}. *)
 
   type t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g9e4ef4dcfba4662b2299acb8d049a1ef}
-        CUmodule}. *)
+       CUmodule}. *)
 
   val load_data_ex : Nvrtc.compile_to_ptx_result -> jit_option list -> t
   (** Currently, the image passed via this call is the PTX source. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g9e8047e9dbf725f0cd7cafd18bfd4d12}
-        cuModuleLoadDataEx}.
+       cuModuleLoadDataEx}.
 
       The module is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1g8ea3d716524369de3763104ced4ea57b}
-        cuModuleUnload}. The finalizer captures the context when [load_data_ex] is called to
+       cuModuleUnload}. The finalizer captures the context when [load_data_ex] is called to
       temporarily push it on the stack for unloading. *)
 
   val get_function : t -> name:string -> func
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1ga52be009b0d4045811b30c965e1cb2cf}
-        cuModuleGetFunction}. *)
+       cuModuleGetFunction}. *)
 
   val get_global : t -> name:string -> Deviceptr.t * Unsigned.size_t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1gf3e43672e26073b1081476dbf47a86ab}
-        cuModuleGetGlobal}. *)
+       cuModuleGetGlobal}. *)
 end
 
 (** CUDA streams are independent FIFO schedules for CUDA tasks, allowing them to potentially run in
     parallel. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM}
-      Stream Management}. *)
+     Stream Management}. *)
 module Stream : sig
   type t [@@deriving sexp_of]
   (** Stores a stream pointer and manages lifetimes of kernel launch arguments. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gb946c7f02e09efd788a204718015d88a}
-        CUstream}. *)
+       CUstream}. *)
 
   val mem_alloc : t -> size_in_bytes:int -> Deviceptr.t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC_1g13413273e84a641bce1929eae9e6501f}
-        cuMemAllocAsync}.
+       cuMemAllocAsync}.
 
       The pointer is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC_1g41acf4131f672a2a75cd93d3241f10cf}
-        cuMemFreeAsync}. *)
+       cuMemFreeAsync}. *)
 
   val mem_free : t -> Deviceptr.t -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC_1g41acf4131f672a2a75cd93d3241f10cf}
-        cuMemFreeAsync}. *)
+       cuMemFreeAsync}. *)
 
   val memcpy_H_to_D_unsafe :
     dst:Deviceptr.t -> src:unit Ctypes.ptr -> size_in_bytes:int -> t -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g1572263fe2597d7ba4f6964597a354a3}
-        cuMemcpyHtoDAsync}. *)
+       cuMemcpyHtoDAsync}. *)
 
   val memcpy_H_to_D :
     ?host_offset:int ->
@@ -663,13 +665,13 @@ module Stream : sig
     unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EXEC.html#group__CUDA__EXEC_1gb8f3dc3031b40da29d5f9a7139e52e15}
-        cuLaunchKernel}. *)
+       cuLaunchKernel}. *)
 
   val memcpy_D_to_H_unsafe :
     dst:unit Ctypes.ptr -> src:Deviceptr.t -> size_in_bytes:int -> t -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g56f30236c7c5247f8e061b59d3268362}
-        cuMemcpyDtoHAsync}. *)
+       cuMemcpyDtoHAsync}. *)
 
   val memcpy_D_to_H :
     ?host_offset:int ->
@@ -681,7 +683,7 @@ module Stream : sig
   (** Copies from the device memory into the bigarray (or its interval) asynchronously.
       [host_offset] and [length] are in numbers of elements. See {!memcpy_D_to_H_unsafe} and
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g56f30236c7c5247f8e061b59d3268362}
-        cuMemcpyDtoHAsync}. *)
+       cuMemcpyDtoHAsync}. *)
 
   val memcpy_D_to_D :
     ?kind:('a, 'b) Bigarray.kind ->
@@ -695,7 +697,7 @@ module Stream : sig
       optionally be provided in numbers of elements via [kind] and [length]. Provide either both
       [kind] and [length], or just [size_in_bytes]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g39ea09ba682b8eccc9c3e0c04319b5c8}
-        cuMemcpyDtoDAsync}. *)
+       cuMemcpyDtoDAsync}. *)
 
   val memcpy_peer :
     ?kind:('a, 'b) Bigarray.kind ->
@@ -711,11 +713,11 @@ module Stream : sig
       optionally be provided in numbers of elements via [kind] and [length]. Provide either both
       [kind] and [length], or just [size_in_bytes]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g82fcecb38018e64b98616a8ac30112f2}
-        cuMemcpyPeerAsync}. *)
+       cuMemcpyPeerAsync}. *)
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g17c5d5f9b585aa2d6f121847d1a78f4c}
-        CUmemAttach_flags}. *)
+       CUmemAttach_flags}. *)
   type attach_mem =
     | GLOBAL  (** Memory can be accessed by any stream on any device. *)
     | HOST  (** Memory cannot be accessed from devices. *)
@@ -725,54 +727,54 @@ module Stream : sig
   val attach_mem : t -> Deviceptr.t -> int -> attach_mem -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g6e468d680e263e7eba02a56643c50533}
-        cuStreamAttachMemAsync}. *)
+       cuStreamAttachMemAsync}. *)
 
   val create : ?non_blocking:bool -> ?lower_priority:int -> unit -> t
   (** Lower [lower_priority] numbers represent higher priorities, the default is [0]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g95c1a8c7c3dacb13091692dd9c7f7471}
-        cuStreamCreateWithPriority}.
+       cuStreamCreateWithPriority}.
 
       The stream value is finalized using
       {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__STREAM_g244c8833de4596bcd31a06cdf21ee758.html}
-        cuStreamDestroy}. This is meant to be safe
+       cuStreamDestroy}. This is meant to be safe
       {{:https://stackoverflow.com/questions/64663943/how-to-destroy-a-stream-that-was-created-on-a-specific-device}
-        without needing to set the proper context}. *)
+       without needing to set the proper context}. *)
 
   val get_context : t -> Context.t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g1107907025eaa3387fdc590a9379a681}
-        cuStreamGetCtx}. *)
+       cuStreamGetCtx}. *)
 
   val get_id : t -> Unsigned.uint64
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g5dafd2b6f48caeb13d5110a7f21e60e3}
-        cuStreamGetId}. *)
+       cuStreamGetId}. *)
 
   val is_ready : t -> bool
   (** Returns [false] when the querying status is [CUDA_ERROR_NOT_READY], and [true] if it is
       [CUDA_SUCCESS]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g1b0d24bbe97fa68e4bc511fb6adfeb0b}
-        cuStreamQuery}. *)
+       cuStreamQuery}. *)
 
   val synchronize : t -> unit
   (** Waits until a stream's tasks are completed. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g15e49dd91ec15991eb7c0a741beb7dad}
-        cuStreamSynchronize}. *)
+       cuStreamSynchronize}. *)
 
   val memset_d8 : Deviceptr.t -> Unsigned.uchar -> length:int -> t -> unit
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gaef08a7ccd61112f94e82f2b30d43627}
-        cuMemsetD8Async}. *)
+       cuMemsetD8Async}. *)
 
   val memset_d16 : Deviceptr.t -> Unsigned.ushort -> length:int -> t -> unit
   (** [length] is in number of elements. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gf731438877dd8ec875e4c43d848c878c}
-        cuMemsetD16Async}. *)
+       cuMemsetD16Async}. *)
 
   val memset_d32 : Deviceptr.t -> Unsigned.uint32 -> length:int -> t -> unit
   (** [length] is in number of elements. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g58229da5d30f1c0cdf667b320ec2c0f5}
-        cuMemsetD32Async}. *)
+       cuMemsetD32Async}. *)
 
   val total_unreleased_unfinished_delimited_events : t -> int * int * int
   (** Debug information about delimited events carried by the stream: total, unreleased (i.e. not
@@ -785,24 +787,24 @@ end
 (** CUDA events can be used for synchronization between streams without blocking the CPU, and to
     time the on-device execution. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT}
-      Event Management}. *)
+     Event Management}. *)
 module Event : sig
   type t [@@deriving sexp_of]
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g6d740185cf0953636d4ae37f68d7559b}
-        CUevent}. *)
+       CUevent}. *)
 
   val create : ?blocking_sync:bool -> ?enable_timing:bool -> ?interprocess:bool -> unit -> t
   (** Creates an event {i for the current context}. All of [blocking_sync], [enable_timing] and
       [interprocess] are by default false. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g450687e75f3ff992fe01662a43d9d3db}
-        cuEventCreate} and
+       cuEventCreate} and
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g5ae04079c671c8e659a3a27c7b23f629}
-        CUevent_flags}.
+       CUevent_flags}.
 
       The event value is finalized using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
-        cuEventDestroy}. This is safe because the event resources are only released when the event
+       cuEventDestroy}. This is safe because the event resources are only released when the event
       completes, so waiting streams are not affected by the finalization. Note: I assume destroying
       an event is safe without setting the proper context. *)
 
@@ -811,33 +813,33 @@ module Event : sig
       microseconds. Both events must have completed ([query start = true] and [query end_ = true])
       before calling [elapsed_time]. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1gdfb1178807353bbcaa9e245da497cf97}
-        cuEventElapsedTime}. *)
+       cuEventElapsedTime}. *)
 
   val query : t -> bool
   (** Returns [true] precisely when all work captured by the most recent call to {!record} has been
       completed. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g6f0704d755066b0ee705749ae911deef}
-        cuEventQuery}. *)
+       cuEventQuery}. *)
 
   val record : ?external_:bool -> t -> Stream.t -> unit
   (** Captures in the event the contents of the stream, i.e. the work scheduled on it. [external_]
       defaults to false (cudajit as of version 0.5 does not expose stream capture). See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1ge577e0c132d9c4961f220d79f6762c4b}
-        cuEventRecordWithFlags}. *)
+       cuEventRecordWithFlags}. *)
 
   val synchronize : t -> unit
   (** Blocks until the completion of all work captured in the event by the most recent call to
       {!record}. NOTE: if the event was created without [~blocking_sync:true], then the CPU thread
       will busy-wait. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g9e520d34e51af7f5375610bca4add99c}
-        cuEventSynchronize}. *)
+       cuEventSynchronize}. *)
 
   val wait : ?external_:bool -> Stream.t -> t -> unit
   (** Future work submitted to the stream will wait for the completion of all work captured in the
       event by the most recent call to {!record}. [external_] defaults to false (cudajit as of
       version 0.5 does not expose stream capture). See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g6a898b652dfc6aa1d5c8d97062618b2f}
-        cuStreamWaitEvent}. *)
+       cuStreamWaitEvent}. *)
 end
 
 (** This module builds on top of functionality more directly exposed by {!Event}. It optimizes
@@ -848,8 +850,8 @@ module Delimited_event : sig
   (** An delimited event encapsulates {!Event.t} and is owned by a stream. It records its owner at
       creation, and gets released (using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
-        cuEventDestroy}) when either it or its owner are synchronized (or if neither happens, when
-      it is garbage-collected). *)
+       cuEventDestroy}) when either it or its owner are synchronized (or if neither happens, when it
+      is garbage-collected). *)
 
   val record : ?blocking_sync:bool -> ?interprocess:bool -> ?external_:bool -> Stream.t -> t
   (** Combines {!Event.create} and {!Event.record} to create an event owned by the given stream. *)
@@ -857,7 +859,7 @@ module Delimited_event : sig
   val is_released : t -> bool
   (** Returns true if the delimited event is already released using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
-        cuEventDestroy}. The event will be released by {!synchronize} and {!Stream.synchronize}. *)
+       cuEventDestroy}. The event will be released by {!synchronize} and {!Stream.synchronize}. *)
 
   val query : t -> bool
   (** See {!Event.query}. [query event] returns [true] when [event] is already released. *)

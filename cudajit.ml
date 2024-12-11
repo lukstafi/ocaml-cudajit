@@ -6,7 +6,8 @@ open Sexplib0.Sexp_conv
 
 module Nvrtc = struct
   type result = nvrtc_result [@@deriving sexp]
-  (** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}. *)
+  (** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}.
+  *)
 
   exception Nvrtc_error of { status : result; message : string }
 
