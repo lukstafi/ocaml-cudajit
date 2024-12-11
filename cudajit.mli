@@ -428,7 +428,7 @@ module Deviceptr : sig
        without needing to set the proper context}. *)
 
   val mem_free : t -> unit
-  (** See
+  (** Double-freeing is prevented by a flag: multiple calls on the same [Deviceptr.t] are safe. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g89b3f154e17cc89b6eea277dbdf5c93a}
        cuMemFree}. *)
 

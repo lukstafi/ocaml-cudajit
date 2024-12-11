@@ -1,3 +1,9 @@
+## [0.6.2] current
+
+### Fixed
+
+- Documentation for `Deviceptr.mem_free`: mention it's safe to call multiple times on the same pointer.
+
 ## [0.6.1] 2024-12-02
 
 ### Added
