@@ -1387,6 +1387,11 @@ let get_size_in_bytes ?kind ?length ?size_in_bytes provenance =
 module Deviceptr = struct
   type t = deviceptr [@@deriving sexp_of]
 
+  let equal (Deviceptr { ptr = ptr1; freed = _ }) (Deviceptr { ptr = ptr2; freed = _ }) =
+    Unsigned.UInt64.equal ptr1 ptr2
+
+  let hash (Deviceptr { ptr; freed = _ }) = Unsigned.UInt64.to_int ptr
+
   let string_of (Deviceptr { ptr; freed }) =
     let addr = string_of_memptr ptr in
     if Atomic.get freed then addr ^ "/FREED" else addr
@@ -1693,8 +1698,7 @@ module Stream = struct
     | Double of float
   [@@deriving sexp_of]
 
-  let no_stream =
-    { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
+  let no_stream = no_stream
 
   let total_unreleased_unfinished_delimited_events stream =
     List.fold_left

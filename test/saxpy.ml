@@ -41,6 +41,24 @@ let%expect_test "SAXPY" =
     let dY = Cu.Deviceptr.alloc_and_memcpy hY in
     let hOut = Host.create Bigarray.Float32 Bigarray.C_layout [| size |] in
     let dOut = Cu.Deviceptr.alloc_and_memcpy hOut in
+    let eq = Cu.Deviceptr.equal in
+    Printf.printf "dX = dX %b; dX = dY %b; dY = dOut %b.\n" (eq dX dX) (eq dX dY) (eq dY dOut);
+    [%expect
+      {|
+      cu_init
+      cu_device_get_count
+      cu_device_get
+      cu_ctx_create
+      cu_ctx_get_current
+      cu_module_load_data_ex
+      cu_module_get_function
+      cu_mem_alloc
+      cu_memcpy_H_to_D
+      cu_mem_alloc
+      cu_memcpy_H_to_D
+      cu_mem_alloc
+      cu_memcpy_H_to_D
+      dX = dX true; dX = dY false; dY = dOut false.|}];
     Cu.Stream.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads
       ~shared_mem_bytes:0 Cu.Stream.no_stream
       [
@@ -64,19 +82,6 @@ let%expect_test "SAXPY" =
     Gc.full_major ();
     [%expect
       {|
-      cu_init
-      cu_device_get_count
-      cu_device_get
-      cu_ctx_create
-      cu_ctx_get_current
-      cu_module_load_data_ex
-      cu_module_get_function
-      cu_mem_alloc
-      cu_memcpy_H_to_D
-      cu_mem_alloc
-      cu_memcpy_H_to_D
-      cu_mem_alloc
-      cu_memcpy_H_to_D
       cu_launch_kernel
       cu_ctx_synchronize
       cu_memcpy_D_to_H

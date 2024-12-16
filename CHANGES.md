@@ -4,6 +4,10 @@
 
 - Documentation for `Deviceptr.mem_free`: mention it's safe to call multiple times on the same pointer.
 
+### Added
+
+- `Deviceptr.equal` and `Deviceptr.hash`.
+
 ## [0.6.1] 2024-12-02
 
 ### Added

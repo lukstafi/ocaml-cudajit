@@ -413,6 +413,13 @@ module Deviceptr : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g183f7b0d8ad008ea2a5fd552537ace4e}
        CUdeviceptr}. *)
 
+  val equal : t -> t -> bool
+  (** Compares the pointer values for equality. *)
+
+  val hash : t -> int
+  (** Converts the pointer to an OCaml int using {!Unsigned.UInt64.to_int} (truncating bits as
+      needed). *)
+
   val string_of : t -> string
   (** Hexadecimal representation of the pointer. *)
 
