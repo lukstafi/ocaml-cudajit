@@ -35,7 +35,6 @@
   ctypes-foreign
   sexplib0
   ppx_sexp_conv
-  ppx_expect
-  conf-cuda)
+  ppx_expect)
  (tags
   (cuda jit nvrtc)))

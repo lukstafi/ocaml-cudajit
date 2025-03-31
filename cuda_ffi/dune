@@ -11,13 +11,11 @@
    (vendored
     (c_flags :standard -fPIC)
     (c_library_flags
-     -lcuda
+     C:\Users\lukst\GitHub\ocaml-cudajit-issue\cuda_path_link\lib\x64\cuda.lib
      -I
-     %{env:CUDA_PATH=/usr/local/cuda}/include
+     %{env:CUDA_PATH=C:\Users\lukst\GitHub\ocaml-cudajit-issue\cuda_path_link}\include
      -L
-     %{env:CUDA_PATH=/usr/local/cuda}/lib64/stubs
-     -L
-     %{env:CUDA_PATH=/usr/local/cuda}/lib64)))
+     %{env:CUDA_PATH=C:\Users\lukst\GitHub\ocaml-cudajit-issue\cuda_path_link}\lib\x64)))
   (headers
    (include "cuda.h"))
   (type_description

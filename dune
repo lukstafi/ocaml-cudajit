@@ -1,11 +1,9 @@
 (env
  (_
-  (c_flags -I %{env:CUDA_PATH=/usr/local/cuda}/include)
+  (c_flags -I %{env:CUDA_PATH=C:\Users\lukst\GitHub\ocaml-cudajit-issue\cuda_path_link}\include)
   (link_flags
    -cclib
-   -L%{env:CUDA_PATH=/usr/local/cuda}/lib64/stubs
-   -cclib
-   -L%{env:CUDA_PATH=/usr/local/cuda}/lib64)))
+   -L%{env:CUDA_PATH=C:\Users\lukst\GitHub\ocaml-cudajit-issue\cuda_path_link}\lib\x64)))
 
 (library
  (public_name cudajit)
