@@ -15,7 +15,7 @@ module Nvrtc : sig
   val is_success : result -> bool
 
   type compile_to_ptx_result [@@deriving sexp_of]
-  (** The values passed from {!compile_to_ptx} to {!module_load_data_ex}. Currently, cudajit
+  (** The values passed from {!compile_to_ptx} to {!Module.load_data_ex}. Currently, cudajit
       converts the result of [nvrtc_compile_program] to human-readable PTX assembly before passing
       it to the [cu_module_load_data_ex] function. *)
 
@@ -417,7 +417,7 @@ module Deviceptr : sig
   (** Compares the pointer values for equality. *)
 
   val hash : t -> int
-  (** Converts the pointer to an OCaml int using {!Unsigned.UInt64.to_int} (truncating bits as
+  (** Converts the pointer to an OCaml int using [Unsigned.UInt64.to_int] (truncating bits as
       needed). *)
 
   val string_of : t -> string
@@ -643,7 +643,7 @@ module Stream : sig
     t ->
     unit
   (** Copies the bigarray (or its interval) into the device memory asynchronously. [host_offset] and
-      [length] are in numbers of elements. See {!memcpy_H_to_D_async_unsafe}. *)
+      [length] are in numbers of elements. See {!memcpy_H_to_D_unsafe}. *)
 
   (** Parameters to pass to a kernel. *)
   type kernel_param =

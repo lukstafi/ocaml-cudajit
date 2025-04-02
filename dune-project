@@ -36,6 +36,7 @@
   sexplib0
   ppx_sexp_conv
   ppx_expect
-  conf-cuda)
+  conf-cuda
+  (odoc :with-doc))
  (tags
   (cuda jit nvrtc)))
