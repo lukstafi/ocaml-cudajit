@@ -6,7 +6,7 @@
   (with-stdout-to
    cuda-original-path.bat
    (echo
-    "if not exist ..\\..\\cuda_path_link (mklink /J ..\\..\\cuda_path_link \"%{env:CUDA_PATH=}\")"))))
+    "if not exist %LOCALAPPDATA%\\dune\\cuda_path_link (mklink /J %LOCALAPPDATA%\\dune\\cuda_path_link \"%{env:CUDA_PATH=}\")"))))
 
 (rule
  (enabled_if
@@ -17,7 +17,7 @@
    (run cmd "/C" cuda-original-path.bat)
    (with-stdout-to
     cuda-path.txt
-    (echo "../../cuda_path_link")))))
+    (echo "%{env:LOCALAPPDATA=}/dune/cuda_path_link")))))
 
 (rule
  (enabled_if
@@ -28,7 +28,7 @@
    (run cmd "/C" cuda-original-path.bat)
    (with-stdout-to
     subdir-cuda-path.txt
-    (echo "../../../cuda_path_link")))))
+    (echo "%{env:LOCALAPPDATA=}/dune/cuda_path_link")))))
 
 (rule
  (enabled_if
