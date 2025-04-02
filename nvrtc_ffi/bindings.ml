@@ -37,11 +37,11 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let nvrtc_get_cubin =
     F.foreign "nvrtcGetCUBIN" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
 
-  let nvrtc_get_NVVM_size =
-    F.foreign "nvrtcGetNVVMSize" F.(nvrtc_program @-> ptr size_t @-> returning E.nvrtc_result)
+  let nvrtc_get_LTOIR_size =
+    F.foreign "nvrtcGetLTOIRSize" F.(nvrtc_program @-> ptr size_t @-> returning E.nvrtc_result)
 
-  let nvrtc_get_NVVM =
-    F.foreign "nvrtcGetNVVM" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
+  let nvrtc_get_LTOIR =
+    F.foreign "nvrtcGetLTOIR" F.(nvrtc_program @-> ptr char @-> returning E.nvrtc_result)
 
   let nvrtc_get_program_log_size =
     F.foreign "nvrtcGetProgramLogSize" F.(nvrtc_program @-> ptr size_t @-> returning E.nvrtc_result)

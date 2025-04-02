@@ -6,12 +6,13 @@
 
 ### Changed
 
-- TODO: Updated deprecated functions: `nvrtcGetNVVMSize` -> `nvrtcGetLTOIRSize`, `nvrtcGetNVVM` -> `nvrtcGetLTOIR`.
+- Updated deprecated functions (unused): `nvrtcGetNVVMSize` -> `nvrtcGetLTOIRSize`, `nvrtcGetNVVM` -> `nvrtcGetLTOIR`.
 
 ### Fixed
 
 - Documentation for `Deviceptr.mem_free`: mention it's safe to call multiple times on the same pointer.
 - README was way outdated.
+- Test flakiness.
 
 ### Added
 
