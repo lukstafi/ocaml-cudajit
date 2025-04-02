@@ -46,6 +46,17 @@
    cuda-path.txt
    (echo "%{env:CUDA_PATH=/usr/local/cuda}"))))
 
+(env
+ (_
+  ;  Don't remove: at least on the Windows platform, the flags are needed by downstream packages.
+  (link_flags
+   -L
+   %{read:cuda-path.txt}/lib64/stubs
+   -L
+   %{read:cuda-path.txt}/lib64
+   -L
+   %{read:cuda-path.txt}/lib/x64)))
+
 (library
  (public_name cudajit)
  (name cudajit)
