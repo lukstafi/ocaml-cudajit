@@ -38,6 +38,14 @@
    subdir-cuda-path.txt
    (echo "%{env:CUDA_PATH=/usr/local/cuda}"))))
 
+(rule
+ (enabled_if
+  (<> %{os_type} Win32))
+ (action
+  (with-stdout-to
+   cuda-path.txt
+   (echo "%{env:CUDA_PATH=/usr/local/cuda}"))))
+
 (library
  (public_name cudajit)
  (name cudajit)
