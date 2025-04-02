@@ -1,11 +1,42 @@
-(env
- (_
-  (c_flags -I %{env:CUDA_PATH=/usr/local/cuda}/include)
-  (link_flags
-   -cclib
-   -L%{env:CUDA_PATH=/usr/local/cuda}/lib64/stubs
-   -cclib
-   -L%{env:CUDA_PATH=/usr/local/cuda}/lib64)))
+(rule
+ (enabled_if
+  (= %{os_type} Win32))
+ ;   This addresses: https://github.com/ocaml/ocaml/issues/13917
+ (action
+  (with-stdout-to
+   cuda-original-path.bat
+   (echo
+    "if not exist ..\\..\\cuda_path_link (mklink /J ..\\..\\cuda_path_link \"%{env:CUDA_PATH=}\")"))))
+
+(rule
+ (enabled_if
+  (= %{os_type} Win32))
+ (deps cuda-original-path.bat)
+ (action
+  (progn
+   (run cmd "/C" cuda-original-path.bat)
+   (with-stdout-to
+    cuda-path.txt
+    (echo "../../cuda_path_link")))))
+
+(rule
+ (enabled_if
+  (= %{os_type} Win32))
+ (deps cuda-original-path.bat)
+ (action
+  (progn
+   (run cmd "/C" cuda-original-path.bat)
+   (with-stdout-to
+    subdir-cuda-path.txt
+    (echo "../../../cuda_path_link")))))
+
+(rule
+ (enabled_if
+  (<> %{os_type} Win32))
+ (action
+  (with-stdout-to
+   subdir-cuda-path.txt
+   (echo "%{env:CUDA_PATH=/usr/local/cuda}"))))
 
 (library
  (public_name cudajit)

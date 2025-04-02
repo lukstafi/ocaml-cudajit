@@ -1,3 +1,19 @@
+(rule
+ (enabled_if
+  (<> %{os_type} Win32))
+ (action
+  (with-stdout-to
+   nvrtc-lib.txt
+   (echo "-lnvrtc"))))
+
+(rule
+ (enabled_if
+  (= %{os_type} Win32))
+ (action
+  (with-stdout-to
+   nvrtc-lib.txt
+   (echo "nvrtc.lib"))))
+
 (library
  (public_name cudajit.nvrtc_ffi)
  (name nvrtc_ffi)
@@ -9,15 +25,17 @@
   (external_library_name libnvrtc)
   (build_flags_resolver
    (vendored
-    (c_flags :standard -fPIC)
+    (c_flags :standard -fPIC -I %{read:../subdir-cuda-path.txt}/include)
     (c_library_flags
-     -lnvrtc
+     %{read:nvrtc-lib.txt}
      -I
-     %{env:CUDA_PATH=/usr/local/cuda}/include
+     %{read:../cuda-path.txt}/include
      -L
-     %{env:CUDA_PATH=/usr/local/cuda}/lib64/stubs
+     %{read:../cuda-path.txt}/lib64/stubs
      -L
-     %{env:CUDA_PATH=/usr/local/cuda}/lib64)))
+     %{read:../cuda-path.txt}/lib64
+     -L
+     %{read:../cuda-path.txt}/lib/x64)))
   (headers
    (include "nvrtc.h"))
   (type_description

@@ -1,4 +1,8 @@
-## [0.6.2] current
+## [0.6.2] 2025-04-02
+
+### Added
+
+- Native Windows compatibility.
 
 ### Fixed
 
