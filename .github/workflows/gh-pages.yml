@@ -7,7 +7,8 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # Avoid Ubuntu 24.04, see: https://github.com/ocaml/opam/issues/5968
+    runs-on: ubuntu-22.04
 
     permissions:
       contents: 'read'
@@ -17,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@main
 
-      - uses: Jimver/cuda-toolkit@v0.2.15
+      - uses: Jimver/cuda-toolkit@v0.2.22
         id: cuda-toolkit
         with:
           method: network
@@ -28,11 +29,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.opam
-          key: opam-ubuntu-latest-5.1.1
+          key: opam-ubuntu-22.04-5.2.0
 
       - uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: '5.1.1'
+          ocaml-compiler: '5.2.0'
 
       - name: Pin
         run: opam pin -n .
@@ -45,15 +46,11 @@ jobs:
 
       - name: Build
         run: opam exec -- dune build @doc
-        
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: './_build/default/_doc/_html'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1        
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_build/default/_doc/_html/
+          destination_dir: docs
+          enable_jekyll: true
