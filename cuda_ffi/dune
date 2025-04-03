@@ -25,11 +25,10 @@
   (external_library_name libcuda)
   (build_flags_resolver
    (vendored
-    (c_flags :standard -fPIC -I %{read:../subdir-cuda-path.txt}/include)
+    (c_flags :standard -fPIC -I %{read:../cuda-path.txt}/include)
     (c_library_flags
-     %{read:cuda-lib.txt}
-     -I
-     %{read:../cuda-path.txt}/include
+     "%{read:cuda-lib.txt}"
+     -I %{read:../cuda-path.txt}/include
      -L
      %{read:../cuda-path.txt}/lib64/stubs
      -L
