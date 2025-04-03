@@ -12,21 +12,21 @@ jobs:
         os:
           # - ubuntu-latest
           # - ubuntu-24.04
-          - ubuntu-22.04
+          # - ubuntu-22.04
           # - windows-latest
           - windows-2019
           # Either the waiting queue for FreeBSD is very long, or it is not available.
           # - freebsd-latest
         ocaml-compiler:
-          - 4.13.x
+          # - 4.13.x
           - 5.3.x
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
-    - uses: Jimver/cuda-toolkit@v0.2.19
+    - uses: Jimver/cuda-toolkit@v0.2.22
       id: cuda-toolkit
       with:
-        # cuda: 12.8.1
+        cuda: 12.8.1
         method: network
         sub-packages: '[ "cudart", "cudart-dev", "runtime", "nvrtc", "nvrtc-dev" ]'
     - uses: ocaml/setup-ocaml@v3
