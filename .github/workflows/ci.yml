@@ -13,7 +13,7 @@ jobs:
           # - ubuntu-latest
           # - ubuntu-24.04
           # - ubuntu-22.04
-          - windows-latest
+          - windows-2022
           # - windows-2019
           # Either the waiting queue for FreeBSD is very long, or it is not available.
           # - freebsd-latest
