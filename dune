@@ -34,17 +34,6 @@
    cuda-path.txt
    (echo "%{env:CUDA_PATH=/usr/local/cuda}"))))
 
-(env
- (_
-  ; Don't remove: for some reason Windows CI fails without the following flags.
-  (c_flags
-   -L
-   "%{read:cuda-path.txt}/lib64/stubs"
-   -L
-   "%{read:cuda-path.txt}/lib64"
-   -L
-   "%{read:cuda-path.txt}/lib/x64")))
-
 (library
  (public_name cudajit)
  (name cudajit)
