@@ -9,7 +9,7 @@ jobs:
     name: CI
     strategy:
       matrix:
-        os: [windows-2019]
+        os: [windows-latest]
         include:
           # - os: ubuntu-22.04
           #   packages: '[ "runtime", "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
