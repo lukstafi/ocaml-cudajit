@@ -13,8 +13,8 @@ jobs:
         include:
           # - os: ubuntu-22.04
           #   packages: '[ "runtime", "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
-          - os: windows-2019
-            packages: '["nvcc", "nvrtc", "nvrtc_dev", "cuda_profiler_api", "cudart", "cublas", "cublas_dev", "curand", "curand_dev"]'
+          - os: windows-latest
+            packages: '["nvrtc", "nvrtc_dev", "cudart"]'
           # Either the waiting queue for FreeBSD is very long, or it is not available.
           # - os: freebsd-latest
         ocaml-compiler:
@@ -31,7 +31,7 @@ jobs:
         sub-packages: ${{ matrix.packages }}
     - name: Set PATH for Windows
       # This is needed specifically for Windows CI, but should not hurt on other platforms.
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows-latest' || matrix.os == 'windows-2019'
       run:
         echo "PATH=$CUDA_PATH\bin;$PATH" >> $GITHUB_ENV
     - uses: ocaml/setup-ocaml@v3
