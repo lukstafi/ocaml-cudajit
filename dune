@@ -8,7 +8,7 @@
    (with-stdout-to
     cuda-original-path.bat
     (echo
-     "echo | set /p=\"%LOCALAPPDATA:\\=/%/cuda_path_link\" > .\\cuda-path.txt\nif not exist %LOCALAPPDATA%\\cuda_path_link (mklink /J %LOCALAPPDATA%\\cuda_path_link \"%{env:CUDA_PATH=}\")"))
+     "echo | set /p=\"%LOCALAPPDATA:\\=/%/cuda_path_link\" > .\\cuda-path.txt\r\nif not exist %LOCALAPPDATA%\\cuda_path_link (mklink /J %LOCALAPPDATA%\\cuda_path_link \"%{env:CUDA_PATH=}\")"))
    (system "dir %LOCALAPPDATA%\\..")
    (system "dir %LOCALAPPDATA%\\..\\..")
    (system "dir %LOCALAPPDATA%\\cuda_path_link")
