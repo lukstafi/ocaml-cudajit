@@ -14,7 +14,7 @@ doc: "https://github.com/lukstafi/ocaml-cudajit/blob/master/README.md"
 bug-reports: "https://github.com/lukstafi/ocaml-cudajit/issues"
 depends: [
   "ocaml" {>= "4.13"}
-  "dune" {>= "3.11"}
+  "dune" {>= "3.16"}
   "ctypes" {>= "0.14.0"}
   "ctypes-foreign"
   "sexplib0"
