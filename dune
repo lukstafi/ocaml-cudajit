@@ -7,8 +7,8 @@
   (with-stdout-to
    cuda-original-path.bat
     (echo
-     "echo | set /p=\"%LOCALAPPDATA:\\=/%/dune/cuda_path_link\" > .\\cuda-path.txt
-if not exist %LOCALAPPDATA%\\dune\\cuda_path_link (mklink /J %LOCALAPPDATA%\\dune\\cuda_path_link \"%{env:CUDA_PATH=}\")"))))
+     "echo | set /p=\"%LOCALAPPDATA:\\=/%/cuda_path_link\" > .\\cuda-path.txt
+if not exist %LOCALAPPDATA%\\cuda_path_link (mklink /J %LOCALAPPDATA%\\cuda_path_link \"%{env:CUDA_PATH=}\")"))))
 
 (rule
  (enabled_if
