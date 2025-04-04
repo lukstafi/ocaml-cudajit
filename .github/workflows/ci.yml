@@ -26,10 +26,10 @@ jobs:
     - uses: Jimver/cuda-toolkit@v0.2.22
       id: cuda-toolkit
       with:
-        # cuda: 12.8.1
+        cuda: 12.8.1
         # method: network
         method: local
-        sub-packages: '[ "cudart", "runtime", "nvrtc" ]'
+        sub-packages: '[ "cudart_12.8", "nvrtc_12.8", "nvrtc_dev_12.8" ]'
     - uses: ocaml/setup-ocaml@v3
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
