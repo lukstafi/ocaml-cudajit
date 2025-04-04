@@ -12,7 +12,7 @@
  (action
   (with-stdout-to
    cuda-lib.txt
-   (echo "cuda.lib"))))
+   (echo "cuda.lib cudart.lib cudadevrt.lib"))))
 
 (library
  (public_name cudajit.cuda_ffi)
@@ -27,7 +27,7 @@
    (vendored
     (c_flags :standard -fPIC -I %{read:../cuda-path.txt}/include)
     (c_library_flags
-     "%{read:cuda-lib.txt}"
+     %{read:cuda-lib.txt}
      -I %{read:../cuda-path.txt}/include
      -L
      %{read:../cuda-path.txt}/lib64/stubs

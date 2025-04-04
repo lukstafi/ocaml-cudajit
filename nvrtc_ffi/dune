@@ -27,7 +27,7 @@
    (vendored
     (c_flags :standard -fPIC -I %{read:../cuda-path.txt}/include)
     (c_library_flags
-     "%{read:nvrtc-lib.txt}"
+     %{read:nvrtc-lib.txt}
      -I
      %{read:../cuda-path.txt}/include
      -L
