@@ -27,7 +27,8 @@ jobs:
       id: cuda-toolkit
       with:
         # cuda: 12.8.1
-        method: network
+        # method: network
+        method: local
         sub-packages: '[ "cudart", "runtime", "nvrtc" ]'
     - uses: ocaml/setup-ocaml@v3
       with:
