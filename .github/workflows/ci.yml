@@ -29,7 +29,7 @@ jobs:
         cuda: 12.8.1
         # method: network
         method: local
-        sub-packages: '[ "cudart_12.8", "nvrtc_12.8", "nvrtc_dev_12.8" ]'
+        sub-packages: '[ "cudart", "nvrtc", "nvrtc_dev" ]'
     - uses: ocaml/setup-ocaml@v3
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
