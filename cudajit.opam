@@ -20,7 +20,6 @@ depends: [
   "sexplib0"
   "ppx_sexp_conv"
   "ppx_expect"
-  "conf-cuda"
   "odoc" {with-doc}
 ]
 build: [
