@@ -27,7 +27,6 @@ jobs:
     - uses: Jimver/cuda-toolkit@v0.2.22
       id: cuda-toolkit
       with:
-        method: local
         method: network
         sub-packages: ${{ matrix.packages }}
     - uses: ocaml/setup-ocaml@v3
