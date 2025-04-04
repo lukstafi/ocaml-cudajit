@@ -14,7 +14,7 @@ jobs:
           # - os: ubuntu-22.04
           #   packages: '[ "runtime", "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
           - os: windows-2019
-            # packages: '[ "cudart", "nvrtc", "nvrtc_dev" ]'
+            packages: '["nvcc", "nvrtc", "nvrtc_dev", "cuda_profiler_api", "cudart", "cublas", "cublas_dev", "curand", "curand_dev"]'
           # Either the waiting queue for FreeBSD is very long, or it is not available.
           # - os: freebsd-latest
         ocaml-compiler:
@@ -28,9 +28,8 @@ jobs:
       id: cuda-toolkit
       with:
         method: local
-        use-local-cache: false
-        # method: network
-        # sub-packages: ${{ matrix.packages }}
+        method: network
+        sub-packages: ${{ matrix.packages }}
     - uses: ocaml/setup-ocaml@v3
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
