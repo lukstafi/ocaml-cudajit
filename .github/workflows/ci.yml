@@ -12,7 +12,7 @@ jobs:
         os: [ubuntu-22.04, windows-2019]
         include:
           - os: ubuntu-22.04
-            packages: '[ "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
+            packages: '[ "runtime", "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
           - os: windows-2019
             packages: '[ "cudart", "nvrtc", "nvrtc_dev" ]'
           # Either the waiting queue for FreeBSD is very long, or it is not available.
