@@ -29,9 +29,6 @@
     (c_library_flags
      :standard
      %{read:cuda-lib.txt}
-     ;   DEBUG: experimenting with the following libraries
-     cudart.lib
-   ;   cudadevrt.lib
      -I
      %{read:../cuda-path.txt}/include
      -L

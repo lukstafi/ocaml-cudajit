@@ -9,17 +9,15 @@ jobs:
     name: CI
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-22.04, windows-latest]
         include:
-          # - os: ubuntu-22.04
-          #   packages: '[ "runtime", "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
+          - os: ubuntu-22.04
+            packages: '[ "runtime", "cudart", "cudart-dev", "nvrtc", "nvrtc-dev" ]'
           - os: windows-latest
             packages: '["nvrtc", "nvrtc_dev", "cudart"]'
-          # Either the waiting queue for FreeBSD is very long, or it is not available.
-          # - os: freebsd-latest
         ocaml-compiler:
-          # - 4.13.x
-          # - 5.0.x
+          - 4.13.x
+          - 5.0.x
           - 5.3.x
     runs-on: ${{ matrix.os }}
     steps:
