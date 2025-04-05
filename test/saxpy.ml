@@ -15,11 +15,11 @@ extern "C" __global__ void saxpy(float a, float *x, float *y, float *out, size_t
 let%expect_test "SAXPY" =
   let num_blocks = 32 in
   let num_threads = 128 in
-  let module Cu = Cudajit in
+  let module Cu = Cuda in
   Cu.cuda_debug_hook :=
     Debug { pre = (fun ~message -> Printf.printf "%s\n" message); post = (fun ~status:_ -> ()) };
   let prog =
-    Cu.Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
+    Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
       ~with_debug:true
   in
   Cu.init ();

@@ -14,10 +14,10 @@ extern "C" __global__ void saxpy(float a, float *x, float *y, float *out, size_t
 
 let%expect_test "SAXPY compilation" =
   let prog =
-    Cudajit.Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
+    Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
       ~with_debug:true
   in
-  (match Cudajit.Nvrtc.compilation_log prog with
+  (match Nvrtc.compilation_log prog with
   | None -> ()
   | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
   [%expect {| CUDA Compile log: |}];
@@ -26,7 +26,7 @@ let%expect_test "SAXPY compilation" =
        (Str.regexp
           {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+\|\.version [0-9]+\.[0-9]+\|\.target sm_[0-9]+|})
        "NNN"
-  @@ Cudajit.Nvrtc.string_from_ptx prog;
+  @@ Nvrtc.string_from_ptx prog;
   [%expect
     {|
     PTX: //
@@ -106,10 +106,10 @@ let kernel_half_prec =
 
 let%expect_test "SAXPY half precision compilation" =
   let prog =
-    Cudajit.Nvrtc.compile_to_ptx ~cu_src:kernel_half_prec ~name:"saxpy_half"
+    Nvrtc.compile_to_ptx ~cu_src:kernel_half_prec ~name:"saxpy_half"
       ~options:[ "--use_fast_math" ] ~with_debug:true
   in
-  (match Cudajit.Nvrtc.compilation_log prog with
+  (match Nvrtc.compilation_log prog with
   | None -> ()
   | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
   [%expect {| CUDA Compile log: |}];
@@ -118,7 +118,7 @@ let%expect_test "SAXPY half precision compilation" =
        (Str.regexp
           {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+\|\.version [0-9]+\.[0-9]+\|\.target sm_[0-9]+|})
        "NNN"
-  @@ Cudajit.Nvrtc.string_from_ptx prog;
+  @@ Nvrtc.string_from_ptx prog;
   [%expect
     {|
     PTX: //

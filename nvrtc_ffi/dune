@@ -25,17 +25,17 @@
   (external_library_name libnvrtc)
   (build_flags_resolver
    (vendored
-    (c_flags :standard -fPIC -I %{read:../cuda-path.txt}/include)
+    (c_flags :standard -fPIC -I %{read:../src/cuda-path.txt}/include)
     (c_library_flags
      %{read:nvrtc-lib.txt}
      -I
-     %{read:../cuda-path.txt}/include
+     %{read:../src/cuda-path.txt}/include
      -L
-     %{read:../cuda-path.txt}/lib64/stubs
+     %{read:../src/cuda-path.txt}/lib64/stubs
      -L
-     %{read:../cuda-path.txt}/lib64
+     %{read:../src/cuda-path.txt}/lib64
      -L
-     %{read:../cuda-path.txt}/lib/x64)))
+     %{read:../src/cuda-path.txt}/lib/x64)))
   (headers
    (include "nvrtc.h"))
   (type_description

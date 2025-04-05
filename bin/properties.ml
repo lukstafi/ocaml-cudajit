@@ -1,4 +1,4 @@
-module Cu = Cudajit
+module Cu = Cuda
 
 let () =
   Cu.init ();

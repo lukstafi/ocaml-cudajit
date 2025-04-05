@@ -1,0 +1,43 @@
+(rule
+ (enabled_if
+  (= %{os_type} Win32))
+ (target cuda-original-path.bat)
+ ;   This addresses: https://github.com/ocaml/ocaml/issues/13917
+ (action
+  (progn
+   (with-stdout-to
+    cuda-original-path.bat
+    (echo
+     "echo | set /p=\"%LOCALAPPDATA:\\=/%/cuda_path_link\" > .\\cuda-path.txt\r\nif not exist %LOCALAPPDATA%\\cuda_path_link (mklink /J %LOCALAPPDATA%\\cuda_path_link \"%{env:CUDA_PATH=}\")")))))
+
+(rule
+ (enabled_if
+  (= %{os_type} Win32))
+ (target cuda-path.txt)
+ (deps cuda-original-path.bat)
+ (action
+  (run cmd "/C" cuda-original-path.bat)))
+
+(rule
+ (enabled_if
+  (<> %{os_type} Win32))
+ (action
+  (with-stdout-to
+   cuda-path.txt
+   (echo "%{env:CUDA_PATH=/usr/local/cuda}"))))
+
+(library
+ (public_name cudajit.nvrtc)
+ (name nvrtc)
+ (modules nvrtc)
+ (preprocess
+  (pps ppx_sexp_conv))
+ (libraries nvrtc_ffi sexplib0))
+
+(library
+ (public_name cudajit.cuda)
+ (name cuda)
+ (modules cuda)
+ (preprocess
+  (pps ppx_sexp_conv))
+ (libraries cuda_ffi nvrtc sexplib0))

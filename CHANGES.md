@@ -8,6 +8,7 @@
 
 - Updated deprecated functions (unused): `nvrtcGetNVVMSize` -> `nvrtcGetLTOIRSize`, `nvrtcGetNVVM` -> `nvrtcGetLTOIR`.
 - Breaking: `cuda_call_hook` -> `cuda_debug_hook` with both a `pre` and a `post` callback for CUDA calls.
+- Major: split the package into separate libraries covering NVRTC bindings and CUDA bindings, so that `Nvrtc` doesn't need CUDA drivers to run.
 
 ### Fixed
 

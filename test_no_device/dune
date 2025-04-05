@@ -1,7 +1,7 @@
 (library
  (name cudajit_test_no_device)
  (inline_tests)
- (libraries dynlink cudajit)
+ (libraries dynlink cudajit.nvrtc)
  (preprocess
   (pps ppx_expect))
  (modes native))

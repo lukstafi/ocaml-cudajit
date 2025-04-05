@@ -1,5 +1,5 @@
 (executable
  (name properties)
  (modules properties)
- (libraries cudajit sexplib0)
+ (libraries cudajit.cuda sexplib0)
  (modes exe))
