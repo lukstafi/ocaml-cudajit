@@ -1,4 +1,4 @@
-## [0.6.2] 2025-04-02
+## [0.7.0] 2025-04-0X
 
 ### Added
 
@@ -7,6 +7,7 @@
 ### Changed
 
 - Updated deprecated functions (unused): `nvrtcGetNVVMSize` -> `nvrtcGetLTOIRSize`, `nvrtcGetNVVM` -> `nvrtcGetLTOIR`.
+- Breaking: `cuda_call_hook` -> `cuda_debug_hook` with both a `pre` and a `post` callback for CUDA calls.
 
 ### Fixed
 

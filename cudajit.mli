@@ -57,9 +57,13 @@ exception Cuda_error of { status : result; message : string }
 
 val is_success : result -> bool
 
-val cuda_call_hook : (message:string -> status:result -> unit) option ref
-(** The function called after every {!Cuda_ffi.Bindings.Functions} call. [message] is the snake-case
-    variant of the corresponding CUDA function name. *)
+type cuda_call_hook_t =
+  | Debug of { pre : message:string -> unit; post : status:result -> unit }
+  | No_debug
+
+val cuda_debug_hook : cuda_call_hook_t ref
+(** The functions called before and after every {!Cuda_ffi.Bindings.Functions} call. [message] is
+    the snake-case variant of the corresponding CUDA function name. *)
 
 val init : ?flags:int -> unit -> unit
 (** Must be called before any other function. Currently [flags] is unused. See
