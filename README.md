@@ -9,9 +9,9 @@ Paraphrased from the [SAXPY example](test/saxpy.ml):
 ```ocaml
 let kernel =
   {| extern "C" __global__ void saxpy(float a, float *x, float *y, float *out, size_t n) { ... } |}
-module Cu = Cudajit
+module Cu = Cuda
 let prog =
-  Cu.Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
+  Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
     ~with_debug:true
 let () =
   Cu.init ();

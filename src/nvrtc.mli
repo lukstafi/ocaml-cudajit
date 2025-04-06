@@ -19,9 +19,9 @@ type compile_to_ptx_result = {
   ptx_length : int;
 }
 [@@deriving sexp_of]
-(** The values passed from {!compile_to_ptx} to {!Module.load_data_ex}. Currently, cudajit converts
-    the result of [nvrtc_compile_program] to human-readable PTX assembly before passing it to the
-    [cu_module_load_data_ex] function. *)
+(** The values passed from {!compile_to_ptx} to {!Cuda.Module.load_data_ex}. Currently, cudajit
+    converts the result of [nvrtc_compile_program] to human-readable PTX assembly before passing it
+    to the [cu_module_load_data_ex] function. *)
 
 val compile_to_ptx :
   cu_src:string -> name:string -> options:string list -> with_debug:bool -> compile_to_ptx_result
