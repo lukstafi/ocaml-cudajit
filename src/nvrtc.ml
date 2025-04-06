@@ -41,7 +41,6 @@ let compile_to_ptx ~cu_src ~name ~options ~with_debug =
   if not (Sys.file_exists cuda_path) then
     failwith (Printf.sprintf "CUDA_PATH %s does not exist" cuda_path);
   let options = Array.of_list @@ (("-I" ^ Filename.concat cuda_path "include") :: options) in
-  Array.iter (fun s -> Printf.printf "option: %s\n%!" s) options;
   let status =
     Nvrtc_funs.nvrtc_create_program prog cu_src name 0 (from_voidp string null)
       (from_voidp string null)

@@ -46,8 +46,6 @@ let%expect_test "SAXPY" =
     Printf.printf "dX = dX %b; dX = dY %b; dY = dOut %b.\n" (eq dX dX) (eq dX dY) (eq dY dOut);
     [%expect
       {|
-option: -IC:\Users\lukst\AppData\Local\cuda_path_link\include
-option: --use_fast_math
 cu_init
 cu_device_get_count
 cu_device_get
@@ -61,7 +59,8 @@ cu_mem_alloc
 cu_memcpy_H_to_D
 cu_mem_alloc
 cu_memcpy_H_to_D
-dX = dX true; dX = dY false; dY = dOut false.|}];
+dX = dX true; dX = dY false; dY = dOut false.
+|}];
     Cu.Stream.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads
       ~shared_mem_bytes:0 Cu.Stream.no_stream
       [

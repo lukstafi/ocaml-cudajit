@@ -20,11 +20,7 @@ let%expect_test "SAXPY compilation" =
   (match Nvrtc.compilation_log prog with
   | None -> ()
   | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
-  [%expect {|
-    option: -IC:\Users\lukst\AppData\Local\cuda_path_link\include
-    option: --use_fast_math
-
-    CUDA Compile log: |}];
+  [%expect {| CUDA Compile log: |}];
   Format.printf "PTX: %s%!"
   @@ Str.global_replace
        (Str.regexp
@@ -116,11 +112,7 @@ let%expect_test "SAXPY half precision compilation" =
   (match Nvrtc.compilation_log prog with
   | None -> ()
   | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
-  [%expect {|
-    option: -IC:\Users\lukst\AppData\Local\cuda_path_link\include
-    option: --use_fast_math
-
-    CUDA Compile log: |}];
+  [%expect {| CUDA Compile log: |}];
   Format.printf "PTX: %s%!"
   @@ Str.global_replace
        (Str.regexp
