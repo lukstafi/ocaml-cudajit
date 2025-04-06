@@ -30,11 +30,18 @@ let compile_to_ptx ~cu_src ~name ~options ~with_debug =
   let prog = allocate_n nvrtc_program ~count:1 in
   (* We can add the include at the library level, because conf-cuda sets CUDA_PATH if it is missing
      but the information is available. *)
-  let default =
-    if Sys.win32 then "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA" else "/usr/local/cuda"
+  let cuda_path =
+    try Sys.getenv "CUDA_PATH"
+    with Not_found -> (
+      if not Sys.win32 then "/usr/local/cuda"
+      else
+        try Sys.getenv "LOCALAPPDATA" ^ "\\cuda_path_link"
+        with Not_found -> "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.8")
   in
-  let cuda_path = Sys.getenv_opt "CUDA_PATH" |> Option.value ~default in
+  if not (Sys.file_exists cuda_path) then
+    failwith (Printf.sprintf "CUDA_PATH %s does not exist" cuda_path);
   let options = Array.of_list @@ (("-I" ^ Filename.concat cuda_path "include") :: options) in
+  Array.iter (fun s -> Printf.printf "option: %s\n%!" s) options;
   let status =
     Nvrtc_funs.nvrtc_create_program prog cu_src name 0 (from_voidp string null)
       (from_voidp string null)
