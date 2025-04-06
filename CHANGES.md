@@ -2,7 +2,8 @@
 
 ### Added
 
-- Native Windows compatibility.
+- `Deviceptr.equal` and `Deviceptr.hash`.
+- Native Windows compatibility, including CI tests.
 
 ### Changed
 
@@ -15,10 +16,6 @@
 - Documentation for `Deviceptr.mem_free`: mention it's safe to call multiple times on the same pointer.
 - README was way outdated.
 - Test flakiness.
-
-### Added
-
-- `Deviceptr.equal` and `Deviceptr.hash`.
 
 ## [0.6.1] 2024-12-02
 
