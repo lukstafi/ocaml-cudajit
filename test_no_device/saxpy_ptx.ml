@@ -23,7 +23,8 @@ let%expect_test "SAXPY compilation" =
   [%expect {| CUDA Compile log: |}];
   (* We need to output the initial empty line for compatibility with OCaml 4.x on native Windows.
      (Side note: using "@\n" instead of "\n" doesn't work.) *)
-  Format.printf "\nPTX: %s%!"
+  if Sys.win32 then Format.printf "\r\n%!";
+  Format.printf "PTX: %s%!"
   @@ Str.global_replace
        (Str.regexp
           {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+\|\.version [0-9]+\.[0-9]+\|\.target sm_[0-9]+|})
@@ -117,7 +118,8 @@ let%expect_test "SAXPY half precision compilation" =
   [%expect {| CUDA Compile log: |}];
   (* We need to output the initial empty line for compatibility with OCaml 4.x on native Windows.
      (Side note: using "@\n" instead of "\n" doesn't work.) *)
-  Format.printf "\nPTX: %s%!"
+  if Sys.win32 then Format.printf "\r\n%!";
+  Format.printf "PTX: %s%!"
   @@ Str.global_replace
        (Str.regexp
           {|CL-[0-9]+\|release [0-9]+\.[0-9]+\|V[0-9]+\.[0-9]+\.[0-9]+\|NVVM [0-9]+\.[0-9]+\.[0-9]+\|\.version [0-9]+\.[0-9]+\|\.target sm_[0-9]+|})
