@@ -22,8 +22,6 @@ let%expect_test "SAXPY" =
     Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
       ~with_debug:true
   in
-  (* We need to output the initial empty line for compatibility with OCaml 4.x on native Windows. *)
-  if Sys.win32 then Printf.printf "\r\n%!";
   Cu.init ();
   if Cu.Device.get_count () > 0 then (
     let device = Cu.Device.get ~ordinal:0 in
@@ -63,9 +61,6 @@ cu_mem_alloc
 cu_memcpy_H_to_D
 dX = dX true; dX = dY false; dY = dOut false.
 |}];
-    (* We need to output the initial empty line for compatibility with OCaml 4.x on native
-       Windows. *)
-    if Sys.win32 then Printf.printf "\r\n%!";
     Cu.Stream.launch_kernel kernel ~grid_dim_x:num_blocks ~block_dim_x:num_threads
       ~shared_mem_bytes:0 Cu.Stream.no_stream
       [

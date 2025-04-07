@@ -21,9 +21,6 @@ let%expect_test "SAXPY compilation" =
   | None -> ()
   | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
   [%expect {| CUDA Compile log: |}];
-  (* We need to output the initial empty line for compatibility with OCaml 4.x on native Windows.
-     (Side note: using "@\n" instead of "\n" doesn't work.) *)
-  if Sys.win32 then Format.printf "\r\n%!";
   Format.printf "PTX: %s%!"
   @@ Str.global_replace
        (Str.regexp
@@ -116,9 +113,6 @@ let%expect_test "SAXPY half precision compilation" =
   | None -> ()
   | Some log -> Format.printf "\nCUDA Compile log: %s\n%!" log);
   [%expect {| CUDA Compile log: |}];
-  (* We need to output the initial empty line for compatibility with OCaml 4.x on native Windows.
-     (Side note: using "@\n" instead of "\n" doesn't work.) *)
-  if Sys.win32 then Format.printf "\r\n%!";
   Format.printf "PTX: %s%!"
   @@ Str.global_replace
        (Str.regexp

@@ -16,11 +16,18 @@ jobs:
           - os: windows-latest
             packages: '["nvrtc", "nvrtc_dev", "cudart"]'
         ocaml-compiler:
-          - 4.13.x
-          - 5.0.x
-          - 5.3.x
+          - "4.13"
+          - "5.0"
+          - "5.3"
     runs-on: ${{ matrix.os }}
     steps:
+    - name: Set git to use LF
+      if: ${{ matrix.os == 'windows-latest' && matrix.ocaml-compiler < 5.2 }}
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+        git config --global core.ignorecase false
+
     - uses: actions/checkout@v4
     - uses: Jimver/cuda-toolkit@v0.2.22
       id: cuda-toolkit
