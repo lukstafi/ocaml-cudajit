@@ -1,4 +1,10 @@
-## [0.7.0] 2025-04-06
+## [0.7.0] 2025-04-07
+
+### Changed
+
+- Reverted back `cuda_debug_hook` -> `cuda_call_hook` (added complexity isn't worth it).
+
+## [0.7.0-beta] 2025-04-06
 
 ### Added
 

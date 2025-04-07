@@ -36,8 +36,7 @@
   sexplib0
   ppx_sexp_conv
   ppx_expect
-  ; For the beta release, don't use conf-cuda
-  ; conf-cuda
+  conf-cuda
   (odoc :with-doc))
  (tags
   (cuda jit nvrtc)))

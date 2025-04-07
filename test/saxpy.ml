@@ -16,8 +16,7 @@ let%expect_test "SAXPY" =
   let num_blocks = 32 in
   let num_threads = 128 in
   let module Cu = Cuda in
-  Cu.cuda_debug_hook :=
-    Debug { pre = (fun ~message -> Printf.printf "%s\n" message); post = (fun ~status:_ -> ()) };
+  Cu.cuda_call_hook := Some (fun ~message ~status:_ -> Printf.printf "%s\n" message);
   let prog =
     Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
       ~with_debug:true
@@ -1463,4 +1462,4 @@ cu_ctx_destroy
 5.1 * 4090.0 + 8180.0 = 29039.00; 5.1 * 4091.0 + 8182.0 = 29046.10; 5.1 * 4092.0 + 8184.0 = 29053.20;
 5.1 * 4093.0 + 8186.0 = 29060.30; 5.1 * 4094.0 + 8188.0 = 29067.40; 5.1 * 4095.0 + 8190.0 = 29074.50;
       |}]);
-  Cu.cuda_debug_hook := No_debug
+  Cu.cuda_call_hook := None

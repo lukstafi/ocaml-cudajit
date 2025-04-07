@@ -13,11 +13,7 @@ exception Cuda_error of { status : result; message : string }
 
 val is_success : result -> bool
 
-type cuda_call_hook_t =
-  | Debug of { pre : message:string -> unit; post : status:result -> unit }
-  | No_debug
-
-val cuda_debug_hook : cuda_call_hook_t ref
+val cuda_call_hook : (message:string -> status:result -> unit) option ref
 (** The functions called before and after every {!Cuda_ffi.Bindings.Functions} call. [message] is
     the snake-case variant of the corresponding CUDA function name. *)
 
