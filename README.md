@@ -2,6 +2,8 @@
 
 Bindings to the NVIDIA `cuda` and `nvrtc` libraries with a unified interface.
 
+This project is sponsored by [Ahrefs](https://ocaml.org/success-stories/peta-byte-scale-web-crawler)! [Visit the Ahrefs website](https://ahrefs.com/).
+
 Requires a recent version of CUDA.
 
 Paraphrased from the [SAXPY example](test/saxpy.ml):
