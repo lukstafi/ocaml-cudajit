@@ -3,8 +3,10 @@
     NVRTC is a runtime compilation library for CUDA C++. See:
     {{:https://docs.nvidia.com/cuda/nvrtc/index.html} The User guide for the NVRTC library}. *)
 
-type result [@@deriving sexp]
+type result
 (** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}. *)
+
+val sexp_of_result : result -> Sexplib0.Sexp.t
 
 exception Nvrtc_error of { status : result; message : string }
 (** Error codes returned by CUDA functions are converted to exceptions. The message stores a
@@ -18,10 +20,11 @@ type compile_to_ptx_result = {
   ptx : (char Ctypes.ptr[@sexp.opaque]);
   ptx_length : int;
 }
-[@@deriving sexp_of]
 (** The values passed from {!compile_to_ptx} to {!Cuda.Module.load_data_ex}. Currently, cudajit
     converts the result of [nvrtc_compile_program] to human-readable PTX assembly before passing it
     to the [cu_module_load_data_ex] function. *)
+
+val sexp_of_compile_to_ptx_result : compile_to_ptx_result -> Sexplib0.Sexp.t
 
 val compile_to_ptx :
   cu_src:string -> name:string -> options:string list -> with_debug:bool -> compile_to_ptx_result

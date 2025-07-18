@@ -2,8 +2,24 @@ open Nvrtc_ffi.Bindings_types
 module Nvrtc_funs = Nvrtc_ffi.C.Functions
 open Sexplib0.Sexp_conv
 
-type result = nvrtc_result [@@deriving sexp]
+type result = nvrtc_result
 (** See {{:https://docs.nvidia.com/cuda/nvrtc/index.html#_CPPv411nvrtcResult} enum nvrtcResult}. *)
+
+let sexp_of_result = function
+  | NVRTC_SUCCESS -> Sexplib0.Sexp.Atom "NVRTC_SUCCESS"
+  | NVRTC_ERROR_OUT_OF_MEMORY -> Sexplib0.Sexp.Atom "NVRTC_ERROR_OUT_OF_MEMORY"
+  | NVRTC_ERROR_PROGRAM_CREATION_FAILURE -> Sexplib0.Sexp.Atom "NVRTC_ERROR_PROGRAM_CREATION_FAILURE"
+  | NVRTC_ERROR_INVALID_INPUT -> Sexplib0.Sexp.Atom "NVRTC_ERROR_INVALID_INPUT"
+  | NVRTC_ERROR_INVALID_PROGRAM -> Sexplib0.Sexp.Atom "NVRTC_ERROR_INVALID_PROGRAM"
+  | NVRTC_ERROR_INVALID_OPTION -> Sexplib0.Sexp.Atom "NVRTC_ERROR_INVALID_OPTION"
+  | NVRTC_ERROR_COMPILATION -> Sexplib0.Sexp.Atom "NVRTC_ERROR_COMPILATION"
+  | NVRTC_ERROR_BUILTIN_OPERATION_FAILURE -> Sexplib0.Sexp.Atom "NVRTC_ERROR_BUILTIN_OPERATION_FAILURE"
+  | NVRTC_ERROR_NO_NAME_EXPRESSIONS_AFTER_COMPILATION -> Sexplib0.Sexp.Atom "NVRTC_ERROR_NO_NAME_EXPRESSIONS_AFTER_COMPILATION"
+  | NVRTC_ERROR_NO_LOWERED_NAMES_BEFORE_COMPILATION -> Sexplib0.Sexp.Atom "NVRTC_ERROR_NO_LOWERED_NAMES_BEFORE_COMPILATION"
+  | NVRTC_ERROR_NAME_EXPRESSION_NOT_VALID -> Sexplib0.Sexp.Atom "NVRTC_ERROR_NAME_EXPRESSION_NOT_VALID"
+  | NVRTC_ERROR_INTERNAL_ERROR -> Sexplib0.Sexp.Atom "NVRTC_ERROR_INTERNAL_ERROR"
+  | NVRTC_ERROR_TIME_FILE_WRITE_FAILED -> Sexplib0.Sexp.Atom "NVRTC_ERROR_TIME_FILE_WRITE_FAILED"
+  | NVRTC_ERROR_UNCATEGORIZED i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "NVRTC_ERROR_UNCATEGORIZED"; Sexplib0.Sexp.Atom (Int64.to_string i)]
 
 exception Nvrtc_error of { status : result; message : string }
 
@@ -23,7 +39,17 @@ type compile_to_ptx_result = {
   ptx : (char Ctypes.ptr[@sexp.opaque]);
   ptx_length : int;
 }
-[@@deriving sexp_of]
+
+let sexp_of_compile_to_ptx_result { log; ptx = _; ptx_length } =
+  let log_sexp = match log with
+    | None -> Sexplib0.Sexp.Atom "None"
+    | Some s -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Some"; Sexplib0.Sexp.Atom s]
+  in
+  Sexplib0.Sexp.List [
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "log"; log_sexp];
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "ptx"; Sexplib0.Sexp.Atom "<opaque>"];
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "ptx_length"; Sexplib0.Sexp.Atom (Int.to_string ptx_length)]
+  ]
 
 let compile_to_ptx ~cu_src ~name ~options ~with_debug =
   let open Ctypes in

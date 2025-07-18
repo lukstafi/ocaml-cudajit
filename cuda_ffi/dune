@@ -18,8 +18,6 @@
  (public_name cudajit.cuda_ffi)
  (name cuda_ffi)
  (libraries ctypes.foreign sexplib0)
- (preprocess
-  (pps ppx_sexp_conv))
  (flags :standard -w -9-11-27)
  (ctypes
   (external_library_name libcuda)

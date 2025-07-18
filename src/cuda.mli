@@ -1,10 +1,12 @@
 (** Bindings to the NVIDIA `cuda` library. *)
 
 
-type result [@@deriving sexp]
+type result
 (** See
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gc6c391505e117393cc2558fff6bfc2e9}
      enum CUresult}. *)
+
+val sexp_of_result : result -> Sexplib0.Sexp.t
 
 exception Cuda_error of { status : result; message : string }
 (** Error codes returned by CUDA functions are converted to exceptions. The message stores a
@@ -28,10 +30,12 @@ val init : ?flags:int -> unit -> unit
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html#group__CUDA__PRIMARY__CTX}
      Primary Context Management}. *)
 module Device : sig
-  type t [@@deriving sexp]
+  type t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g41ca2a24a242b36ef2ca77330b5fb72a}
        CUdevice}. *)
+
+  val sexp_of_t : t -> Sexplib0.Sexp.t
 
   val get_count : unit -> int
   (** Returns the number of Nvidia devices. See
@@ -62,7 +66,8 @@ module Device : sig
     | ACCESS_SUPPORTED of bool
     | NATIVE_ATOMIC_SUPPORTED of bool
     | CUDA_ARRAY_ACCESS_SUPPORTED of bool
-  [@@deriving sexp]
+
+  val sexp_of_p2p_attribute : p2p_attribute -> Sexplib0.Sexp.t
 
   val get_p2p_attributes : dst:t -> src:t -> p2p_attribute list
   (** See
@@ -82,18 +87,22 @@ module Device : sig
     | PROHIBITED  (** No contexts can be created on this device at this time. *)
     | EXCLUSIVE_PROCESS
         (** Only one context used by a single process can be present on this device at a time. *)
-  [@@deriving sexp]
+
+  val sexp_of_computemode : computemode -> Sexplib0.Sexp.t
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf34334d1d6892847a5d05be7ca8db3c6}
        CUflushGPUDirectRDMAWritesOptions}. *)
-  type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
+  type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS
+
+  val sexp_of_flush_GPU_direct_RDMA_writes_options : flush_GPU_direct_RDMA_writes_options -> Sexplib0.Sexp.t
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g450a23153d86fce0afe30e25d63caef9}
        CUmemAllocationHandleType}. *)
   type mem_allocation_handle_type = NONE | POSIX_FILE_DESCRIPTOR | WIN32 | WIN32_KMT | FABRIC
-  [@@deriving sexp]
+
+  val sexp_of_mem_allocation_handle_type : mem_allocation_handle_type -> Sexplib0.Sexp.t
 
   type attributes = {
     name : string;
@@ -229,10 +238,11 @@ module Device : sig
     unified_function_pointers : bool;
     multicast_supported : bool;  (** Device supports switch multicast and reduction operations. *)
   }
-  [@@deriving sexp]
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g9c3e1414f0ad901d3278a4d6645fc266}
        cuDeviceGetAttribute}. *)
+
+  val sexp_of_attributes : attributes -> Sexplib0.Sexp.t
 
   val get_attributes : t -> attributes
   (** Populates all the device attributes. See
@@ -258,14 +268,19 @@ module Context : sig
     | COREDUMP_ENABLE  (** Trigger coredumps from exceptions in this context. *)
     | USER_COREDUMP_ENABLE  (** Enable user pipe to trigger coredumps in this context. *)
     | SYNC_MEMOPS  (** Ensure synchronous memory operations on this context will synchronize. *)
-  [@@deriving sexp]
 
-  type flags = flag list [@@deriving sexp]
+  val sexp_of_flag : flag -> Sexplib0.Sexp.t
 
-  type t [@@deriving sexp_of]
+  type flags = flag list
+
+  val sexp_of_flags : flags -> Sexplib0.Sexp.t
+
+  type t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf9f5bd81658f866613785b3a0bb7d7d9}
        CUcontext}. *)
+
+  val sexp_of_t : t -> Sexplib0.Sexp.t
 
   val create : flags -> Device.t -> t
   (** NOTE: In most cases it is recommended to use {!get_primary} instead! The context is pushed to
@@ -344,7 +359,8 @@ module Context : sig
     | DEV_RUNTIME_PENDING_LAUNCH_COUNT
     | MAX_L2_FETCH_GRANULARITY  (** Between 0 and 128, in bytes, it is a hint. *)
     | PERSISTING_L2_CACHE_SIZE
-  [@@deriving sexp]
+
+  val sexp_of_limit : limit -> Sexplib0.Sexp.t
 
   val set_limit : limit -> int -> unit
   (** See
@@ -364,10 +380,12 @@ type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM} Memory
      Management}. *)
 module Deviceptr : sig
-  type t [@@deriving sexp_of]
+  type t
   (** A pointer to a memory location on a device. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g183f7b0d8ad008ea2a5fd552537ace4e}
        CUdeviceptr}. *)
+
+  val sexp_of_t : t -> Sexplib0.Sexp.t
 
   val equal : t -> t -> bool
   (** Compares the pointer values for equality. *)
@@ -491,12 +509,15 @@ module Module : sig
     | COMPUTE_89
     | COMPUTE_90
     | COMPUTE_90A  (** Compute device class 9.0 with accelerated features. *)
-  [@@deriving sexp]
+
+  val sexp_of_jit_target : jit_target -> Sexplib0.Sexp.t
 
   (** Cubin matching fallback strategies. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g4a1a92ea65e18b06907b981848c282f2}
        CUjit_fallback}. *)
-  type jit_fallback = PREFER_PTX | PREFER_BINARY [@@deriving sexp]
+  type jit_fallback = PREFER_PTX | PREFER_BINARY
+
+  val sexp_of_jit_fallback : jit_fallback -> Sexplib0.Sexp.t
 
   (** Caching modes for dlcm. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gce011cfe2d6b1fb734da48a6cf48fd04}
@@ -505,7 +526,8 @@ module Module : sig
     | NONE
     | CG  (** Compile with L1 cache disabled. *)
     | CA  (** Compile with L1 cache enabled. *)
-  [@@deriving sexp]
+
+  val sexp_of_jit_cache_mode : jit_cache_mode -> Sexplib0.Sexp.t
 
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g5527fa8030d5cabedc781a04dbd1997d}
@@ -528,7 +550,8 @@ module Module : sig
     | GENERATE_LINE_INFO of bool  (** Helpful for cuda-gdb. *)
     | CACHE_MODE of jit_cache_mode
     | POSITION_INDEPENDENT_CODE of bool
-  [@@deriving sexp]
+
+  val sexp_of_jit_option : jit_option -> Sexplib0.Sexp.t
 
   type func
   (** See
@@ -566,10 +589,12 @@ end
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM}
      Stream Management}. *)
 module Stream : sig
-  type t [@@deriving sexp_of]
+  type t
   (** Stores a stream pointer and manages lifetimes of kernel launch arguments. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gb946c7f02e09efd788a204718015d88a}
        CUstream}. *)
+
+  val sexp_of_t : t -> Sexplib0.Sexp.t
 
   val mem_alloc : t -> size_in_bytes:int -> Deviceptr.t
   (** See
@@ -608,7 +633,8 @@ module Stream : sig
     | Size_t of Unsigned.size_t
     | Single of float  (** Passed as C [float]. *)
     | Double of float  (** Passed as C [double]. *)
-  [@@deriving sexp_of]
+
+  val sexp_of_kernel_param : kernel_param -> Sexplib0.Sexp.t
 
   val no_stream : t
   (** The NULL stream which is the main synchronization stream of a device. Manages lifetimes of the
@@ -685,7 +711,8 @@ module Stream : sig
     | GLOBAL  (** Memory can be accessed by any stream on any device. *)
     | HOST  (** Memory cannot be accessed from devices. *)
     | SINGLE_stream  (** Memory can only be accessed by a single stream. *)
-  [@@deriving sexp]
+
+  val sexp_of_attach_mem : attach_mem -> Sexplib0.Sexp.t
 
   val attach_mem : t -> Deviceptr.t -> int -> attach_mem -> unit
   (** See
@@ -752,10 +779,12 @@ end
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT}
      Event Management}. *)
 module Event : sig
-  type t [@@deriving sexp_of]
+  type t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g6d740185cf0953636d4ae37f68d7559b}
        CUevent}. *)
+
+  val sexp_of_t : t -> Sexplib0.Sexp.t
 
   val create : ?blocking_sync:bool -> ?enable_timing:bool -> ?interprocess:bool -> unit -> t
   (** Creates an event {i for the current context}. All of [blocking_sync], [enable_timing] and
@@ -809,12 +838,14 @@ end
     resource management for use-cases where events are not reused: there's only one call to
     {!Event.record}, and it's immediately after {!Event.create}. *)
 module Delimited_event : sig
-  type t [@@deriving sexp_of]
+  type t
   (** An delimited event encapsulates {!Event.t} and is owned by a stream. It records its owner at
       creation, and gets released (using
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g593ec73a8ec5a5fc031311d3e4dca1ef}
        cuEventDestroy}) when either it or its owner are synchronized (or if neither happens, when it
       is garbage-collected). *)
+
+  val sexp_of_t : t -> Sexplib0.Sexp.t
 
   val record : ?blocking_sync:bool -> ?interprocess:bool -> ?external_:bool -> Stream.t -> t
   (** Combines {!Event.create} and {!Event.record} to create an event owned by the given stream. *)

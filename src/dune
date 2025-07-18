@@ -30,14 +30,10 @@
  (public_name cudajit.nvrtc)
  (name nvrtc)
  (modules nvrtc)
- (preprocess
-  (pps ppx_sexp_conv))
  (libraries nvrtc_ffi sexplib0))
 
 (library
  (public_name cudajit.cuda)
  (name cuda)
  (modules cuda)
- (preprocess
-  (pps ppx_sexp_conv))
  (libraries cuda_ffi nvrtc sexplib0))

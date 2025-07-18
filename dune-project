@@ -34,7 +34,6 @@
    (>= 0.14.0))
   ctypes-foreign
   sexplib0
-  ppx_sexp_conv
   ppx_expect
   conf-cuda
   (odoc :with-doc))

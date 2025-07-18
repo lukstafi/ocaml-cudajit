@@ -2,7 +2,103 @@ module Cuda = Cuda_ffi.C.Functions
 open Cuda_ffi.Bindings_types
 open Sexplib0.Sexp_conv
 
-type result = cu_result [@@deriving sexp]
+type result = cu_result
+
+let sexp_of_result = function
+  | CUDA_SUCCESS -> Sexplib0.Sexp.Atom "CUDA_SUCCESS"
+  | CUDA_ERROR_INVALID_VALUE -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_VALUE"
+  | CUDA_ERROR_OUT_OF_MEMORY -> Sexplib0.Sexp.Atom "CUDA_ERROR_OUT_OF_MEMORY"
+  | CUDA_ERROR_NOT_INITIALIZED -> Sexplib0.Sexp.Atom "CUDA_ERROR_NOT_INITIALIZED"
+  | CUDA_ERROR_DEINITIALIZED -> Sexplib0.Sexp.Atom "CUDA_ERROR_DEINITIALIZED"
+  | CUDA_ERROR_PROFILER_DISABLED -> Sexplib0.Sexp.Atom "CUDA_ERROR_PROFILER_DISABLED"
+  | CUDA_ERROR_PROFILER_NOT_INITIALIZED -> Sexplib0.Sexp.Atom "CUDA_ERROR_PROFILER_NOT_INITIALIZED"
+  | CUDA_ERROR_PROFILER_ALREADY_STARTED -> Sexplib0.Sexp.Atom "CUDA_ERROR_PROFILER_ALREADY_STARTED"
+  | CUDA_ERROR_PROFILER_ALREADY_STOPPED -> Sexplib0.Sexp.Atom "CUDA_ERROR_PROFILER_ALREADY_STOPPED"
+  | CUDA_ERROR_STUB_LIBRARY -> Sexplib0.Sexp.Atom "CUDA_ERROR_STUB_LIBRARY"
+  | CUDA_ERROR_DEVICE_UNAVAILABLE -> Sexplib0.Sexp.Atom "CUDA_ERROR_DEVICE_UNAVAILABLE"
+  | CUDA_ERROR_NO_DEVICE -> Sexplib0.Sexp.Atom "CUDA_ERROR_NO_DEVICE"
+  | CUDA_ERROR_INVALID_DEVICE -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_DEVICE"
+  | CUDA_ERROR_DEVICE_NOT_LICENSED -> Sexplib0.Sexp.Atom "CUDA_ERROR_DEVICE_NOT_LICENSED"
+  | CUDA_ERROR_INVALID_IMAGE -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_IMAGE"
+  | CUDA_ERROR_INVALID_CONTEXT -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_CONTEXT"
+  | CUDA_ERROR_CONTEXT_ALREADY_CURRENT -> Sexplib0.Sexp.Atom "CUDA_ERROR_CONTEXT_ALREADY_CURRENT"
+  | CUDA_ERROR_MAP_FAILED -> Sexplib0.Sexp.Atom "CUDA_ERROR_MAP_FAILED"
+  | CUDA_ERROR_UNMAP_FAILED -> Sexplib0.Sexp.Atom "CUDA_ERROR_UNMAP_FAILED"
+  | CUDA_ERROR_ARRAY_IS_MAPPED -> Sexplib0.Sexp.Atom "CUDA_ERROR_ARRAY_IS_MAPPED"
+  | CUDA_ERROR_ALREADY_MAPPED -> Sexplib0.Sexp.Atom "CUDA_ERROR_ALREADY_MAPPED"
+  | CUDA_ERROR_NO_BINARY_FOR_GPU -> Sexplib0.Sexp.Atom "CUDA_ERROR_NO_BINARY_FOR_GPU"
+  | CUDA_ERROR_ALREADY_ACQUIRED -> Sexplib0.Sexp.Atom "CUDA_ERROR_ALREADY_ACQUIRED"
+  | CUDA_ERROR_NOT_MAPPED -> Sexplib0.Sexp.Atom "CUDA_ERROR_NOT_MAPPED"
+  | CUDA_ERROR_NOT_MAPPED_AS_ARRAY -> Sexplib0.Sexp.Atom "CUDA_ERROR_NOT_MAPPED_AS_ARRAY"
+  | CUDA_ERROR_NOT_MAPPED_AS_POINTER -> Sexplib0.Sexp.Atom "CUDA_ERROR_NOT_MAPPED_AS_POINTER"
+  | CUDA_ERROR_ECC_UNCORRECTABLE -> Sexplib0.Sexp.Atom "CUDA_ERROR_ECC_UNCORRECTABLE"
+  | CUDA_ERROR_UNSUPPORTED_LIMIT -> Sexplib0.Sexp.Atom "CUDA_ERROR_UNSUPPORTED_LIMIT"
+  | CUDA_ERROR_CONTEXT_ALREADY_IN_USE -> Sexplib0.Sexp.Atom "CUDA_ERROR_CONTEXT_ALREADY_IN_USE"
+  | CUDA_ERROR_PEER_ACCESS_UNSUPPORTED -> Sexplib0.Sexp.Atom "CUDA_ERROR_PEER_ACCESS_UNSUPPORTED"
+  | CUDA_ERROR_INVALID_PTX -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_PTX"
+  | CUDA_ERROR_INVALID_GRAPHICS_CONTEXT -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_GRAPHICS_CONTEXT"
+  | CUDA_ERROR_NVLINK_UNCORRECTABLE -> Sexplib0.Sexp.Atom "CUDA_ERROR_NVLINK_UNCORRECTABLE"
+  | CUDA_ERROR_JIT_COMPILER_NOT_FOUND -> Sexplib0.Sexp.Atom "CUDA_ERROR_JIT_COMPILER_NOT_FOUND"
+  | CUDA_ERROR_UNSUPPORTED_PTX_VERSION -> Sexplib0.Sexp.Atom "CUDA_ERROR_UNSUPPORTED_PTX_VERSION"
+  | CUDA_ERROR_JIT_COMPILATION_DISABLED -> Sexplib0.Sexp.Atom "CUDA_ERROR_JIT_COMPILATION_DISABLED"
+  | CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY -> Sexplib0.Sexp.Atom "CUDA_ERROR_UNSUPPORTED_EXEC_AFFINITY"
+  | CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC -> Sexplib0.Sexp.Atom "CUDA_ERROR_UNSUPPORTED_DEVSIDE_SYNC"
+  | CUDA_ERROR_INVALID_SOURCE -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_SOURCE"
+  | CUDA_ERROR_FILE_NOT_FOUND -> Sexplib0.Sexp.Atom "CUDA_ERROR_FILE_NOT_FOUND"
+  | CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND -> Sexplib0.Sexp.Atom "CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND"
+  | CUDA_ERROR_SHARED_OBJECT_INIT_FAILED -> Sexplib0.Sexp.Atom "CUDA_ERROR_SHARED_OBJECT_INIT_FAILED"
+  | CUDA_ERROR_OPERATING_SYSTEM -> Sexplib0.Sexp.Atom "CUDA_ERROR_OPERATING_SYSTEM"
+  | CUDA_ERROR_INVALID_HANDLE -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_HANDLE"
+  | CUDA_ERROR_ILLEGAL_STATE -> Sexplib0.Sexp.Atom "CUDA_ERROR_ILLEGAL_STATE"
+  | CUDA_ERROR_NOT_FOUND -> Sexplib0.Sexp.Atom "CUDA_ERROR_NOT_FOUND"
+  | CUDA_ERROR_NOT_READY -> Sexplib0.Sexp.Atom "CUDA_ERROR_NOT_READY"
+  | CUDA_ERROR_ILLEGAL_ADDRESS -> Sexplib0.Sexp.Atom "CUDA_ERROR_ILLEGAL_ADDRESS"
+  | CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES -> Sexplib0.Sexp.Atom "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES"
+  | CUDA_ERROR_LAUNCH_TIMEOUT -> Sexplib0.Sexp.Atom "CUDA_ERROR_LAUNCH_TIMEOUT"
+  | CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING -> Sexplib0.Sexp.Atom "CUDA_ERROR_LAUNCH_INCOMPATIBLE_TEXTURING"
+  | CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED -> Sexplib0.Sexp.Atom "CUDA_ERROR_PEER_ACCESS_ALREADY_ENABLED"
+  | CUDA_ERROR_PEER_ACCESS_NOT_ENABLED -> Sexplib0.Sexp.Atom "CUDA_ERROR_PEER_ACCESS_NOT_ENABLED"
+  | CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE -> Sexplib0.Sexp.Atom "CUDA_ERROR_PRIMARY_CONTEXT_ACTIVE"
+  | CUDA_ERROR_CONTEXT_IS_DESTROYED -> Sexplib0.Sexp.Atom "CUDA_ERROR_CONTEXT_IS_DESTROYED"
+  | CUDA_ERROR_ASSERT -> Sexplib0.Sexp.Atom "CUDA_ERROR_ASSERT"
+  | CUDA_ERROR_TOO_MANY_PEERS -> Sexplib0.Sexp.Atom "CUDA_ERROR_TOO_MANY_PEERS"
+  | CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED -> Sexplib0.Sexp.Atom "CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED"
+  | CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED -> Sexplib0.Sexp.Atom "CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED"
+  | CUDA_ERROR_HARDWARE_STACK_ERROR -> Sexplib0.Sexp.Atom "CUDA_ERROR_HARDWARE_STACK_ERROR"
+  | CUDA_ERROR_ILLEGAL_INSTRUCTION -> Sexplib0.Sexp.Atom "CUDA_ERROR_ILLEGAL_INSTRUCTION"
+  | CUDA_ERROR_MISALIGNED_ADDRESS -> Sexplib0.Sexp.Atom "CUDA_ERROR_MISALIGNED_ADDRESS"
+  | CUDA_ERROR_INVALID_ADDRESS_SPACE -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_ADDRESS_SPACE"
+  | CUDA_ERROR_INVALID_PC -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_PC"
+  | CUDA_ERROR_LAUNCH_FAILED -> Sexplib0.Sexp.Atom "CUDA_ERROR_LAUNCH_FAILED"
+  | CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE -> Sexplib0.Sexp.Atom "CUDA_ERROR_COOPERATIVE_LAUNCH_TOO_LARGE"
+  | CUDA_ERROR_NOT_PERMITTED -> Sexplib0.Sexp.Atom "CUDA_ERROR_NOT_PERMITTED"
+  | CUDA_ERROR_NOT_SUPPORTED -> Sexplib0.Sexp.Atom "CUDA_ERROR_NOT_SUPPORTED"
+  | CUDA_ERROR_SYSTEM_NOT_READY -> Sexplib0.Sexp.Atom "CUDA_ERROR_SYSTEM_NOT_READY"
+  | CUDA_ERROR_SYSTEM_DRIVER_MISMATCH -> Sexplib0.Sexp.Atom "CUDA_ERROR_SYSTEM_DRIVER_MISMATCH"
+  | CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE -> Sexplib0.Sexp.Atom "CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE"
+  | CUDA_ERROR_MPS_CONNECTION_FAILED -> Sexplib0.Sexp.Atom "CUDA_ERROR_MPS_CONNECTION_FAILED"
+  | CUDA_ERROR_MPS_RPC_FAILURE -> Sexplib0.Sexp.Atom "CUDA_ERROR_MPS_RPC_FAILURE"
+  | CUDA_ERROR_MPS_SERVER_NOT_READY -> Sexplib0.Sexp.Atom "CUDA_ERROR_MPS_SERVER_NOT_READY"
+  | CUDA_ERROR_MPS_MAX_CLIENTS_REACHED -> Sexplib0.Sexp.Atom "CUDA_ERROR_MPS_MAX_CLIENTS_REACHED"
+  | CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED -> Sexplib0.Sexp.Atom "CUDA_ERROR_MPS_MAX_CONNECTIONS_REACHED"
+  | CUDA_ERROR_MPS_CLIENT_TERMINATED -> Sexplib0.Sexp.Atom "CUDA_ERROR_MPS_CLIENT_TERMINATED"
+  | CUDA_ERROR_CDP_NOT_SUPPORTED -> Sexplib0.Sexp.Atom "CUDA_ERROR_CDP_NOT_SUPPORTED"
+  | CUDA_ERROR_CDP_VERSION_MISMATCH -> Sexplib0.Sexp.Atom "CUDA_ERROR_CDP_VERSION_MISMATCH"
+  | CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED -> Sexplib0.Sexp.Atom "CUDA_ERROR_STREAM_CAPTURE_UNSUPPORTED"
+  | CUDA_ERROR_STREAM_CAPTURE_INVALIDATED -> Sexplib0.Sexp.Atom "CUDA_ERROR_STREAM_CAPTURE_INVALIDATED"
+  | CUDA_ERROR_STREAM_CAPTURE_MERGE -> Sexplib0.Sexp.Atom "CUDA_ERROR_STREAM_CAPTURE_MERGE"
+  | CUDA_ERROR_STREAM_CAPTURE_UNMATCHED -> Sexplib0.Sexp.Atom "CUDA_ERROR_STREAM_CAPTURE_UNMATCHED"
+  | CUDA_ERROR_STREAM_CAPTURE_UNJOINED -> Sexplib0.Sexp.Atom "CUDA_ERROR_STREAM_CAPTURE_UNJOINED"
+  | CUDA_ERROR_STREAM_CAPTURE_ISOLATION -> Sexplib0.Sexp.Atom "CUDA_ERROR_STREAM_CAPTURE_ISOLATION"
+  | CUDA_ERROR_STREAM_CAPTURE_IMPLICIT -> Sexplib0.Sexp.Atom "CUDA_ERROR_STREAM_CAPTURE_IMPLICIT"
+  | CUDA_ERROR_CAPTURED_EVENT -> Sexplib0.Sexp.Atom "CUDA_ERROR_CAPTURED_EVENT"
+  | CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD -> Sexplib0.Sexp.Atom "CUDA_ERROR_STREAM_CAPTURE_WRONG_THREAD"
+  | CUDA_ERROR_TIMEOUT -> Sexplib0.Sexp.Atom "CUDA_ERROR_TIMEOUT"
+  | CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE -> Sexplib0.Sexp.Atom "CUDA_ERROR_GRAPH_EXEC_UPDATE_FAILURE"
+  | CUDA_ERROR_EXTERNAL_DEVICE -> Sexplib0.Sexp.Atom "CUDA_ERROR_EXTERNAL_DEVICE"
+  | CUDA_ERROR_INVALID_CLUSTER_SIZE -> Sexplib0.Sexp.Atom "CUDA_ERROR_INVALID_CLUSTER_SIZE"
+  | CUDA_ERROR_UNKNOWN -> Sexplib0.Sexp.Atom "CUDA_ERROR_UNKNOWN"
+  | CUDA_ERROR_UNCATEGORIZED i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "CUDA_ERROR_UNCATEGORIZED"; Sexplib0.Sexp.Atom (Int64.to_string i)]
 
 exception Cuda_error of { status : result; message : string }
 exception Use_after_free of { func : string; arg : string }
@@ -38,13 +134,22 @@ type atomic_bool = bool Atomic.t
 
 let sexp_of_atomic_bool flag = sexp_of_bool @@ Atomic.get flag
 
-type deviceptr = Deviceptr of { ptr : memptr; freed : atomic_bool } [@@deriving sexp_of]
+type deviceptr = Deviceptr of { ptr : memptr; freed : atomic_bool }
+
+let sexp_of_deviceptr (Deviceptr { ptr; freed }) =
+  Sexplib0.Sexp.List [
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "ptr"; sexp_of_memptr ptr];
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "freed"; sexp_of_atomic_bool freed]
+  ]
 
 (* TODO: check if cuda detects use-after-free, if not consider adding *_safe function variants that
    check the [freed] field. *)
 
 module Device = struct
-  type t = cu_device [@@deriving sexp]
+  type t = cu_device
+
+  let sexp_of_t = function
+    | Cu_device i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Cu_device"; Sexplib0.Sexp.Atom (Int.to_string i)]
 
   let get_count () =
     let open Ctypes in
@@ -71,15 +176,30 @@ module Device = struct
     check "cu_mem_get_info" @@ Cuda.cu_mem_get_info free total;
     (Unsigned.Size_t.to_int !@free, Unsigned.Size_t.to_int !@total)
 
-  type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS [@@deriving sexp]
-  type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS [@@deriving sexp]
+  type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS
+
+  let sexp_of_computemode = function
+    | DEFAULT -> Sexplib0.Sexp.Atom "DEFAULT"
+    | PROHIBITED -> Sexplib0.Sexp.Atom "PROHIBITED"
+    | EXCLUSIVE_PROCESS -> Sexplib0.Sexp.Atom "EXCLUSIVE_PROCESS"
+
+  type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS
+
+  let sexp_of_flush_GPU_direct_RDMA_writes_options = function
+    | HOST -> Sexplib0.Sexp.Atom "HOST"
+    | MEMOPS -> Sexplib0.Sexp.Atom "MEMOPS"
 
   type p2p_attribute =
     | PERFORMANCE_RANK of int
     | ACCESS_SUPPORTED of bool
     | NATIVE_ATOMIC_SUPPORTED of bool
     | CUDA_ARRAY_ACCESS_SUPPORTED of bool
-  [@@deriving sexp]
+
+  let sexp_of_p2p_attribute = function
+    | PERFORMANCE_RANK i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "PERFORMANCE_RANK"; Sexplib0.Sexp.Atom (Int.to_string i)]
+    | ACCESS_SUPPORTED b -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "ACCESS_SUPPORTED"; sexp_of_bool b]
+    | NATIVE_ATOMIC_SUPPORTED b -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "NATIVE_ATOMIC_SUPPORTED"; sexp_of_bool b]
+    | CUDA_ARRAY_ACCESS_SUPPORTED b -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "CUDA_ARRAY_ACCESS_SUPPORTED"; sexp_of_bool b]
 
   let get_p2p_attributes ~dst ~src =
     let open Ctypes in
@@ -122,7 +242,13 @@ module Device = struct
   (* TODO: export CUmemAllocationHandleType to use in mempool_supported_handle_types. *)
 
   type mem_allocation_handle_type = NONE | POSIX_FILE_DESCRIPTOR | WIN32 | WIN32_KMT | FABRIC
-  [@@deriving sexp]
+
+  let sexp_of_mem_allocation_handle_type = function
+    | NONE -> Sexplib0.Sexp.Atom "NONE"
+    | POSIX_FILE_DESCRIPTOR -> Sexplib0.Sexp.Atom "POSIX_FILE_DESCRIPTOR"
+    | WIN32 -> Sexplib0.Sexp.Atom "WIN32"
+    | WIN32_KMT -> Sexplib0.Sexp.Atom "WIN32_KMT"
+    | FABRIC -> Sexplib0.Sexp.Atom "FABRIC"
 
   let int_of_mem_allocation_handle_type =
     let open Cuda_ffi.Types_generated in
@@ -258,7 +384,44 @@ module Device = struct
     unified_function_pointers : bool;
     multicast_supported : bool;
   }
-  [@@deriving sexp]
+
+  let sexp_of_attributes attr =
+    let open Sexplib0.Sexp in
+    List [
+      List [Atom "name"; Atom attr.name];
+      List [Atom "max_threads_per_block"; Atom (Int.to_string attr.max_threads_per_block)];
+      List [Atom "max_block_dim_x"; Atom (Int.to_string attr.max_block_dim_x)];
+      List [Atom "max_block_dim_y"; Atom (Int.to_string attr.max_block_dim_y)];
+      List [Atom "max_block_dim_z"; Atom (Int.to_string attr.max_block_dim_z)];
+      List [Atom "max_grid_dim_x"; Atom (Int.to_string attr.max_grid_dim_x)];
+      List [Atom "max_grid_dim_y"; Atom (Int.to_string attr.max_grid_dim_y)];
+      List [Atom "max_grid_dim_z"; Atom (Int.to_string attr.max_grid_dim_z)];
+      List [Atom "max_shared_memory_per_block"; Atom (Int.to_string attr.max_shared_memory_per_block)];
+      List [Atom "total_constant_memory"; Atom (Int.to_string attr.total_constant_memory)];
+      List [Atom "warp_size"; Atom (Int.to_string attr.warp_size)];
+      List [Atom "max_pitch"; Atom (Int.to_string attr.max_pitch)];
+      List [Atom "max_registers_per_block"; Atom (Int.to_string attr.max_registers_per_block)];
+      List [Atom "clock_rate"; Atom (Int.to_string attr.clock_rate)];
+      List [Atom "texture_alignment"; Atom (Int.to_string attr.texture_alignment)];
+      List [Atom "multiprocessor_count"; Atom (Int.to_string attr.multiprocessor_count)];
+      List [Atom "kernel_exec_timeout"; sexp_of_bool attr.kernel_exec_timeout];
+      List [Atom "integrated"; sexp_of_bool attr.integrated];
+      List [Atom "can_map_host_memory"; sexp_of_bool attr.can_map_host_memory];
+      List [Atom "compute_mode"; sexp_of_computemode attr.compute_mode];
+      List [Atom "gpu_direct_rdma_flush_writes_options"; sexp_of_list sexp_of_flush_GPU_direct_RDMA_writes_options attr.gpu_direct_rdma_flush_writes_options];
+      List [Atom "gpu_direct_rdma_writes_ordering"; sexp_of_bool attr.gpu_direct_rdma_writes_ordering];
+      List [Atom "mempool_supported_handle_types"; sexp_of_list sexp_of_mem_allocation_handle_type attr.mempool_supported_handle_types];
+      List [Atom "cluster_launch"; sexp_of_bool attr.cluster_launch];
+      List [Atom "deferred_mapping_cuda_array_supported"; sexp_of_bool attr.deferred_mapping_cuda_array_supported];
+      List [Atom "can_use_64_bit_stream_mem_ops"; sexp_of_bool attr.can_use_64_bit_stream_mem_ops];
+      List [Atom "can_use_stream_wait_value_nor"; sexp_of_bool attr.can_use_stream_wait_value_nor];
+      List [Atom "dma_buf_supported"; sexp_of_bool attr.dma_buf_supported];
+      List [Atom "ipc_event_supported"; sexp_of_bool attr.ipc_event_supported];
+      List [Atom "mem_sync_domain_count"; Atom (Int.to_string attr.mem_sync_domain_count)];
+      List [Atom "tensor_map_access_supported"; sexp_of_bool attr.tensor_map_access_supported];
+      List [Atom "unified_function_pointers"; sexp_of_bool attr.unified_function_pointers];
+      List [Atom "multicast_supported"; sexp_of_bool attr.multicast_supported]
+    ]
 
   let get_attributes device =
     let open Ctypes in
@@ -1010,7 +1173,13 @@ let sexp_of_cu_event (event : cu_event) = sexp_of_voidp @@ Ctypes.to_voidp event
 
 type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 type lifetime = Remember : 'a -> lifetime
-type delimited_event = { event : cu_event; mutable is_released : bool } [@@deriving sexp_of]
+type delimited_event = { event : cu_event; mutable is_released : bool }
+
+let sexp_of_delimited_event { event; is_released } =
+  Sexplib0.Sexp.List [
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "event"; sexp_of_cu_event event];
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "is_released"; sexp_of_bool is_released]
+  ]
 
 let destroy_event event = check "cu_event_destroy" @@ Cuda.cu_event_destroy event
 let sexp_of_cu_stream (cu_stream : cu_stream) = sexp_of_voidp @@ Ctypes.to_voidp cu_stream
@@ -1020,7 +1189,13 @@ type stream = {
   mutable owned_events : delimited_event list;
   stream : cu_stream;
 }
-[@@deriving sexp_of]
+
+let sexp_of_stream { args_lifetimes = _; owned_events; stream } =
+  Sexplib0.Sexp.List [
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "args_lifetimes"; Sexplib0.Sexp.Atom "<opaque>"];
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "owned_events"; sexp_of_list sexp_of_delimited_event owned_events];
+    Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "stream"; sexp_of_cu_stream stream]
+  ]
 
 let get_stream_context stream =
   let open Ctypes in
@@ -1079,9 +1254,22 @@ module Context = struct
     | COREDUMP_ENABLE
     | USER_COREDUMP_ENABLE
     | SYNC_MEMOPS
-  [@@deriving sexp]
 
-  type flags = flag list [@@deriving sexp]
+  let sexp_of_flag = function
+    | SCHED_AUTO -> Sexplib0.Sexp.Atom "SCHED_AUTO"
+    | SCHED_SPIN -> Sexplib0.Sexp.Atom "SCHED_SPIN"
+    | SCHED_YIELD -> Sexplib0.Sexp.Atom "SCHED_YIELD"
+    | SCHED_BLOCKING_SYNC -> Sexplib0.Sexp.Atom "SCHED_BLOCKING_SYNC"
+    | SCHED_MASK -> Sexplib0.Sexp.Atom "SCHED_MASK"
+    | MAP_HOST -> Sexplib0.Sexp.Atom "MAP_HOST"
+    | LMEM_RESIZE_TO_MAX -> Sexplib0.Sexp.Atom "LMEM_RESIZE_TO_MAX"
+    | COREDUMP_ENABLE -> Sexplib0.Sexp.Atom "COREDUMP_ENABLE"
+    | USER_COREDUMP_ENABLE -> Sexplib0.Sexp.Atom "USER_COREDUMP_ENABLE"
+    | SYNC_MEMOPS -> Sexplib0.Sexp.Atom "SYNC_MEMOPS"
+
+  type flags = flag list
+
+  let sexp_of_flags = sexp_of_list sexp_of_flag
 
   let uint_of_flag f =
     let open Cuda_ffi.Types_generated in
@@ -1190,7 +1378,15 @@ module Context = struct
     | DEV_RUNTIME_PENDING_LAUNCH_COUNT
     | MAX_L2_FETCH_GRANULARITY
     | PERSISTING_L2_CACHE_SIZE
-  [@@deriving sexp]
+
+  let sexp_of_limit = function
+    | STACK_SIZE -> Sexplib0.Sexp.Atom "STACK_SIZE"
+    | PRINTF_FIFO_SIZE -> Sexplib0.Sexp.Atom "PRINTF_FIFO_SIZE"
+    | MALLOC_HEAP_SIZE -> Sexplib0.Sexp.Atom "MALLOC_HEAP_SIZE"
+    | DEV_RUNTIME_SYNC_DEPTH -> Sexplib0.Sexp.Atom "DEV_RUNTIME_SYNC_DEPTH"
+    | DEV_RUNTIME_PENDING_LAUNCH_COUNT -> Sexplib0.Sexp.Atom "DEV_RUNTIME_PENDING_LAUNCH_COUNT"
+    | MAX_L2_FETCH_GRANULARITY -> Sexplib0.Sexp.Atom "MAX_L2_FETCH_GRANULARITY"
+    | PERSISTING_L2_CACHE_SIZE -> Sexplib0.Sexp.Atom "PERSISTING_L2_CACHE_SIZE"
 
   let cu_of_limit = function
     | STACK_SIZE -> CU_LIMIT_STACK_SIZE
@@ -1274,7 +1470,9 @@ let get_size_in_bytes ?kind ?length ?size_in_bytes provenance =
       ^ ": Too few arguments, provide either both [kind] and [length], or just [size_in_bytes]."
 
 module Deviceptr = struct
-  type t = deviceptr [@@deriving sexp_of]
+  type t = deviceptr
+
+  let sexp_of_t = sexp_of_deviceptr
 
   let equal (Deviceptr { ptr = ptr1; freed = _ }) (Deviceptr { ptr = ptr2; freed = _ }) =
     Unsigned.UInt64.equal ptr1 ptr2
@@ -1373,10 +1571,40 @@ module Module = struct
     | COMPUTE_89
     | COMPUTE_90
     | COMPUTE_90A
-  [@@deriving sexp]
 
-  type jit_fallback = PREFER_PTX | PREFER_BINARY [@@deriving sexp]
-  type jit_cache_mode = NONE | CG | CA [@@deriving sexp]
+  let sexp_of_jit_target = function
+    | COMPUTE_30 -> Sexplib0.Sexp.Atom "COMPUTE_30"
+    | COMPUTE_32 -> Sexplib0.Sexp.Atom "COMPUTE_32"
+    | COMPUTE_35 -> Sexplib0.Sexp.Atom "COMPUTE_35"
+    | COMPUTE_37 -> Sexplib0.Sexp.Atom "COMPUTE_37"
+    | COMPUTE_50 -> Sexplib0.Sexp.Atom "COMPUTE_50"
+    | COMPUTE_52 -> Sexplib0.Sexp.Atom "COMPUTE_52"
+    | COMPUTE_53 -> Sexplib0.Sexp.Atom "COMPUTE_53"
+    | COMPUTE_60 -> Sexplib0.Sexp.Atom "COMPUTE_60"
+    | COMPUTE_61 -> Sexplib0.Sexp.Atom "COMPUTE_61"
+    | COMPUTE_62 -> Sexplib0.Sexp.Atom "COMPUTE_62"
+    | COMPUTE_70 -> Sexplib0.Sexp.Atom "COMPUTE_70"
+    | COMPUTE_72 -> Sexplib0.Sexp.Atom "COMPUTE_72"
+    | COMPUTE_75 -> Sexplib0.Sexp.Atom "COMPUTE_75"
+    | COMPUTE_80 -> Sexplib0.Sexp.Atom "COMPUTE_80"
+    | COMPUTE_86 -> Sexplib0.Sexp.Atom "COMPUTE_86"
+    | COMPUTE_87 -> Sexplib0.Sexp.Atom "COMPUTE_87"
+    | COMPUTE_89 -> Sexplib0.Sexp.Atom "COMPUTE_89"
+    | COMPUTE_90 -> Sexplib0.Sexp.Atom "COMPUTE_90"
+    | COMPUTE_90A -> Sexplib0.Sexp.Atom "COMPUTE_90A"
+
+  type jit_fallback = PREFER_PTX | PREFER_BINARY
+
+  let sexp_of_jit_fallback = function
+    | PREFER_PTX -> Sexplib0.Sexp.Atom "PREFER_PTX"
+    | PREFER_BINARY -> Sexplib0.Sexp.Atom "PREFER_BINARY"
+
+  type jit_cache_mode = NONE | CG | CA
+
+  let sexp_of_jit_cache_mode = function
+    | NONE -> Sexplib0.Sexp.Atom "NONE"
+    | CG -> Sexplib0.Sexp.Atom "CG"
+    | CA -> Sexplib0.Sexp.Atom "CA"
 
   (* Note: bool corresponds to C int (0=false). *)
   type jit_option =
@@ -1394,7 +1622,22 @@ module Module = struct
     | GENERATE_LINE_INFO of bool
     | CACHE_MODE of jit_cache_mode
     | POSITION_INDEPENDENT_CODE of bool
-  [@@deriving sexp]
+
+  let sexp_of_jit_option = function
+    | MAX_REGISTERS i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "MAX_REGISTERS"; Sexplib0.Sexp.Atom (Int.to_string i)]
+    | THREADS_PER_BLOCK i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "THREADS_PER_BLOCK"; Sexplib0.Sexp.Atom (Int.to_string i)]
+    | WALL_TIME { milliseconds } -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "WALL_TIME"; Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "milliseconds"; Sexplib0.Sexp.Atom (Float.to_string milliseconds)]]
+    | INFO_LOG_BUFFER _ -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "INFO_LOG_BUFFER"; Sexplib0.Sexp.Atom "<opaque>"]
+    | ERROR_LOG_BUFFER _ -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "ERROR_LOG_BUFFER"; Sexplib0.Sexp.Atom "<opaque>"]
+    | OPTIMIZATION_LEVEL i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "OPTIMIZATION_LEVEL"; Sexplib0.Sexp.Atom (Int.to_string i)]
+    | TARGET_FROM_CUCONTEXT -> Sexplib0.Sexp.Atom "TARGET_FROM_CUCONTEXT"
+    | TARGET t -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "TARGET"; sexp_of_jit_target t]
+    | FALLBACK_STRATEGY f -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "FALLBACK_STRATEGY"; sexp_of_jit_fallback f]
+    | GENERATE_DEBUG_INFO b -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "GENERATE_DEBUG_INFO"; sexp_of_bool b]
+    | LOG_VERBOSE b -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "LOG_VERBOSE"; sexp_of_bool b]
+    | GENERATE_LINE_INFO b -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "GENERATE_LINE_INFO"; sexp_of_bool b]
+    | CACHE_MODE c -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "CACHE_MODE"; sexp_of_jit_cache_mode c]
+    | POSITION_INDEPENDENT_CODE b -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "POSITION_INDEPENDENT_CODE"; sexp_of_bool b]
 
   let cu_jit_target_of = function
     | COMPUTE_30 -> CU_TARGET_COMPUTE_30
@@ -1551,7 +1794,9 @@ module Module = struct
 end
 
 module Stream = struct
-  type t = stream [@@deriving sexp_of]
+  type t = stream
+
+  let sexp_of_t = sexp_of_stream
 
   let mem_free stream (Deviceptr { ptr; freed }) =
     if Atomic.compare_and_set freed false true then
@@ -1585,7 +1830,13 @@ module Stream = struct
     | Size_t of size_t
     | Single of float
     | Double of float
-  [@@deriving sexp_of]
+
+  let sexp_of_kernel_param = function
+    | Tensor t -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Tensor"; Deviceptr.sexp_of_t t]
+    | Int i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Int"; Sexplib0.Sexp.Atom (Int.to_string i)]
+    | Size_t s -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Size_t"; sexp_of_size_t s]
+    | Single f -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Single"; Sexplib0.Sexp.Atom (Float.to_string f)]
+    | Double f -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Double"; Sexplib0.Sexp.Atom (Float.to_string f)]
 
   let no_stream = no_stream
 
@@ -1623,7 +1874,12 @@ module Stream = struct
     @@ coerce (p void) (p @@ ptr void) null;
     stream.args_lifetimes <- Remember (kernel_params, c_kernel_params) :: stream.args_lifetimes
 
-  type attach_mem = GLOBAL | HOST | SINGLE_stream [@@deriving sexp]
+  type attach_mem = GLOBAL | HOST | SINGLE_stream
+
+  let sexp_of_attach_mem = function
+    | GLOBAL -> Sexplib0.Sexp.Atom "GLOBAL"
+    | HOST -> Sexplib0.Sexp.Atom "HOST"
+    | SINGLE_stream -> Sexplib0.Sexp.Atom "SINGLE_stream"
 
   let uint_of_attach_mem f =
     let open Cuda_ffi.Types_generated in
@@ -1730,7 +1986,9 @@ module Stream = struct
 end
 
 module Event = struct
-  type t = cu_event [@@deriving sexp_of]
+  type t = cu_event
+
+  let sexp_of_t = sexp_of_cu_event
 
   let uint_of_cu_event_flags ~blocking_sync ~enable_timing ~interprocess =
     let open Cuda_ffi.Types_generated in
@@ -1787,7 +2045,9 @@ module Event = struct
 end
 
 module Delimited_event = struct
-  type t = delimited_event [@@deriving sexp_of]
+  type t = delimited_event
+  
+  let sexp_of_t = sexp_of_delimited_event
 
   let query event = if event.is_released then true else Event.query event.event
 
