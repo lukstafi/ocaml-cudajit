@@ -4,7 +4,7 @@
 
 (name cudajit)
 
-(version 0.7.0)
+(version 0.7.1)
 
 (generate_opam_files true)
 
@@ -34,7 +34,6 @@
    (>= 0.14.0))
   ctypes-foreign
   sexplib0
-  ppx_expect
   conf-cuda
   (odoc :with-doc))
  (tags

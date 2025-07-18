@@ -1,3 +1,9 @@
+## [0.7.l]
+
+### Changed
+
+- Removed dependency on ppx_sexp_conv and ppx_expect.
+
 ## [0.7.0] 2025-04-07
 
 ### Changed

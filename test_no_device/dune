@@ -1,7 +1,5 @@
-(library
- (name cudajit_test_no_device)
- (inline_tests)
+(test
+ (name saxpy_ptx)
+ (deps saxpy_ptx.expected)
  (libraries dynlink cudajit.nvrtc)
- (preprocess
-  (pps ppx_expect))
  (modes native))
