@@ -15,14 +15,14 @@ Popped context from stack
 Context stack tests completed
 
 === Context Limits Tests ===
-Current STACK_SIZE: 1024
-Set stack size limit
-Current PRINTF_FIFO_SIZE: 1048576
-Set printf fifo size limit
-Current MALLOC_HEAP_SIZE: 8388608
-Set malloc heap size limit
-Current DEV_RUNTIME_SYNC_DEPTH: 2
-Set device runtime sync depth limit
+Set STACK_SIZE: 2048
+Retrieved STACK_SIZE: PASS
+Set PRINTF_FIFO_SIZE: 2048
+Retrieved PRINTF_FIFO_SIZE: PASS
+Set MALLOC_HEAP_SIZE: 8192
+Retrieved MALLOC_HEAP_SIZE: PASS
+Set DEV_RUNTIME_SYNC_DEPTH: 2
+Retrieved DEV_RUNTIME_SYNC_DEPTH: PASS
 Context limits tests completed
 
 === Context Flags Tests ===

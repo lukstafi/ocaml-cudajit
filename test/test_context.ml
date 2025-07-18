@@ -73,29 +73,29 @@ let test_context_limits () =
     
     List.iter (fun limit ->
       try
-        let current_limit = Context.get_limit limit in
-        Printf.printf "Current %s: %d\n" 
-          (Sexplib0.Sexp.to_string_hum (Context.sexp_of_limit limit)) current_limit;
+        (* Test setting specific deterministic limits first *)
+        let new_limit = match limit with
+        | Context.STACK_SIZE -> 2048
+        | Context.PRINTF_FIFO_SIZE -> 2048
+        | Context.MALLOC_HEAP_SIZE -> 8192
+        | Context.DEV_RUNTIME_SYNC_DEPTH -> 2
+        | _ -> 1024
+        in
         
-        (* Test setting a new limit (conservative values) *)
-        match limit with
-        | Context.STACK_SIZE -> 
-            Context.set_limit limit (max 1024 current_limit);
-            Printf.printf "Set stack size limit\n"
-        | Context.PRINTF_FIFO_SIZE -> 
-            Context.set_limit limit (max 1024 current_limit);
-            Printf.printf "Set printf fifo size limit\n"
-        | Context.MALLOC_HEAP_SIZE -> 
-            Context.set_limit limit (max 1024 current_limit);
-            Printf.printf "Set malloc heap size limit\n"
-        | Context.DEV_RUNTIME_SYNC_DEPTH -> 
-            Context.set_limit limit (max 1 current_limit);
-            Printf.printf "Set device runtime sync depth limit\n"
-        | _ -> ()
+        Context.set_limit limit new_limit;
+        Printf.printf "Set %s: %d\n" 
+          (Sexplib0.Sexp.to_string_hum (Context.sexp_of_limit limit)) new_limit;
+        
+        (* Verify the limit was set (may be adjusted by CUDA) *)
+        let retrieved_limit = Context.get_limit limit in
+        Printf.printf "Retrieved %s: %s\n" 
+          (Sexplib0.Sexp.to_string_hum (Context.sexp_of_limit limit))
+          (if retrieved_limit >= new_limit then "PASS" else "FAIL");
+        
       with
-      | Cuda_error {message; _} -> 
-          Printf.printf "Error with limit %s: %s\n" 
-            (Sexplib0.Sexp.to_string_hum (Context.sexp_of_limit limit)) message
+      | Cuda_error _ -> 
+          Printf.printf "Limit operation %s: FAIL\n" 
+            (Sexplib0.Sexp.to_string_hum (Context.sexp_of_limit limit))
     ) limits;
     
     Printf.printf "Context limits tests completed\n"
