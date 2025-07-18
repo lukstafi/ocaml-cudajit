@@ -1,0 +1,63 @@
+Starting Integration Tests
+
+=== Multi-Stream Pipeline Test ===
+Starting pipeline for stream 0
+Pipeline launched for stream 0
+Starting pipeline for stream 1
+Pipeline launched for stream 1
+Starting pipeline for stream 2
+Pipeline launched for stream 2
+Stream 0 completed
+Stream 1 completed
+Stream 2 completed
+All pipeline results verified correctly
+Stream 0 computation completed
+Stream 1 computation completed
+Stream 2 computation completed
+Multi-stream pipeline test completed
+
+=== Event-Driven Workflow Test ===
+Stage 1: Data initialized on stream1
+Stage 2: Data processed on stream2
+Stage 3: Data finalized on stream3
+Event-driven workflow completed
+Event-driven workflow results verified
+
+=== Reduction Workflow Test ===
+Reduction result: 1024.000000 (expected: 1024.000000)
+Reduction workflow verified successfully
+
+=== Resource Lifecycle Test ===
+Testing resource creation and cleanup cycles
+Resource cycle 1
+Cycle 1 completed
+Resource cycle 2
+Cycle 2 completed
+Resource cycle 3
+Cycle 3 completed
+Resource cycle 4
+Cycle 4 completed
+Resource cycle 5
+Cycle 5 completed
+Resource lifecycle test completed
+
+=== Error Handling Test ===
+Correctly handled huge allocation error: cu_mem_alloc
+Correctly handled invalid kernel error: nvrtc_compile_program invalid: invalid(1): error: identifier "invalid" is undefined
+  invalid C++ code here
+  ^
+
+invalid(1): error: A namespace scope variable without memory space annotations (__device__/__constant__/__shared__/__managed__) is considered a host variable, and host variables are not allowed in JIT mode. Consider using -default-device flag to process unannotated namespace scope variables as __device__ variables in JIT mode
+  invalid C++ code here
+          ^
+
+invalid(1): error: expected a ";"
+  invalid C++ code here
+           ^
+
+3 errors detected in the compilation of "invalid".
+
+Correctly handled invalid function name error: cu_module_get_function
+Error handling test completed
+
+Integration Tests Completed

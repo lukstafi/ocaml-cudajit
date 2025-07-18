@@ -1,0 +1,58 @@
+Starting Stream Module Tests
+
+=== Stream Creation Tests ===
+Created default stream
+Created non-blocking stream
+Created stream with lower priority
+Created non-blocking stream with lower priority
+Obtained NULL stream
+Stream context retrieval: PASS
+Stream ID retrieval: PASS
+
+=== Stream Memory Operations Tests ===
+Successfully allocated 4096 bytes asynchronously
+Successfully set memory asynchronously
+Stream synchronized
+Successfully freed memory asynchronously
+
+=== Async Host-Device Transfer Tests ===
+Successfully transferred data H->D asynchronously
+Successfully transferred data D->H asynchronously
+Async transfer data integrity verified for 1024 elements
+
+=== Async Device-to-Device Transfer Tests ===
+Successfully transferred data D->D asynchronously
+Device-to-device transfer pattern verified
+
+=== Kernel Launch Tests ===
+Launching kernel with grid_size=1, block_size=1024
+Kernel launch completed
+Launching kernel with grid_size=4, block_size=256
+Kernel launch completed
+Launching kernel with grid_size=16, block_size=64
+Kernel launch completed
+Launching kernel with grid_size=32, block_size=32
+Kernel launch completed
+Kernel execution results verified (1.0 + 2.0 = 3.0)
+
+=== Stream Query Tests ===
+Stream ready before operations: true
+Stream ready during operations: false
+Stream ready after completion: true
+
+=== Concurrent Stream Tests ===
+Launched operation on stream 0
+Launched operation on stream 1
+Launched operation on stream 2
+Launched operation on stream 3
+Stream 0 ready: false
+Stream 1 ready: false
+Stream 2 ready: false
+Stream 3 ready: false
+Stream 0 synchronized
+Stream 1 synchronized
+Stream 2 synchronized
+Stream 3 synchronized
+Concurrent streams test completed
+
+Stream Module Tests Completed

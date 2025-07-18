@@ -1,0 +1,22 @@
+Starting Device Module Tests
+
+=== Device Enumeration Tests ===
+Device count check: PASS
+Device 0 access: PASS
+Device attributes access: PASS
+Device name length: PASS
+Compute capability valid: PASS
+Multiprocessor count valid: PASS
+Max threads per block valid: PASS
+Warp size valid: PASS
+Memory info access: PASS
+Memory values valid: PASS
+Invalid device ordinal handling: PASS
+
+=== Peer Access Tests ===
+Multiple devices required for peer access testing
+
+=== Primary Context Tests ===
+Primary context reset: PASS
+
+Device Module Tests Completed

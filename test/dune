@@ -3,3 +3,33 @@
  (deps saxpy.expected)
  (libraries dynlink cudajit.cuda cudajit.nvrtc)
  (modes native))
+
+(test
+ (name test_device)
+ (libraries dynlink cudajit.cuda cudajit.nvrtc sexplib0)
+ (modes native))
+
+(test
+ (name test_context)
+ (libraries dynlink cudajit.cuda cudajit.nvrtc sexplib0)
+ (modes native))
+
+(test
+ (name test_memory)
+ (libraries dynlink cudajit.cuda cudajit.nvrtc)
+ (modes native))
+
+(test
+ (name test_streams)
+ (libraries dynlink cudajit.cuda cudajit.nvrtc)
+ (modes native))
+
+(test
+ (name test_events)
+ (libraries dynlink cudajit.cuda cudajit.nvrtc)
+ (modes native))
+
+(test
+ (name test_integration)
+ (libraries dynlink cudajit.cuda cudajit.nvrtc)
+ (modes native))

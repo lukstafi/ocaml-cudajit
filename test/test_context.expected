@@ -1,0 +1,36 @@
+Starting Context Module Tests
+
+=== Context Creation Tests ===
+Created context with SCHED_AUTO flag
+Created context with SCHED_YIELD flag
+Created context with SCHED_BLOCKING_SYNC flag
+Obtained primary context
+All context creation tests passed
+
+=== Context Stack Tests ===
+Pushed context 1 to stack
+Retrieved current context
+Set current context to context 2
+Popped context from stack
+Context stack tests completed
+
+=== Context Limits Tests ===
+Current STACK_SIZE: 1024
+Set stack size limit
+Current PRINTF_FIFO_SIZE: 1048576
+Set printf fifo size limit
+Current MALLOC_HEAP_SIZE: 8388608
+Set malloc heap size limit
+Current DEV_RUNTIME_SYNC_DEPTH: 2
+Set device runtime sync depth limit
+Context limits tests completed
+
+=== Context Flags Tests ===
+Context flags: (LMEM_RESIZE_TO_MAX)
+Context flags tests completed
+
+=== Context Synchronization Tests ===
+Testing context synchronization
+Context synchronization completed
+
+Context Module Tests Completed
