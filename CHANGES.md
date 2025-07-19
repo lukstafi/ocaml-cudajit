@@ -1,4 +1,8 @@
-## [0.7.l]
+## [0.7.l] 2025-07-19
+
+### Added
+
+- A test suite, by Claude Sonnet.
 
 ### Changed
 

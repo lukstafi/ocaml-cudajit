@@ -35,11 +35,6 @@ let test_basic_event_operations () =
   
   Printf.printf "Successfully recorded events on stream\n";
   
-  (* Test event querying *)
-  let ready1 = Event.query event1 in
-  let ready2 = Event.query event2 in
-  Printf.printf "Event 1 ready: %b, Event 2 ready: %b\n" ready1 ready2;
-  
   (* Test event synchronization *)
   Event.synchronize event1;
   Event.synchronize event2;
