@@ -1,35 +1,13 @@
-(test
- (name saxpy)
- (deps saxpy.expected)
- (libraries dynlink cudajit.cuda cudajit.nvrtc)
- (modes native))
-
-(test
- (name test_device)
+(tests
+ (names
+  saxpy
+  test_device
+  test_context
+  test_memory
+  test_streams
+  test_events
+  test_integration)
  (libraries dynlink cudajit.cuda cudajit.nvrtc sexplib0)
- (modes native))
-
-(test
- (name test_context)
- (libraries dynlink cudajit.cuda cudajit.nvrtc sexplib0)
- (modes native))
-
-(test
- (name test_memory)
- (libraries dynlink cudajit.cuda cudajit.nvrtc)
- (modes native))
-
-(test
- (name test_streams)
- (libraries dynlink cudajit.cuda cudajit.nvrtc)
- (modes native))
-
-(test
- (name test_events)
- (libraries dynlink cudajit.cuda cudajit.nvrtc)
- (modes native))
-
-(test
- (name test_integration)
- (libraries dynlink cudajit.cuda cudajit.nvrtc)
- (modes native))
+ (modes native)
+ (enabled_if
+  (<> %{env:CUDAJIT_NO_GPU=false} true)))

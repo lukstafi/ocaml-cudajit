@@ -41,5 +41,5 @@ jobs:
         allow-prerelease-opam: true
     - run: opam pin -n .
     - run: opam install . --deps-only --with-test --with-doc
-    - run: opam exec -- dune build
-    - run: opam exec -- dune test test_no_device
+    - run: env CUDAJIT_NO_GPU=true opam exec -- dune build
+    - run: env CUDAJIT_NO_GPU=true opam exec -- dune test test_no_device
