@@ -1,3 +1,9 @@
+## [0.7.2] 2025-08-19
+
+### Fixed
+
+- Fix liveness of arguments to the NVRTC call and remove a precaution that was in itself a bug.
+
 ## [0.7.l] 2025-07-19
 
 ### Added
