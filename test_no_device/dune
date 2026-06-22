@@ -3,3 +3,9 @@
  (deps saxpy_ptx.expected)
  (libraries dynlink cudajit.nvrtc)
  (modes native))
+
+(test
+ (name test_computemode)
+ (deps test_computemode.expected)
+ (libraries cudajit.cuda sexplib0)
+ (modes native))

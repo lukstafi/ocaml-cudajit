@@ -87,6 +87,10 @@ module Device : sig
     | PROHIBITED  (** No contexts can be created on this device at this time. *)
     | EXCLUSIVE_PROCESS
         (** Only one context used by a single process can be present on this device at a time. *)
+    | UNCATEGORIZED of int64
+        (** Raw driver value not matched by any known [CUcomputemode] constant.
+            Value 1 is the legacy [CU_COMPUTEMODE_EXCLUSIVE] removed in CUDA 8.0;
+            modern drivers should not return it, but some configurations do. *)
 
   val sexp_of_computemode : computemode -> Sexplib0.Sexp.t
 
