@@ -3,3 +3,16 @@
  (deps saxpy_ptx.expected)
  (libraries dynlink cudajit.nvrtc)
  (modes native))
+
+(executable
+ (name test_computemode)
+ (libraries cudajit.cuda sexplib0)
+ (modes native))
+
+(rule
+ (with-stdout-to test_computemode.actual
+  (run ./test_computemode.exe)))
+
+(rule
+ (alias runtest)
+ (action (diff test_computemode.expected test_computemode.actual)))

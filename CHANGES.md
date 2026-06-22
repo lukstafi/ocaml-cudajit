@@ -1,3 +1,12 @@
+## [Unreleased]
+
+### Fixed
+
+- `Device.computemode` now includes an `UNCATEGORIZED of int64` constructor so
+  that unknown or legacy compute-mode values (e.g. value 1, the removed
+  `CU_COMPUTEMODE_EXCLUSIVE`) are surfaced gracefully instead of raising
+  `invalid_arg` and crashing `properties.exe`.
+
 ## [0.7.2] 2025-08-19
 
 ### Fixed
