@@ -176,12 +176,14 @@ module Device = struct
     check "cu_mem_get_info" @@ Cuda.cu_mem_get_info free total;
     (Unsigned.Size_t.to_int !@free, Unsigned.Size_t.to_int !@total)
 
-  type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS
+  type computemode = DEFAULT | PROHIBITED | EXCLUSIVE_PROCESS | UNCATEGORIZED of int64
 
   let sexp_of_computemode = function
     | DEFAULT -> Sexplib0.Sexp.Atom "DEFAULT"
     | PROHIBITED -> Sexplib0.Sexp.Atom "PROHIBITED"
     | EXCLUSIVE_PROCESS -> Sexplib0.Sexp.Atom "EXCLUSIVE_PROCESS"
+    | UNCATEGORIZED i ->
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "UNCATEGORIZED"; Sexplib0.Sexp.Atom (Int64.to_string i) ]
 
   type flush_GPU_direct_RDMA_writes_options = HOST | MEMOPS
 
@@ -231,7 +233,7 @@ module Device = struct
     | CU_COMPUTEMODE_DEFAULT -> DEFAULT
     | CU_COMPUTEMODE_PROHIBITED -> PROHIBITED
     | CU_COMPUTEMODE_EXCLUSIVE_PROCESS -> EXCLUSIVE_PROCESS
-    | CU_COMPUTEMODE_UNCATEGORIZED i -> invalid_arg @@ "Unknown computemode: " ^ Int64.to_string i
+    | CU_COMPUTEMODE_UNCATEGORIZED i -> UNCATEGORIZED i
 
   let int_of_flush_GPU_direct_RDMA_writes_options =
     let open Cuda_ffi.Types_generated in
