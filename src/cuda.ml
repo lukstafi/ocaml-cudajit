@@ -235,6 +235,8 @@ module Device = struct
     | CU_COMPUTEMODE_EXCLUSIVE_PROCESS -> EXCLUSIVE_PROCESS
     | CU_COMPUTEMODE_UNCATEGORIZED i -> UNCATEGORIZED i
 
+  let computemode_of_int i = computemode_of_cu @@ Cuda.cu_computemode_of_int i
+
   let int_of_flush_GPU_direct_RDMA_writes_options =
     let open Cuda_ffi.Types_generated in
     function

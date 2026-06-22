@@ -94,6 +94,11 @@ module Device : sig
 
   val sexp_of_computemode : computemode -> Sexplib0.Sexp.t
 
+  (** Convert a raw [CU_DEVICE_ATTRIBUTE_COMPUTE_MODE] integer (as returned by
+      [cuDeviceGetAttribute]) to [computemode].  Unrecognised values are wrapped
+      in [UNCATEGORIZED] rather than raising. *)
+  val computemode_of_int : int -> computemode
+
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gf34334d1d6892847a5d05be7ca8db3c6}
        CUflushGPUDirectRDMAWritesOptions}. *)
