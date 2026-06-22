@@ -4,8 +4,15 @@
  (libraries dynlink cudajit.nvrtc)
  (modes native))
 
-(test
+(executable
  (name test_computemode)
- (deps test_computemode.expected)
  (libraries cudajit.cuda sexplib0)
  (modes native))
+
+(rule
+ (with-stdout-to test_computemode.actual
+  (run ./test_computemode.exe)))
+
+(rule
+ (alias runtest)
+ (action (diff test_computemode.expected test_computemode.actual)))
