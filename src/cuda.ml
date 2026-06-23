@@ -1419,14 +1419,21 @@ let get_ptr_not_managed ~reftyp arr =
   (* Work around because Ctypes.bigarray_start doesn't support half precision. *)
   Ctypes_static.CPointer (Ctypes_memory.make_unmanaged ~reftyp @@ bigarray_start_not_managed arr)
 
-(* Advance a device pointer by a byte [offset] for use at a single copy operation. The result
-   shares the original allocation's [freed] flag and is never returned to callers nor finalized: the
-   offset is applied at the copy and does not escape as a public, separately-freeable
-   [Deviceptr.t]. This keeps [Deviceptr.t] abstract and owning while letting copies target a slab
-   sub-region. See docs/proposals/device-offset-memcpy.md. *)
-let offset_deviceptr (Deviceptr { ptr; freed }) offset =
-  if offset = 0 then Deviceptr { ptr; freed }
-  else Deviceptr { ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset); freed }
+(* Advance a device pointer by a byte [offset] for use at a single copy operation. For a zero
+   [offset] the original [Deviceptr.t] is returned unchanged, so its finalizer-bearing block stays
+   reachable through the copy (this is the path every existing, offset-free call site takes). For a
+   non-zero [offset] the result shares the original allocation's [freed] flag -- so [check_freed]
+   still observes frees -- but carries no finalizer and is never returned to callers: the offset is
+   applied at the copy and does not escape as a public, separately-freeable [Deviceptr.t]. Because
+   that wrapper shares only [freed] (not the owning block), callers must keep the original value
+   alive across the CUDA call; the [memcpy_*_impl] helpers do so for the synchronous path via
+   [Sys.opaque_identity]. This keeps [Deviceptr.t] abstract and owning while letting copies target a
+   slab sub-region. See docs/proposals/device-offset-memcpy.md. *)
+let offset_deviceptr dp offset =
+  if offset = 0 then dp
+  else
+    let (Deviceptr { ptr; freed }) = dp in
+    Deviceptr { ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset); freed }
 
 let memcpy_H_to_D_impl ?host_offset ?length ?(dst_offset = 0) ~dst ~src memcpy =
   let full_size = Bigarray.Genarray.size_in_bytes src in
@@ -1449,7 +1456,14 @@ let memcpy_H_to_D_impl ?host_offset ?length ?(dst_offset = 0) ~dst ~src memcpy =
         let host = get_ptr_not_managed ~reftyp:uint8_t src in
         coerce (ptr uint8_t) (ptr void) @@ (host +@ (offset * elem_bytes))
   in
-  memcpy ~dst:(offset_deviceptr dst dst_offset) ~src:host ~size_in_bytes
+  let result = memcpy ~dst:(offset_deviceptr dst dst_offset) ~src:host ~size_in_bytes in
+  (* Keep the owning [dst] reachable across the synchronous copy: a non-zero [dst_offset] hands the
+     callback a finalizer-less wrapper that shares only [dst]'s [freed] flag, so without this the GC
+     could finalize and [cuMemFree] the original allocation mid-copy. (The async variant returns a
+     thunk that enqueues later; its caller must keep the allocation live until the stream
+     synchronizes, as for any async device op.) *)
+  ignore (Sys.opaque_identity dst : deviceptr);
+  result
 
 let memcpy_D_to_H_impl ?host_offset ?length ?(src_offset = 0) ~dst ~src memcpy =
   let full_size = Bigarray.Genarray.size_in_bytes dst in
@@ -1473,7 +1487,10 @@ let memcpy_D_to_H_impl ?host_offset ?length ?(src_offset = 0) ~dst ~src memcpy =
         let host = host +@ (offset * elem_bytes) in
         coerce (ptr uint8_t) (ptr void) host
   in
-  memcpy ~dst:host ~src:(offset_deviceptr src src_offset) ~size_in_bytes
+  let result = memcpy ~dst:host ~src:(offset_deviceptr src src_offset) ~size_in_bytes in
+  (* Keep the owning [src] reachable across the synchronous copy; see [memcpy_H_to_D_impl]. *)
+  ignore (Sys.opaque_identity src : deviceptr);
+  result
 
 let get_size_in_bytes ?kind ?length ?size_in_bytes provenance =
   match (size_in_bytes, kind, length) with
