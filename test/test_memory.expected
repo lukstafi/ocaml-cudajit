@@ -33,8 +33,16 @@ Device-to-device between non-zero offsets: PASS
 === Region (Offset) Memset Tests ===
 Non-zero-offset memset_d8 targets correct sub-region: PASS
 
+=== Region (Offset) Async Memset Tests ===
+Async non-zero-offset memset_d32 targets correct sub-region: PASS
+Neighbouring bytes untouched (async offset memset): PASS
+
 === Region (Tensor_at) Kernel Launch Tests ===
 Kernel launch via Tensor_at writes correct sub-region: PASS
+
+=== Region Peer-Copy Offset Tests ===
+Peer copy between non-zero offsets: PASS
+Neighbouring bytes untouched (peer copy offset): PASS
 
 === Memory Set Operations Tests ===
 Memory set 8-bit: PASS
