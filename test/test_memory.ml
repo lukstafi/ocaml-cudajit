@@ -215,6 +215,68 @@ let test_device_offset_transfers () =
   Deviceptr.mem_free dptr;
   Deviceptr.mem_free dptr2
 
+let test_region_memset () =
+  Printf.printf "\n=== Region (Offset) Memset Tests ===\n";
+  let n = 256 in
+  let dptr = Deviceptr.mem_alloc ~size_in_bytes:n in
+  (* Fill the whole allocation with 0xAA. *)
+  Deviceptr.memset_d8 dptr (Unsigned.UChar.of_int 0xAA) ~length:n;
+  (* Zero-fill bytes [64..127] using a non-zero byte offset. *)
+  let off = 64 in
+  Deviceptr.memset_d8 ~offset:off dptr (Unsigned.UChar.of_int 0x00) ~length:64;
+  let host = Bigarray.Array1.create Bigarray.Char Bigarray.C_layout n in
+  Deviceptr.memcpy_D_to_H ~dst:(Bigarray.genarray_of_array1 host) ~src:dptr ();
+  let ok = ref true in
+  for i = 0 to n - 1 do
+    let expected = if i >= off && i < off + 64 then '\x00' else '\xAA' in
+    if Char.code host.{i} <> Char.code expected then ok := false
+  done;
+  Printf.printf "Non-zero-offset memset_d8 targets correct sub-region: %s\n"
+    (if !ok then "PASS" else "FAIL");
+  Deviceptr.mem_free dptr
+
+let fill_kernel_src = {|
+extern "C" __global__ void fill_floats(float *buf, float val, int n) {
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid < n) buf[tid] = val;
+}
+|}
+
+let test_region_kernel_launch () =
+  Printf.printf "\n=== Region (Tensor_at) Kernel Launch Tests ===\n";
+  let prog =
+    Nvrtc.compile_to_ptx ~cu_src:fill_kernel_src ~name:"fill_floats"
+      ~options:[] ~with_debug:false
+  in
+  let module_ = Module.load_data_ex prog [] in
+  let func = Module.get_function module_ ~name:"fill_floats" in
+  let slab_elems = 512 in
+  let region_start = 256 in (* sub-region starts at element index 256 *)
+  let region_len = 64 in
+  let offset_bytes = region_start * 4 in (* Float32 = 4 bytes per element *)
+  let slab = Deviceptr.mem_alloc ~size_in_bytes:(slab_elems * 4) in
+  (* Zero-fill the whole slab so neighbours are known. *)
+  Deviceptr.memset_d32 slab (Unsigned.UInt32.of_int 0) ~length:slab_elems;
+  (* Launch kernel targeting [region_start..region_start+region_len) via Tensor_at. *)
+  let region = Deviceptr.offset slab ~bytes:offset_bytes in
+  Stream.launch_kernel func ~grid_dim_x:1 ~block_dim_x:128 ~shared_mem_bytes:0
+    Stream.no_stream
+    [ Stream.Tensor_at region; Stream.Single 42.0; Stream.Int region_len ];
+  Context.synchronize ();
+  let host = Bigarray.Array1.create Bigarray.Float32 Bigarray.C_layout slab_elems in
+  Bigarray.Array1.fill host (-1.0);
+  Deviceptr.memcpy_D_to_H ~dst:(Bigarray.genarray_of_array1 host) ~src:slab ();
+  let ok = ref true in
+  for i = 0 to slab_elems - 1 do
+    let expected =
+      if i >= region_start && i < region_start + region_len then 42.0 else 0.0
+    in
+    if Float.abs (host.{i} -. expected) > 1e-6 then ok := false
+  done;
+  Printf.printf "Kernel launch via Tensor_at writes correct sub-region: %s\n"
+    (if !ok then "PASS" else "FAIL");
+  Deviceptr.mem_free slab
+
 let test_memory_set_operations () =
   Printf.printf "\n=== Memory Set Operations Tests ===\n";
   
@@ -279,6 +341,8 @@ let run_tests () =
     test_partial_transfers ();
     test_device_to_device_transfers ();
     test_device_offset_transfers ();
+    test_region_memset ();
+    test_region_kernel_launch ();
     test_memory_set_operations ();
     test_pointer_utilities ();
     

@@ -1507,6 +1507,10 @@ let get_size_in_bytes ?kind ?length ?size_in_bytes provenance =
 
 module Deviceptr = struct
   type t = deviceptr
+  type region = { base: t; offset_bytes: int }
+
+  let offset ptr ~bytes = { base = ptr; offset_bytes = bytes }
+  let region_of ptr = { base = ptr; offset_bytes = 0 }
 
   let sexp_of_t = sexp_of_deviceptr
 
@@ -1565,24 +1569,30 @@ module Deviceptr = struct
     @@ Unsigned.Size_t.of_int size_in_bytes
 
   (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
-  let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
+  let memcpy_peer ?kind ?length ?size_in_bytes ?(dst_offset = 0) ?(src_offset = 0)
+      ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
       ~dst_ctx ~src:(Deviceptr { ptr = src; freed = src_freed }) ~src_ctx () =
     check_freed ~func:"Deviceptr.memcpy_peer" [ ("dst", dst_freed); ("src", src_freed) ];
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer" in
+    let dst = Unsigned.UInt64.add dst (Unsigned.UInt64.of_int dst_offset) in
+    let src = Unsigned.UInt64.add src (Unsigned.UInt64.of_int src_offset) in
     check "cu_memcpy_peer"
     @@ Cuda.cu_memcpy_peer dst dst_ctx src src_ctx
     @@ Unsigned.Size_t.of_int size_in_bytes
 
-  let memset_d8 (Deviceptr { ptr; freed }) v ~length =
+  let memset_d8 ?(offset = 0) (Deviceptr { ptr; freed }) v ~length =
     check_freed ~func:"Deviceptr.memset_d8" [ ("ptr", freed) ];
+    let ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset) in
     check "cu_memset_d8" @@ Cuda.cu_memset_d8 ptr v @@ Unsigned.Size_t.of_int length
 
-  let memset_d16 (Deviceptr { ptr; freed }) v ~length =
+  let memset_d16 ?(offset = 0) (Deviceptr { ptr; freed }) v ~length =
     check_freed ~func:"Deviceptr.memset_d16" [ ("ptr", freed) ];
+    let ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset) in
     check "cu_memset_d16" @@ Cuda.cu_memset_d16 ptr v @@ Unsigned.Size_t.of_int length
 
-  let memset_d32 (Deviceptr { ptr; freed }) v ~length =
+  let memset_d32 ?(offset = 0) (Deviceptr { ptr; freed }) v ~length =
     check_freed ~func:"Deviceptr.memset_d32" [ ("ptr", freed) ];
+    let ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset) in
     check "cu_memset_d32" @@ Cuda.cu_memset_d32 ptr v @@ Unsigned.Size_t.of_int length
 end
 
@@ -1865,6 +1875,7 @@ module Stream = struct
 
   type kernel_param =
     | Tensor of Deviceptr.t
+    | Tensor_at of Deviceptr.region
     | Int of int
     | Size_t of size_t
     | Single of float
@@ -1872,6 +1883,14 @@ module Stream = struct
 
   let sexp_of_kernel_param = function
     | Tensor t -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Tensor"; Deviceptr.sexp_of_t t]
+    | Tensor_at { Deviceptr.base; offset_bytes } ->
+        Sexplib0.Sexp.List [
+          Sexplib0.Sexp.Atom "Tensor_at";
+          Sexplib0.Sexp.List [
+            Deviceptr.sexp_of_t base;
+            Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "offset_bytes"; Sexplib0.Sexp.Atom (Int.to_string offset_bytes)]
+          ]
+        ]
     | Int i -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Int"; Sexplib0.Sexp.Atom (Int.to_string i)]
     | Size_t s -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Size_t"; sexp_of_size_t s]
     | Single f -> Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "Single"; Sexplib0.Sexp.Atom (Float.to_string f)]
@@ -1889,15 +1908,21 @@ module Stream = struct
 
   let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
       ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
+    let orig_params = kernel_params in
     let i2u = Unsigned.UInt.of_int in
     let open Ctypes in
     let p = ptr in
-    let kernel_params =
+    let c_params =
       List.mapi
         (fun i -> function
           | Tensor (Deviceptr { ptr; freed }) ->
               check_freed ~func:"Stream.launch_kernel"
                 [ ("kernel (from 0) parameter " ^ Int.to_string i, freed) ];
+              coerce (p uint64_t) (p void) @@ allocate uint64_t ptr
+          | Tensor_at { Deviceptr.base = Deviceptr { ptr; freed }; offset_bytes } ->
+              check_freed ~func:"Stream.launch_kernel"
+                [ ("kernel (from 0) parameter " ^ Int.to_string i ^ " (base)", freed) ];
+              let ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset_bytes) in
               coerce (p uint64_t) (p void) @@ allocate uint64_t ptr
           | Int i -> coerce (p int) (p void) @@ allocate int i
           | Size_t u -> coerce (p size_t) (p void) @@ allocate size_t u
@@ -1905,13 +1930,14 @@ module Stream = struct
           | Double u -> coerce (p double) (p void) @@ allocate double u)
         kernel_params
     in
-    let c_kernel_params = kernel_params |> CArray.of_list (p void) in
+    let c_kernel_params = c_params |> CArray.of_list (p void) in
     check "cu_launch_kernel"
     @@ Cuda.cu_launch_kernel func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z)
          (i2u block_dim_x) (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream.stream
          (CArray.start c_kernel_params)
     @@ coerce (p void) (p @@ ptr void) null;
-    stream.args_lifetimes <- Remember (kernel_params, c_kernel_params) :: stream.args_lifetimes
+    stream.args_lifetimes <-
+      Remember (orig_params, c_params, c_kernel_params) :: stream.args_lifetimes
 
   type attach_mem = GLOBAL | HOST | SINGLE_stream
 
@@ -2002,27 +2028,33 @@ module Stream = struct
     @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
   (** Provide either both [kind] and [length], or just [size_in_bytes]. *)
-  let memcpy_peer ?kind ?length ?size_in_bytes ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
+  let memcpy_peer ?kind ?length ?size_in_bytes ?(dst_offset = 0) ?(src_offset = 0)
+      ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
       ~dst_ctx ~src:(Deviceptr { ptr = src; freed = src_freed }) ~src_ctx stream =
     check_freed ~func:"Stream.memcpy_peer" [ ("dst", dst_freed); ("src", src_freed) ];
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_peer_async" in
+    let dst = Unsigned.UInt64.add dst (Unsigned.UInt64.of_int dst_offset) in
+    let src = Unsigned.UInt64.add src (Unsigned.UInt64.of_int src_offset) in
     check "cu_memcpy_peer_async"
     @@ Cuda.cu_memcpy_peer_async dst dst_ctx src src_ctx
          (Unsigned.Size_t.of_int size_in_bytes)
          stream.stream
 
-  let memset_d8 (Deviceptr { ptr; freed }) v ~length stream =
+  let memset_d8 ?(offset = 0) (Deviceptr { ptr; freed }) v ~length stream =
     check_freed ~func:"Stream.memset_d8" [ ("ptr", freed) ];
+    let ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset) in
     check "cu_memset_d8_async"
     @@ Cuda.cu_memset_d8_async ptr v (Unsigned.Size_t.of_int length) stream.stream
 
-  let memset_d16 (Deviceptr { ptr; freed }) v ~length stream =
+  let memset_d16 ?(offset = 0) (Deviceptr { ptr; freed }) v ~length stream =
     check_freed ~func:"Stream.memset_d16" [ ("ptr", freed) ];
+    let ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset) in
     check "cu_memset_d16_async"
     @@ Cuda.cu_memset_d16_async ptr v (Unsigned.Size_t.of_int length) stream.stream
 
-  let memset_d32 (Deviceptr { ptr; freed }) v ~length stream =
+  let memset_d32 ?(offset = 0) (Deviceptr { ptr; freed }) v ~length stream =
     check_freed ~func:"Stream.memset_d32" [ ("ptr", freed) ];
+    let ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset) in
     check "cu_memset_d32_async"
     @@ Cuda.cu_memset_d32_async ptr v (Unsigned.Size_t.of_int length) stream.stream
 end

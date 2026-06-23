@@ -394,6 +394,22 @@ module Deviceptr : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g183f7b0d8ad008ea2a5fd552537ace4e}
        CUdeviceptr}. *)
 
+  type region = { base: t; offset_bytes: int }
+  (** A non-owning borrow of a sub-region of a device allocation. The [base] [Deviceptr.t]
+      retains ownership and its finalizer will free the allocation; the [region] is never freed
+      independently and carries no finalizer. [offset_bytes] is the byte offset into [base];
+      offset 0 addresses the same location as [base] itself. Use {!offset} to construct a
+      region and {!region_of} to inject a bare [Deviceptr.t] at offset 0. *)
+
+  val offset : t -> bytes:int -> region
+  (** [offset ptr ~bytes:n] returns a region starting [n] bytes into [ptr]'s allocation. [ptr]
+      retains ownership; the region is a non-owning borrow. [bytes] is in bytes. Offset 0
+      reproduces the same address as [ptr]. *)
+
+  val region_of : t -> region
+  (** [region_of ptr] is [offset ptr ~bytes:0]: a region at byte offset 0, i.e. the same
+      address as [ptr]. Useful when a consuming site requires a [region]. *)
+
   val sexp_of_t : t -> Sexplib0.Sexp.t
 
   val equal : t -> t -> bool
@@ -485,6 +501,8 @@ module Deviceptr : sig
     ?kind:('a, 'b) Bigarray.kind ->
     ?length:int ->
     ?size_in_bytes:int ->
+    ?dst_offset:int ->
+    ?src_offset:int ->
     dst:t ->
     dst_ctx:Context.t ->
     src:t ->
@@ -493,22 +511,27 @@ module Deviceptr : sig
     unit
   (** Copies between memory positions on two different devices. The size to copy can optionally be
       provided in numbers of elements via [kind] and [length]. Provide either both [kind] and
-      [length], or just [size_in_bytes]. See
+      [length], or just [size_in_bytes]. [dst_offset] and [src_offset] are device-side byte offsets
+      into [dst] and [src] respectively (default 0), letting either end target a sub-region of a
+      larger allocation. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1ge1f5c7771544fee150ada8853c7cbf4a}
        cuMemcpyPeer}. *)
 
-  val memset_d8 : t -> Unsigned.uchar -> length:int -> unit
-  (** See
+  val memset_d8 : ?offset:int -> t -> Unsigned.uchar -> length:int -> unit
+  (** [offset] is a device-side byte offset into [t] (default 0), letting the memset target a
+      sub-region of a larger allocation. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g6e582bf866e9e2fb014297bfaf354d7b}
        cuMemsetD8}. *)
 
-  val memset_d16 : t -> Unsigned.ushort -> length:int -> unit
-  (** [length] is in number of elements. See
+  val memset_d16 : ?offset:int -> t -> Unsigned.ushort -> length:int -> unit
+  (** [length] is in number of elements. [offset] is a device-side byte offset into [t] (default
+      0). See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g7d805e610054392a4d11e8a8bf5eb35c}
        cuMemsetD16}. *)
 
-  val memset_d32 : t -> Unsigned.uint32 -> length:int -> unit
-  (** [length] is in number of elements. See
+  val memset_d32 : ?offset:int -> t -> Unsigned.uint32 -> length:int -> unit
+  (** [length] is in number of elements. [offset] is a device-side byte offset into [t] (default
+      0). See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g983e8d8759acd1b64326317481fbf132}
        cuMemsetD32}. *)
 end
@@ -664,6 +687,11 @@ module Stream : sig
   (** Parameters to pass to a kernel. *)
   type kernel_param =
     | Tensor of Deviceptr.t
+    | Tensor_at of Deviceptr.region
+    (** [Tensor_at { base; offset_bytes }] passes [base + offset_bytes] as the [CUdeviceptr]
+        kernel argument (tinygrad's [buf.value + off] pattern). The kernel receives an address
+        displaced by [offset_bytes] bytes and dereferences from index 0 of that address; the
+        kernel signature is unchanged. [check_freed] and lifetime bookkeeping operate on [base]. *)
     | Int of int  (** Passed as C [int]. *)
     | Size_t of Unsigned.size_t
     | Single of float  (** Passed as C [float]. *)
@@ -735,6 +763,8 @@ module Stream : sig
     ?kind:('a, 'b) Bigarray.kind ->
     ?length:int ->
     ?size_in_bytes:int ->
+    ?dst_offset:int ->
+    ?src_offset:int ->
     dst:Deviceptr.t ->
     dst_ctx:Context.t ->
     src:Deviceptr.t ->
@@ -743,7 +773,9 @@ module Stream : sig
     unit
   (** Copies between memory positions on two different devices asynchronously. The size to copy can
       optionally be provided in numbers of elements via [kind] and [length]. Provide either both
-      [kind] and [length], or just [size_in_bytes]. See
+      [kind] and [length], or just [size_in_bytes]. [dst_offset] and [src_offset] are device-side
+      byte offsets into [dst] and [src] respectively (default 0), letting either end target a
+      sub-region of a larger allocation. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g82fcecb38018e64b98616a8ac30112f2}
        cuMemcpyPeerAsync}. *)
 
@@ -794,18 +826,21 @@ module Stream : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g15e49dd91ec15991eb7c0a741beb7dad}
        cuStreamSynchronize}. *)
 
-  val memset_d8 : Deviceptr.t -> Unsigned.uchar -> length:int -> t -> unit
-  (** See
+  val memset_d8 : ?offset:int -> Deviceptr.t -> Unsigned.uchar -> length:int -> t -> unit
+  (** [offset] is a device-side byte offset into [Deviceptr.t] (default 0), letting the memset
+      target a sub-region of a larger allocation. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gaef08a7ccd61112f94e82f2b30d43627}
        cuMemsetD8Async}. *)
 
-  val memset_d16 : Deviceptr.t -> Unsigned.ushort -> length:int -> t -> unit
-  (** [length] is in number of elements. See
+  val memset_d16 : ?offset:int -> Deviceptr.t -> Unsigned.ushort -> length:int -> t -> unit
+  (** [length] is in number of elements. [offset] is a device-side byte offset into [Deviceptr.t]
+      (default 0). See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gf731438877dd8ec875e4c43d848c878c}
        cuMemsetD16Async}. *)
 
-  val memset_d32 : Deviceptr.t -> Unsigned.uint32 -> length:int -> t -> unit
-  (** [length] is in number of elements. See
+  val memset_d32 : ?offset:int -> Deviceptr.t -> Unsigned.uint32 -> length:int -> t -> unit
+  (** [length] is in number of elements. [offset] is a device-side byte offset into [Deviceptr.t]
+      (default 0). See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g58229da5d30f1c0cdf667b320ec2c0f5}
        cuMemsetD32Async}. *)
 

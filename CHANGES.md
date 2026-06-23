@@ -2,6 +2,21 @@
 
 ### Added
 
+- `Deviceptr.region`: a non-owning "allocated pointer + offset" device-region
+  view. It is a borrow — it carries no finalizer and never frees the allocation;
+  only the base `Deviceptr.t` does. Constructed via `Deviceptr.offset ptr
+  ~bytes:n` or the offset-0 injection `Deviceptr.region_of ptr`.
+- `Stream.kernel_param.Tensor_at of Deviceptr.region`: pass a non-zero-offset
+  sub-region as a kernel argument. `launch_kernel` marshals `base + offset_bytes`
+  as the `CUdeviceptr` (tinygrad's `buf.value + off` pattern); the kernel
+  dereferences from index 0 of the displaced address; `check_freed` and lifetime
+  bookkeeping operate on the base allocation.
+- `?offset:int` on `Deviceptr.memset_d8/d16/d32` and
+  `Stream.memset_d8/d16/d32`: byte offset into the allocation (default 0),
+  letting memset target a sub-region of a larger allocation.
+- `?dst_offset:int` / `?src_offset:int` on `Deviceptr.memcpy_peer` and
+  `Stream.memcpy_peer`: byte offsets into the dst/src allocations (default 0),
+  mirroring the `memcpy_D_to_D` offset shape from the prior release.
 - Device-side byte offsets on the copy primitives: `?dst_offset` on
   `memcpy_H_to_D`, `?src_offset` on `memcpy_D_to_H`, and `?dst_offset` /
   `?src_offset` on `memcpy_D_to_D` (both the synchronous `Deviceptr` and
