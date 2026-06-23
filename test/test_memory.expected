@@ -19,7 +19,7 @@ Data integrity verification: PASS
 === Partial Transfer Tests ===
 Partial host to device transfer: PASS
 Partial device to host transfer: PASS
-Partial data integrity verification: FAIL
+Partial data integrity verification: PASS
 
 === Device-to-Device Transfer Tests ===
 Device to device transfer: PASS

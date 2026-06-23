@@ -474,10 +474,12 @@ module Deviceptr : sig
     unit ->
     unit
   (** Copies from the device memory into the bigarray (or its interval). [host_offset] and [length]
-      are in numbers of elements. [src_offset] is a device-side byte offset into [src] (default 0),
-      letting the copy read from a sub-region of a larger allocation; when [length] is not given the
-      copied size is reduced by [src_offset] so it does not read past the end of [src]. See
-      {!memcpy_D_to_H_unsafe}. *)
+      are in numbers of elements: [length] is the count of elements copied (not an end index),
+      filling [dst.(host_offset .. host_offset + length)] and mirroring how {!memcpy_H_to_D} reads
+      [src.(host_offset .. host_offset + length)]. [src_offset] is a device-side byte offset into
+      [src] (default 0), letting the copy read from a sub-region of a larger allocation; when
+      [length] is not given the copied size is reduced by [src_offset] so it does not read past the
+      end of [src]. See {!memcpy_D_to_H_unsafe}. *)
 
   val memcpy_D_to_D :
     ?kind:('a, 'b) Bigarray.kind ->
@@ -734,10 +736,12 @@ module Stream : sig
     t ->
     unit
   (** Copies from the device memory into the bigarray (or its interval) asynchronously.
-      [host_offset] and [length] are in numbers of elements. [src_offset] is a device-side byte
-      offset into [src] (default 0), letting the copy read from a sub-region of a larger allocation;
-      when [length] is not given the copied size is reduced by [src_offset] so it does not read past
-      the end of [src]. See {!memcpy_D_to_H_unsafe} and
+      [host_offset] and [length] are in numbers of elements: [length] is the count of elements
+      copied (not an end index), filling [dst.(host_offset .. host_offset + length)] and mirroring
+      how {!memcpy_H_to_D} reads [src.(host_offset .. host_offset + length)]. [src_offset] is a
+      device-side byte offset into [src] (default 0), letting the copy read from a sub-region of a
+      larger allocation; when [length] is not given the copied size is reduced by [src_offset] so it
+      does not read past the end of [src]. See {!memcpy_D_to_H_unsafe} and
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g56f30236c7c5247f8e061b59d3268362}
        cuMemcpyDtoHAsync}. *)
 

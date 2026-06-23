@@ -1475,8 +1475,11 @@ let memcpy_D_to_H_impl ?host_offset ?length ?(src_offset = 0) ~dst ~src memcpy =
        existing [host_offset] reduction (see the proposal AC 4). *)
     | None, None -> full_size - src_offset
     | Some offset, None -> full_size - (elem_bytes * offset) - src_offset
-    | None, Some length -> elem_bytes * length
-    | Some offset, Some length -> elem_bytes * (length - offset)
+    (* [length] is a count of elements to copy, consistently with [memcpy_H_to_D_impl] and the
+       documented "in numbers of elements" contract -- not an end index. The copy fills
+       [dst.(host_offset .. host_offset + length)] from the device, mirroring how the H-to-D path
+       reads [src.(host_offset .. host_offset + length)]. *)
+    | None, Some length | Some _, Some length -> elem_bytes * length
   in
   let open Ctypes in
   let host =
