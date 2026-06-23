@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Added
+
+- Device-side byte offsets on the copy primitives: `?dst_offset` on
+  `memcpy_H_to_D`, `?src_offset` on `memcpy_D_to_H`, and `?dst_offset` /
+  `?src_offset` on `memcpy_D_to_D` (both the synchronous `Deviceptr` and
+  asynchronous `Stream` variants). Offsets are in bytes, default to 0, and let a
+  copy target a sub-region of a larger allocation without exposing a non-owning
+  offset pointer (`Deviceptr.t` stays abstract and owning).
+
 ### Fixed
 
 - `Device.computemode` now includes an `UNCATEGORIZED of int64` constructor so

@@ -1419,12 +1419,31 @@ let get_ptr_not_managed ~reftyp arr =
   (* Work around because Ctypes.bigarray_start doesn't support half precision. *)
   Ctypes_static.CPointer (Ctypes_memory.make_unmanaged ~reftyp @@ bigarray_start_not_managed arr)
 
-let memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy =
+(* Advance a device pointer by a byte [offset] for use at a single copy operation. For a zero
+   [offset] the original [Deviceptr.t] is returned unchanged, so its finalizer-bearing block stays
+   reachable through the copy (this is the path every existing, offset-free call site takes). For a
+   non-zero [offset] the result shares the original allocation's [freed] flag -- so [check_freed]
+   still observes frees -- but carries no finalizer and is never returned to callers: the offset is
+   applied at the copy and does not escape as a public, separately-freeable [Deviceptr.t]. Because
+   that wrapper shares only [freed] (not the owning block), callers must keep the original value
+   alive across the CUDA call; the [memcpy_*_impl] helpers do so for the synchronous path via
+   [Sys.opaque_identity]. This keeps [Deviceptr.t] abstract and owning while letting copies target a
+   slab sub-region. See docs/proposals/device-offset-memcpy.md. *)
+let offset_deviceptr dp offset =
+  if offset = 0 then dp
+  else
+    let (Deviceptr { ptr; freed }) = dp in
+    Deviceptr { ptr = Unsigned.UInt64.add ptr (Unsigned.UInt64.of_int offset); freed }
+
+let memcpy_H_to_D_impl ?host_offset ?length ?(dst_offset = 0) ~dst ~src memcpy =
   let full_size = Bigarray.Genarray.size_in_bytes src in
   let elem_bytes = Bigarray.kind_size_in_bytes @@ Bigarray.Genarray.kind src in
   let size_in_bytes =
     match (host_offset, length) with
-    | None, None -> full_size
+    (* When the size is derived from the full bigarray, a non-zero device [dst_offset] reduces it so
+       the copy does not write past the end of a same-sized device allocation (mirrors the
+       [host_offset] size reduction in [memcpy_D_to_H_impl]; see the proposal AC 4). *)
+    | None, None -> full_size - dst_offset
     | Some _, None ->
         invalid_arg "Cudajit.memcpy_H_to_D: providing offset requires providing length"
     | _, Some length -> elem_bytes * length
@@ -1437,15 +1456,25 @@ let memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy =
         let host = get_ptr_not_managed ~reftyp:uint8_t src in
         coerce (ptr uint8_t) (ptr void) @@ (host +@ (offset * elem_bytes))
   in
-  memcpy ~dst ~src:host ~size_in_bytes
+  let result = memcpy ~dst:(offset_deviceptr dst dst_offset) ~src:host ~size_in_bytes in
+  (* Keep the owning [dst] reachable across the synchronous copy: a non-zero [dst_offset] hands the
+     callback a finalizer-less wrapper that shares only [dst]'s [freed] flag, so without this the GC
+     could finalize and [cuMemFree] the original allocation mid-copy. (The async variant returns a
+     thunk that enqueues later; its caller must keep the allocation live until the stream
+     synchronizes, as for any async device op.) *)
+  ignore (Sys.opaque_identity dst : deviceptr);
+  result
 
-let memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy =
+let memcpy_D_to_H_impl ?host_offset ?length ?(src_offset = 0) ~dst ~src memcpy =
   let full_size = Bigarray.Genarray.size_in_bytes dst in
   let elem_bytes = Bigarray.kind_size_in_bytes @@ Bigarray.Genarray.kind dst in
   let size_in_bytes =
     match (host_offset, length) with
-    | None, None -> full_size
-    | Some offset, None -> full_size - (elem_bytes * offset)
+    (* When the size is derived from the full bigarray, a non-zero device [src_offset] reduces it so
+       the copy does not read past the end of a same-sized device allocation, consistently with the
+       existing [host_offset] reduction (see the proposal AC 4). *)
+    | None, None -> full_size - src_offset
+    | Some offset, None -> full_size - (elem_bytes * offset) - src_offset
     | None, Some length -> elem_bytes * length
     | Some offset, Some length -> elem_bytes * (length - offset)
   in
@@ -1458,7 +1487,10 @@ let memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy =
         let host = host +@ (offset * elem_bytes) in
         coerce (ptr uint8_t) (ptr void) host
   in
-  memcpy ~dst:host ~src ~size_in_bytes
+  let result = memcpy ~dst:host ~src:(offset_deviceptr src src_offset) ~size_in_bytes in
+  (* Keep the owning [src] reachable across the synchronous copy; see [memcpy_H_to_D_impl]. *)
+  ignore (Sys.opaque_identity src : deviceptr);
+  result
 
 let get_size_in_bytes ?kind ?length ?size_in_bytes provenance =
   match (size_in_bytes, kind, length) with
@@ -1504,8 +1536,8 @@ module Deviceptr = struct
     check "cu_memcpy_H_to_D" @@ Cuda.cu_memcpy_H_to_D dst src
     @@ Unsigned.Size_t.of_int size_in_bytes
 
-  let memcpy_H_to_D ?host_offset ?length ~dst ~src () =
-    memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy_H_to_D_unsafe
+  let memcpy_H_to_D ?host_offset ?length ?dst_offset ~dst ~src () =
+    memcpy_H_to_D_impl ?host_offset ?length ?dst_offset ~dst ~src memcpy_H_to_D_unsafe
 
   let alloc_and_memcpy src =
     let size_in_bytes = Bigarray.Genarray.size_in_bytes src in
@@ -1519,13 +1551,16 @@ module Deviceptr = struct
     check "cu_memcpy_D_to_H" @@ Cuda.cu_memcpy_D_to_H dst src
     @@ Unsigned.Size_t.of_int size_in_bytes
 
-  let memcpy_D_to_H ?host_offset ?length ~dst ~src () =
-    memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy_D_to_H_unsafe
+  let memcpy_D_to_H ?host_offset ?length ?src_offset ~dst ~src () =
+    memcpy_D_to_H_impl ?host_offset ?length ?src_offset ~dst ~src memcpy_D_to_H_unsafe
 
-  let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
+  let memcpy_D_to_D ?kind ?length ?size_in_bytes ?(dst_offset = 0) ?(src_offset = 0)
+      ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
       ~src:(Deviceptr { ptr = src; freed = src_freed }) () =
     check_freed ~func:"Deviceptr.memcpy_D_to_D" [ ("dst", dst_freed); ("src", src_freed) ];
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D" in
+    let dst = Unsigned.UInt64.add dst (Unsigned.UInt64.of_int dst_offset) in
+    let src = Unsigned.UInt64.add src (Unsigned.UInt64.of_int src_offset) in
     check "cu_memcpy_D_to_D" @@ Cuda.cu_memcpy_D_to_D dst src
     @@ Unsigned.Size_t.of_int size_in_bytes
 
@@ -1821,8 +1856,8 @@ module Stream = struct
     check "cu_memcpy_H_to_D_async"
     @@ Cuda.cu_memcpy_H_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
-  let memcpy_H_to_D ?host_offset ?length ~dst ~src =
-    memcpy_H_to_D_impl ?host_offset ?length ~dst ~src memcpy_H_to_D_unsafe
+  let memcpy_H_to_D ?host_offset ?length ?dst_offset ~dst ~src =
+    memcpy_H_to_D_impl ?host_offset ?length ?dst_offset ~dst ~src memcpy_H_to_D_unsafe
 
   type size_t = Unsigned.size_t
 
@@ -1953,13 +1988,16 @@ module Stream = struct
     check "cu_memcpy_D_to_H_async"
     @@ Cuda.cu_memcpy_D_to_H_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 
-  let memcpy_D_to_H ?host_offset ?length ~dst ~src =
-    memcpy_D_to_H_impl ?host_offset ?length ~dst ~src memcpy_D_to_H_unsafe
+  let memcpy_D_to_H ?host_offset ?length ?src_offset ~dst ~src =
+    memcpy_D_to_H_impl ?host_offset ?length ?src_offset ~dst ~src memcpy_D_to_H_unsafe
 
-  let memcpy_D_to_D ?kind ?length ?size_in_bytes ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
+  let memcpy_D_to_D ?kind ?length ?size_in_bytes ?(dst_offset = 0) ?(src_offset = 0)
+      ~dst:(Deviceptr { ptr = dst; freed = dst_freed })
       ~src:(Deviceptr { ptr = src; freed = src_freed }) stream =
     check_freed ~func:"Stream.memcpy_D_to_D" [ ("dst", dst_freed); ("src", src_freed) ];
     let size_in_bytes = get_size_in_bytes ?kind ?length ?size_in_bytes "memcpy_D_to_D_async" in
+    let dst = Unsigned.UInt64.add dst (Unsigned.UInt64.of_int dst_offset) in
+    let src = Unsigned.UInt64.add src (Unsigned.UInt64.of_int src_offset) in
     check "cu_memcpy_D_to_D_async"
     @@ Cuda.cu_memcpy_D_to_D_async dst src (Unsigned.Size_t.of_int size_in_bytes) stream.stream
 

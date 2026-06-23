@@ -142,6 +142,79 @@ let test_device_to_device_transfers () =
   Deviceptr.mem_free dptr1;
   Deviceptr.mem_free dptr2
 
+let test_device_offset_transfers () =
+  Printf.printf "\n=== Device-Side Offset Transfer Tests ===\n";
+
+  (* A larger allocation; the payload lands at a non-zero device byte offset within it. *)
+  let total = 256 in
+  let payload_len = 64 in
+  let offset_elems = 64 in
+  let offset_bytes = offset_elems * 4 (* Float32 *) in
+
+  let payload = Bigarray.Array1.create Bigarray.Float32 Bigarray.C_layout payload_len in
+  for i = 0 to payload_len - 1 do
+    payload.{i} <- Float.of_int ((i + 1) * 3)
+  done;
+
+  let dptr = Deviceptr.mem_alloc ~size_in_bytes:(total * 4) in
+  (* Sentinel-fill the whole allocation so neighbouring bytes are known (0.0). *)
+  Deviceptr.memset_d32 dptr (Unsigned.UInt32.of_int 0) ~length:total;
+
+  (* Host -> device into a non-zero device offset. *)
+  Deviceptr.memcpy_H_to_D ~length:payload_len ~dst_offset:offset_bytes ~dst:dptr
+    ~src:(Bigarray.genarray_of_array1 payload) ();
+
+  (* Read it back via the complementary device src_offset. *)
+  let readback = Bigarray.Array1.create Bigarray.Float32 Bigarray.C_layout payload_len in
+  Bigarray.Array1.fill readback (-1.0);
+  Deviceptr.memcpy_D_to_H ~length:payload_len ~src_offset:offset_bytes
+    ~dst:(Bigarray.genarray_of_array1 readback) ~src:dptr ();
+  let offset_roundtrip_ok = ref true in
+  for i = 0 to payload_len - 1 do
+    if Float.abs (payload.{i} -. readback.{i}) > 1e-6 then offset_roundtrip_ok := false
+  done;
+  Printf.printf "Host-to-device at non-zero device offset: %s\n"
+    (if !offset_roundtrip_ok then "PASS" else "FAIL");
+
+  (* Read back the whole allocation to confirm the bytes landed only at the sub-region. *)
+  let whole = Bigarray.Array1.create Bigarray.Float32 Bigarray.C_layout total in
+  Bigarray.Array1.fill whole (-1.0);
+  Deviceptr.memcpy_D_to_H ~dst:(Bigarray.genarray_of_array1 whole) ~src:dptr ();
+  let neighbours_ok = ref true in
+  for i = 0 to total - 1 do
+    let expected =
+      if i >= offset_elems && i < offset_elems + payload_len then payload.{i - offset_elems}
+      else 0.0
+    in
+    if Float.abs (whole.{i} -. expected) > 1e-6 then neighbours_ok := false
+  done;
+  Printf.printf "Neighbouring bytes untouched (H-to-D offset): %s\n"
+    (if !neighbours_ok then "PASS" else "FAIL");
+
+  (* Device -> device between two distinct non-zero offsets. *)
+  let dptr2 = Deviceptr.mem_alloc ~size_in_bytes:(total * 4) in
+  Deviceptr.memset_d32 dptr2 (Unsigned.UInt32.of_int 0) ~length:total;
+  let dst2_offset_elems = 128 in
+  Deviceptr.memcpy_D_to_D ~kind:Bigarray.Float32 ~length:payload_len
+    ~src_offset:offset_bytes ~dst_offset:(dst2_offset_elems * 4) ~dst:dptr2 ~src:dptr ();
+  let whole2 = Bigarray.Array1.create Bigarray.Float32 Bigarray.C_layout total in
+  Bigarray.Array1.fill whole2 (-1.0);
+  Deviceptr.memcpy_D_to_H ~dst:(Bigarray.genarray_of_array1 whole2) ~src:dptr2 ();
+  let d2d_ok = ref true in
+  for i = 0 to total - 1 do
+    let expected =
+      if i >= dst2_offset_elems && i < dst2_offset_elems + payload_len then
+        payload.{i - dst2_offset_elems}
+      else 0.0
+    in
+    if Float.abs (whole2.{i} -. expected) > 1e-6 then d2d_ok := false
+  done;
+  Printf.printf "Device-to-device between non-zero offsets: %s\n"
+    (if !d2d_ok then "PASS" else "FAIL");
+
+  Deviceptr.mem_free dptr;
+  Deviceptr.mem_free dptr2
+
 let test_memory_set_operations () =
   Printf.printf "\n=== Memory Set Operations Tests ===\n";
   
@@ -205,6 +278,7 @@ let run_tests () =
     test_host_device_transfers ();
     test_partial_transfers ();
     test_device_to_device_transfers ();
+    test_device_offset_transfers ();
     test_memory_set_operations ();
     test_pointer_utilities ();
     

@@ -428,9 +428,18 @@ module Deviceptr : sig
        cuMemcpyHtoD}. *)
 
   val memcpy_H_to_D :
-    ?host_offset:int -> ?length:int -> dst:t -> src:('a, 'b, 'c) Bigarray.Genarray.t -> unit -> unit
+    ?host_offset:int ->
+    ?length:int ->
+    ?dst_offset:int ->
+    dst:t ->
+    src:('a, 'b, 'c) Bigarray.Genarray.t ->
+    unit ->
+    unit
   (** Copies the bigarray (or its interval) into the device memory. [host_offset] and [length] are
-      in numbers of elements. See {!memcpy_H_to_D_unsafe}. *)
+      in numbers of elements. [dst_offset] is a device-side byte offset into [dst] (default 0),
+      letting the copy target a sub-region of a larger allocation; when [length] is not given the
+      copied size is reduced by [dst_offset] so it does not write past the end of [dst]. See
+      {!memcpy_H_to_D_unsafe}. *)
 
   val alloc_and_memcpy : ('a, 'b, 'c) Bigarray.Genarray.t -> t
   (** Combines {!mem_alloc} and {!memcpy_H_to_D}. *)
@@ -441,21 +450,34 @@ module Deviceptr : sig
        cuMemcpyDtoH}. *)
 
   val memcpy_D_to_H :
-    ?host_offset:int -> ?length:int -> dst:('a, 'b, 'c) Bigarray.Genarray.t -> src:t -> unit -> unit
+    ?host_offset:int ->
+    ?length:int ->
+    ?src_offset:int ->
+    dst:('a, 'b, 'c) Bigarray.Genarray.t ->
+    src:t ->
+    unit ->
+    unit
   (** Copies from the device memory into the bigarray (or its interval). [host_offset] and [length]
-      are in numbers of elements. See {!memcpy_D_to_H_unsafe}. *)
+      are in numbers of elements. [src_offset] is a device-side byte offset into [src] (default 0),
+      letting the copy read from a sub-region of a larger allocation; when [length] is not given the
+      copied size is reduced by [src_offset] so it does not read past the end of [src]. See
+      {!memcpy_D_to_H_unsafe}. *)
 
   val memcpy_D_to_D :
     ?kind:('a, 'b) Bigarray.kind ->
     ?length:int ->
     ?size_in_bytes:int ->
+    ?dst_offset:int ->
+    ?src_offset:int ->
     dst:t ->
     src:t ->
     unit ->
     unit
   (** Copies between two memory positions on the same device. The size to copy can optionally be
       provided in numbers of elements via [kind] and [length]. Provide either both [kind] and
-      [length], or just [size_in_bytes]. See
+      [length], or just [size_in_bytes]. [dst_offset] and [src_offset] are device-side byte offsets
+      into [dst] and [src] respectively (default 0), letting either end target a sub-region of a
+      larger allocation. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g1725774abf8b51b91945f3336b778c8b}
        cuMemcpyDtoD}. *)
 
@@ -628,12 +650,16 @@ module Stream : sig
   val memcpy_H_to_D :
     ?host_offset:int ->
     ?length:int ->
+    ?dst_offset:int ->
     dst:Deviceptr.t ->
     src:('a, 'b, 'c) Bigarray.Genarray.t ->
     t ->
     unit
   (** Copies the bigarray (or its interval) into the device memory asynchronously. [host_offset] and
-      [length] are in numbers of elements. See {!memcpy_H_to_D_unsafe}. *)
+      [length] are in numbers of elements. [dst_offset] is a device-side byte offset into [dst]
+      (default 0), letting the copy target a sub-region of a larger allocation; when [length] is not
+      given the copied size is reduced by [dst_offset] so it does not write past the end of [dst].
+      See {!memcpy_H_to_D_unsafe}. *)
 
   (** Parameters to pass to a kernel. *)
   type kernel_param =
@@ -674,12 +700,16 @@ module Stream : sig
   val memcpy_D_to_H :
     ?host_offset:int ->
     ?length:int ->
+    ?src_offset:int ->
     dst:('a, 'b, 'c) Bigarray.Genarray.t ->
     src:Deviceptr.t ->
     t ->
     unit
   (** Copies from the device memory into the bigarray (or its interval) asynchronously.
-      [host_offset] and [length] are in numbers of elements. See {!memcpy_D_to_H_unsafe} and
+      [host_offset] and [length] are in numbers of elements. [src_offset] is a device-side byte
+      offset into [src] (default 0), letting the copy read from a sub-region of a larger allocation;
+      when [length] is not given the copied size is reduced by [src_offset] so it does not read past
+      the end of [src]. See {!memcpy_D_to_H_unsafe} and
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g56f30236c7c5247f8e061b59d3268362}
        cuMemcpyDtoHAsync}. *)
 
@@ -687,13 +717,17 @@ module Stream : sig
     ?kind:('a, 'b) Bigarray.kind ->
     ?length:int ->
     ?size_in_bytes:int ->
+    ?dst_offset:int ->
+    ?src_offset:int ->
     dst:Deviceptr.t ->
     src:Deviceptr.t ->
     t ->
     unit
   (** Copies between two memory positions on the same device asynchronously. The size to copy can
       optionally be provided in numbers of elements via [kind] and [length]. Provide either both
-      [kind] and [length], or just [size_in_bytes]. See
+      [kind] and [length], or just [size_in_bytes]. [dst_offset] and [src_offset] are device-side
+      byte offsets into [dst] and [src] respectively (default 0), letting either end target a
+      sub-region of a larger allocation. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g39ea09ba682b8eccc9c3e0c04319b5c8}
        cuMemcpyDtoDAsync}. *)
 
