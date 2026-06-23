@@ -277,6 +277,76 @@ let test_region_kernel_launch () =
     (if !ok then "PASS" else "FAIL");
   Deviceptr.mem_free slab
 
+(* Complements [test_region_memset] (sync, d8): exercises the *asynchronous*
+   [Stream.memset_d32 ?offset] path, which AC 4 covers but the sync test does not. *)
+let test_region_memset_async () =
+  Printf.printf "\n=== Region (Offset) Async Memset Tests ===\n";
+  let total = 256 (* uint32 elements *) in
+  let off_elems = 64 in
+  let off_bytes = off_elems * 4 in
+  let region_len = 64 in
+  let stream = Stream.create () in
+  let dptr = Deviceptr.mem_alloc ~size_in_bytes:(total * 4) in
+  (* Sentinel-fill the whole allocation with 0xFFFFFFFF, then zero a non-zero-offset sub-region. *)
+  Stream.memset_d32 dptr (Unsigned.UInt32.of_int32 (-1l)) ~length:total stream;
+  Stream.memset_d32 ~offset:off_bytes dptr (Unsigned.UInt32.of_int 0) ~length:region_len stream;
+  Stream.synchronize stream;
+  let host = Bigarray.Array1.create Bigarray.Int32 Bigarray.C_layout total in
+  Bigarray.Array1.fill host 0x5A5A5A5Al;
+  Deviceptr.memcpy_D_to_H ~dst:(Bigarray.genarray_of_array1 host) ~src:dptr ();
+  let region_ok = ref true in
+  let neighbours_ok = ref true in
+  for i = 0 to total - 1 do
+    if i >= off_elems && i < off_elems + region_len then (
+      if host.{i} <> 0l then region_ok := false)
+    else if host.{i} <> -1l then neighbours_ok := false
+  done;
+  Printf.printf "Async non-zero-offset memset_d32 targets correct sub-region: %s\n"
+    (if !region_ok then "PASS" else "FAIL");
+  Printf.printf "Neighbouring bytes untouched (async offset memset): %s\n"
+    (if !neighbours_ok then "PASS" else "FAIL");
+  Deviceptr.mem_free dptr
+
+(* AC 5: byte offsets on [memcpy_peer]. The proposal's build host is single-GPU, so we copy with the
+   current context as both ends (peer-to-self) -- the byte-offset arithmetic under test is identical
+   to the cross-device case. (cuMemcpyPeer accepts identical src/dst contexts on this host.) *)
+let test_region_peer_copy () =
+  Printf.printf "\n=== Region Peer-Copy Offset Tests ===\n";
+  let ctx = Context.get_current () in
+  let total = 256 (* int32 elements *) in
+  let len = 64 in
+  let src_off_elems = 64 in
+  let dst_off_elems = 128 in
+  let payload = Bigarray.Array1.create Bigarray.Int32 Bigarray.C_layout len in
+  for i = 0 to len - 1 do
+    payload.{i} <- Int32.of_int ((i + 1) * 7)
+  done;
+  let src = Deviceptr.mem_alloc ~size_in_bytes:(total * 4) in
+  let dst = Deviceptr.mem_alloc ~size_in_bytes:(total * 4) in
+  Deviceptr.memset_d32 src (Unsigned.UInt32.of_int 0) ~length:total;
+  Deviceptr.memset_d32 dst (Unsigned.UInt32.of_int32 (-1l)) ~length:total;
+  (* Stage the payload at the source's non-zero byte offset, then peer-copy it to a *different*
+     non-zero offset in [dst]. *)
+  Deviceptr.memcpy_H_to_D ~length:len ~dst_offset:(src_off_elems * 4) ~dst:src
+    ~src:(Bigarray.genarray_of_array1 payload) ();
+  Deviceptr.memcpy_peer ~kind:Bigarray.Int32 ~length:len ~src_offset:(src_off_elems * 4)
+    ~dst_offset:(dst_off_elems * 4) ~dst ~dst_ctx:ctx ~src ~src_ctx:ctx ();
+  let host = Bigarray.Array1.create Bigarray.Int32 Bigarray.C_layout total in
+  Bigarray.Array1.fill host 0x5A5A5A5Al;
+  Deviceptr.memcpy_D_to_H ~dst:(Bigarray.genarray_of_array1 host) ~src:dst ();
+  let region_ok = ref true in
+  let neighbours_ok = ref true in
+  for i = 0 to total - 1 do
+    if i >= dst_off_elems && i < dst_off_elems + len then (
+      if host.{i} <> payload.{i - dst_off_elems} then region_ok := false)
+    else if host.{i} <> -1l then neighbours_ok := false
+  done;
+  Printf.printf "Peer copy between non-zero offsets: %s\n" (if !region_ok then "PASS" else "FAIL");
+  Printf.printf "Neighbouring bytes untouched (peer copy offset): %s\n"
+    (if !neighbours_ok then "PASS" else "FAIL");
+  Deviceptr.mem_free src;
+  Deviceptr.mem_free dst
+
 let test_memory_set_operations () =
   Printf.printf "\n=== Memory Set Operations Tests ===\n";
   
@@ -342,7 +412,9 @@ let run_tests () =
     test_device_to_device_transfers ();
     test_device_offset_transfers ();
     test_region_memset ();
+    test_region_memset_async ();
     test_region_kernel_launch ();
+    test_region_peer_copy ();
     test_memory_set_operations ();
     test_pointer_utilities ();
     
