@@ -26,6 +26,9 @@
 
 ### Fixed
 
+- `Stream.destroy` now synchronizes before releasing `args_lifetimes`: `cuStreamDestroy`
+  returns immediately when work is pending, so without the synchronize call the GC could
+  `cuMemFree` a `Tensor`/`Tensor_at` base allocation while the queued kernel still ran.
 - `Device.computemode` now includes an `UNCATEGORIZED of int64` constructor so
   that unknown or legacy compute-mode values (e.g. value 1, the removed
   `CU_COMPUTEMODE_EXCLUSIVE`) are surfaced gracefully instead of raising

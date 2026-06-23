@@ -1969,6 +1969,10 @@ module Stream = struct
   let get_total_live_streams () = Atomic.get total_live_streams
 
   let destroy stream =
+    (* cuStreamDestroy returns immediately when work is pending, so args_lifetimes must
+       stay alive until all queued GPU work completes. Synchronize first, then release. *)
+    (try check "cu_stream_synchronize" @@ Cuda.cu_stream_synchronize stream.stream
+     with Cuda_error _ -> ());
     release_stream stream;
     Atomic.decr total_live_streams;
     check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream
