@@ -25,6 +25,11 @@ Partial data integrity verification: FAIL
 Device to device transfer: PASS
 Device to device data integrity: PASS
 
+=== Device-Side Offset Transfer Tests ===
+Host-to-device at non-zero device offset: PASS
+Neighbouring bytes untouched (H-to-D offset): PASS
+Device-to-device between non-zero offsets: PASS
+
 === Memory Set Operations Tests ===
 Memory set 8-bit: PASS
 Memory set 16-bit: PASS
