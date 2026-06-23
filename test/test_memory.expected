@@ -30,6 +30,12 @@ Host-to-device at non-zero device offset: PASS
 Neighbouring bytes untouched (H-to-D offset): PASS
 Device-to-device between non-zero offsets: PASS
 
+=== Region (Offset) Memset Tests ===
+Non-zero-offset memset_d8 targets correct sub-region: PASS
+
+=== Region (Tensor_at) Kernel Launch Tests ===
+Kernel launch via Tensor_at writes correct sub-region: PASS
+
 === Memory Set Operations Tests ===
 Memory set 8-bit: PASS
 Memory set 16-bit: PASS
