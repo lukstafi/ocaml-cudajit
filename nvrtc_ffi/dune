@@ -35,7 +35,11 @@
      -L
      %{read:../src/cuda-path.txt}/lib/x64)))
   (headers
-   (include "nvrtc.h"))
+   ; nvrtcCompileProgram takes (const char * const *) options; ctypes generates
+   ; a (char **) argument, which gcc >= 14 rejects as an incompatible pointer
+   ; type. The shim performs the const-adding cast in one place.
+   (preamble
+    "#include \"nvrtc.h\"\nstatic inline nvrtcResult cudajit_nvrtcCompileProgram_compat(nvrtcProgram prog, int numOptions, char **options) {\n  return nvrtcCompileProgram(prog, numOptions, (const char * const *)options);\n}"))
   (type_description
    (instance Types)
    (functor Bindings_types))
