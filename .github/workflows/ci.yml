@@ -16,7 +16,7 @@ jobs:
           - os: windows-latest
             packages: '["nvrtc", "nvrtc_dev", "cudart"]'
         ocaml-compiler:
-          - "4.13"
+          - "4.14"
           - "5.0"
           - "5.3"
     runs-on: ${{ matrix.os }}
