@@ -1832,7 +1832,9 @@ module Module = struct
        (CUDA_ERROR_UNSUPPORTED_PTX_VERSION): e.g. nvrtc 13.3 emits [.version 9.3], which a CUDA
        13.0 driver does not accept. Kernels rarely use ISA features newer than what they were
        compiled for, so retry with the [.version M.m] header downgraded in place (digit for digit
-       — the buffer length never changes) before giving up. *)
+       — the buffer length never changes) before giving up. On success the buffer keeps the
+       version that loaded; on any failure the original header is restored so callers see the
+       PTX exactly as nvrtc produced it. *)
     let version_field_offset () =
       let limit = min ptx.Nvrtc.ptx_length 512 in
       let key = ".version " in
@@ -1857,6 +1859,10 @@ module Module = struct
             let major = digit off and minor = digit (off + 2) in
             if major < 7 || major > 9 || minor < 0 || minor > 9 then raise exn
             else
+              let restore () =
+                set off major;
+                set (off + 2) minor
+              in
               let candidates =
                 List.concat_map
                   (fun mj ->
@@ -1865,13 +1871,18 @@ module Module = struct
                   (List.init (major - 6) (fun i -> major - i))
               in
               let rec attempt = function
-                | [] -> raise exn
+                | [] ->
+                    restore ();
+                    raise exn
                 | (mj, mn) :: rest -> (
                     set off mj;
                     set (off + 2) mn;
-                    try load ()
-                    with Cuda_error { status = CUDA_ERROR_UNSUPPORTED_PTX_VERSION; _ } ->
-                      attempt rest)
+                    try load () with
+                    | Cuda_error { status = CUDA_ERROR_UNSUPPORTED_PTX_VERSION; _ } ->
+                        attempt rest
+                    | e ->
+                        restore ();
+                        raise e)
               in
               attempt candidates)
     in
