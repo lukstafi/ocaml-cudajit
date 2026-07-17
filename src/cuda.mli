@@ -299,7 +299,9 @@ module Context : sig
 
       The context value is finalized using
       {{:https://developer.download.nvidia.com/compute/DevZone/docs/html/C/doc/html/group__CUDA__CTX_g27a365aebb0eb548166309f58a1e8b8e.html}
-       ctxDestroy}. *)
+       ctxDestroy}. Streams, events, modules and device memory created while this context is
+      current retain the context value, so it is not finalized (and the CUDA context not
+      destroyed) while any of them is still alive. *)
 
   val get_flags : unit -> flags
   (** See
@@ -630,7 +632,8 @@ module Module : sig
       temporarily push it on the stack for unloading. *)
 
   val get_function : t -> name:string -> func
-  (** See
+  (** The returned function retains the module, so the module is not finalized (unloaded) while
+      the function is still in use. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1ga52be009b0d4045811b30c965e1cb2cf}
        cuModuleGetFunction}. *)
 

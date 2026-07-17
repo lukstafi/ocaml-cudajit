@@ -41,6 +41,19 @@ Resource cycle 5
 Cycle 5 completed
 Resource lifecycle test completed
 
+=== Context Finalizer Ordering Test ===
+Ordering cycle 1
+Ordering cycle 1 completed
+Ordering cycle 2
+Ordering cycle 2 completed
+Ordering cycle 3
+Ordering cycle 3 completed
+Ordering cycle 4
+Ordering cycle 4 completed
+Ordering cycle 5
+Ordering cycle 5 completed
+Context finalizer ordering test completed
+
 === Error Handling Test ===
 Correctly handled huge allocation error: cu_mem_alloc
 Correctly handled invalid kernel error: nvrtc_compile_program invalid: invalid(1): error: identifier "invalid" is undefined

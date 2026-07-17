@@ -350,6 +350,58 @@ let test_resource_lifecycle () =
   ) else
     Printf.printf "No devices available for resource lifecycle testing\n"
 
+let test_context_finalizer_ordering () =
+  Printf.printf "\n=== Context Finalizer Ordering Test ===\n";
+
+  let device_count = Device.get_count () in
+  if device_count > 0 then (
+    let device = Device.get ~ordinal:0 in
+
+    for cycle = 1 to 5 do
+      Printf.printf "Ordering cycle %d\n%!" cycle;
+
+      (* Deliberately drop the context binding right away: live streams and events must retain
+         their owning context, otherwise the GC may run cuCtxDestroy while they are still in
+         use and their operations/finalizers then fail or crash on invalidated handles. *)
+      Context.set_current (Context.create [Context.SCHED_AUTO] device);
+
+      let streams = Array.init 4 (fun _ -> Stream.create ()) in
+      let dptrs = Array.map (fun stream ->
+        Stream.mem_alloc stream ~size_in_bytes:(1024 * 4)
+      ) streams in
+
+      Array.iteri (fun i stream ->
+        Stream.memset_d32 dptrs.(i) (Unsigned.UInt32.of_int (i * 0x11111111)) ~length:1024 stream
+      ) streams;
+
+      let events = Array.map (fun stream ->
+        let event = Event.create ~enable_timing:true () in
+        Event.record event stream;
+        event
+      ) streams in
+
+      (* The context value is unreachable here, but the streams and events above are live:
+         they must keep the context from being finalized. *)
+      Gc.full_major ();
+
+      Array.iter Event.synchronize events;
+
+      Array.iteri (fun i stream ->
+        Stream.mem_free stream dptrs.(i);
+        Stream.synchronize stream
+      ) streams;
+
+      (* Now the cycle's streams, events and context all become garbage together; finalizers
+         must run in dependency order: streams and events before cuCtxDestroy. *)
+      Gc.full_major ();
+      Printf.printf "Ordering cycle %d completed\n%!" cycle
+    done;
+
+    Gc.full_major ();
+    Printf.printf "Context finalizer ordering test completed\n%!"
+  ) else
+    Printf.printf "No devices available for finalizer ordering testing\n"
+
 let test_error_handling () =
   Printf.printf "\n=== Error Handling Test ===\n";
   
@@ -401,6 +453,7 @@ let run_tests () =
   test_event_driven_workflow ();
   test_reduction_workflow ();
   test_resource_lifecycle ();
+  test_context_finalizer_ordering ();
   test_error_handling ();
   
   Printf.printf "\nIntegration Tests Completed\n"
