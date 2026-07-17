@@ -54,6 +54,9 @@ Ordering cycle 5
 Ordering cycle 5 completed
 Context finalizer ordering test completed
 
+=== Primary Context Retention Test ===
+Primary context retention test completed
+
 === Error Handling Test ===
 Correctly handled huge allocation error: cu_mem_alloc
 Correctly handled invalid kernel error: nvrtc_compile_program invalid: invalid(1): error: identifier "invalid" is undefined

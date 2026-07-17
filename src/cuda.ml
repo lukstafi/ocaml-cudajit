@@ -1297,9 +1297,13 @@ let keep_alive_current_context () : cu_context option =
   let open Ctypes in
   let ctx = allocate_n cu_context ~count:1 in
   if is_success @@ Cuda.cu_ctx_get_current ctx then
-    match List.assoc_opt (raw_address_of_ptr @@ to_voidp !@ctx) (Atomic.get live_contexts) with
-    | Some weak -> Weak.get weak 0
-    | None -> None
+    let key = raw_address_of_ptr @@ to_voidp !@ctx in
+    (* The same address can be registered more than once (e.g. two [Context.get_primary] calls for
+       the same device), so skip entries whose weak pointer has been cleared: a dead newer wrapper
+       must not shadow a live older one. *)
+    List.find_map
+      (fun (k, weak) -> if Nativeint.equal k key then Weak.get weak 0 else None)
+      (Atomic.get live_contexts)
   else None
 
 module Context = struct
@@ -1679,6 +1683,7 @@ module Module = struct
         (* Retains the module that owns [func], so [cuModuleUnload] cannot run while the function
            is still in use (issue #13). The module's finalizer in turn retains the context. *)
   }
+  [@@warning "-69" (* [keep_module_alive] is never read: it exists only for retention. *)]
 
   type jit_target =
     | COMPUTE_30
@@ -2049,9 +2054,8 @@ module Stream = struct
           if (not e.is_released) && query_event e.event then unf + 1 else unf ))
       (0, 0, 0) stream.owned_events
 
-  let launch_kernel { Module.func; keep_module_alive = _ } ~grid_dim_x ?(grid_dim_y = 1)
-      ?(grid_dim_z = 1) ~block_dim_x ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream
-      kernel_params =
+  let launch_kernel kernel ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
+      ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
     let orig_params = kernel_params in
     let i2u = Unsigned.UInt.of_int in
     let open Ctypes in
@@ -2076,12 +2080,15 @@ module Stream = struct
     in
     let c_kernel_params = c_params |> CArray.of_list (p void) in
     check "cu_launch_kernel"
-    @@ Cuda.cu_launch_kernel func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z)
+    @@ Cuda.cu_launch_kernel kernel.Module.func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z)
          (i2u block_dim_x) (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream.stream
          (CArray.start c_kernel_params)
     @@ coerce (p void) (p @@ ptr void) null;
+    (* Remembering [kernel] keeps the module (via [keep_module_alive]) from being unloaded both
+       during this call -- destructuring the record earlier would let the GC collect it while
+       [c_params] is being allocated -- and while the launched kernel is still queued. *)
     stream.args_lifetimes <-
-      Remember (orig_params, c_params, c_kernel_params) :: stream.args_lifetimes
+      Remember (kernel, orig_params, c_params, c_kernel_params) :: stream.args_lifetimes
 
   type attach_mem = GLOBAL | HOST | SINGLE_stream
 

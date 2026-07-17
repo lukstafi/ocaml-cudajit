@@ -402,6 +402,36 @@ let test_context_finalizer_ordering () =
   ) else
     Printf.printf "No devices available for finalizer ordering testing\n"
 
+let test_primary_context_retention () =
+  Printf.printf "\n=== Primary Context Retention Test ===\n";
+
+  let device_count = Device.get_count () in
+  if device_count > 0 then (
+    let device = Device.get ~ordinal:0 in
+    (* Registers the same raw context address twice; the second wrapper becomes garbage right
+       away, leaving a cleared entry in the context registry. The stream created afterwards must
+       still find and retain the first (live) wrapper. *)
+    let make_stream () =
+      let keep = Context.get_primary device in
+      Context.set_current keep;
+      ignore (Sys.opaque_identity (Context.get_primary device));
+      Gc.full_major ();
+      let stream = Stream.create () in
+      ignore (Sys.opaque_identity keep);
+      stream
+    in
+    let stream = make_stream () in
+    (* The primary context wrapper is now reachable only through [stream]'s retention; without
+       it this collection would release the primary context under the stream's feet. *)
+    Gc.full_major ();
+    let dptr = Stream.mem_alloc stream ~size_in_bytes:(1024 * 4) in
+    Stream.memset_d32 dptr (Unsigned.UInt32.of_int 0x11111111) ~length:1024 stream;
+    Stream.mem_free stream dptr;
+    Stream.synchronize stream;
+    Printf.printf "Primary context retention test completed\n%!"
+  ) else
+    Printf.printf "No devices available for primary context retention testing\n"
+
 let test_error_handling () =
   Printf.printf "\n=== Error Handling Test ===\n";
   
@@ -454,6 +484,7 @@ let run_tests () =
   test_reduction_workflow ();
   test_resource_lifecycle ();
   test_context_finalizer_ordering ();
+  test_primary_context_retention ();
   test_error_handling ();
   
   Printf.printf "\nIntegration Tests Completed\n"
