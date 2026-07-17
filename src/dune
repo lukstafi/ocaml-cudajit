@@ -15,8 +15,12 @@
   (= %{os_type} Win32))
  (target cuda-path.txt)
  (deps cuda-original-path.bat)
+ ; The explicit .\ prefix keeps cmd resolving the script from the action's
+ ; working directory even under NoDefaultCurrentDirectoryInExePath=1 (set by
+ ; some hardened shells), where a bare batch-file name is not looked up in
+ ; the current directory.
  (action
-  (run cmd "/C" cuda-original-path.bat)))
+  (run cmd "/C" ".\\cuda-original-path.bat")))
 
 (rule
  (enabled_if
