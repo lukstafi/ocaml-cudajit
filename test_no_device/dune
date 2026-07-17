@@ -9,10 +9,18 @@
  (libraries cudajit.cuda sexplib0)
  (modes native))
 
+; Although test_computemode does not call driver APIs, on Windows merely
+; linking against nvcuda.dll (installed with GPU drivers, not the toolkit)
+; makes the executable fail to start on driverless machines.
 (rule
- (with-stdout-to test_computemode.actual
-  (run ./test_computemode.exe)))
+ (enabled_if
+  (<> %{env:CUDAJIT_NO_GPU=false} true))
+ (action
+  (with-stdout-to test_computemode.actual
+   (run ./test_computemode.exe))))
 
 (rule
  (alias runtest)
+ (enabled_if
+  (<> %{env:CUDAJIT_NO_GPU=false} true))
  (action (diff test_computemode.expected test_computemode.actual)))
