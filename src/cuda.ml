@@ -1820,13 +1820,60 @@ module Module = struct
       check "cu_module_unload" @@ Cuda.cu_module_unload cu_mod;
       ignore (Context.pop_current () : cu_context)
     in
-    let result =
+    let load () =
       check "cu_module_load_data_ex"
       @@ Cuda.cu_module_load_data_ex cu_mod
            (coerce (ptr char) (ptr void) ptx.Nvrtc.ptx)
            n_opts (CArray.start c_options)
       @@ CArray.start c_opts_args;
       !@cu_mod
+    in
+    (* The driver's JIT rejects PTX assembled by an nvrtc newer than the driver
+       (CUDA_ERROR_UNSUPPORTED_PTX_VERSION): e.g. nvrtc 13.3 emits [.version 9.3], which a CUDA
+       13.0 driver does not accept. Kernels rarely use ISA features newer than what they were
+       compiled for, so retry with the [.version M.m] header downgraded in place (digit for digit
+       — the buffer length never changes) before giving up. *)
+    let version_field_offset () =
+      let limit = min ptx.Nvrtc.ptx_length 512 in
+      let key = ".version " in
+      let klen = String.length key in
+      let char_at i = !@(ptx.Nvrtc.ptx +@ i) in
+      let rec matches i j = j >= klen || (char_at (i + j) = key.[j] && matches i (j + 1)) in
+      let rec scan i =
+        if i + klen + 3 > limit then None else if matches i 0 then Some (i + klen) else scan (i + 1)
+      in
+      scan 0
+    in
+    let result =
+      try load ()
+      with Cuda_error { status = CUDA_ERROR_UNSUPPORTED_PTX_VERSION; _ } as exn -> (
+        match version_field_offset () with
+        | None -> raise exn
+        | Some off ->
+            let digit i = Char.code !@(ptx.Nvrtc.ptx +@ i) - Char.code '0' in
+            let set i d = ptx.Nvrtc.ptx +@ i <-@ Char.chr (d + Char.code '0') in
+            (* Single-digit [M.m] fields hold for every PTX ISA 7.x-9.x; anything else is left
+               untouched. *)
+            let major = digit off and minor = digit (off + 2) in
+            if major < 7 || major > 9 || minor < 0 || minor > 9 then raise exn
+            else
+              let candidates =
+                List.concat_map
+                  (fun mj ->
+                    let hi = if mj = major then minor - 1 else 8 in
+                    List.init (max 0 (hi + 1)) (fun i -> (mj, hi - i)))
+                  (List.init (major - 6) (fun i -> major - i))
+              in
+              let rec attempt = function
+                | [] -> raise exn
+                | (mj, mn) :: rest -> (
+                    set off mj;
+                    set (off + 2) mn;
+                    try load ()
+                    with Cuda_error { status = CUDA_ERROR_UNSUPPORTED_PTX_VERSION; _ } ->
+                      attempt rest)
+              in
+              attempt candidates)
     in
     Gc.finalise unload result;
     result
