@@ -123,6 +123,23 @@ let check_freed ~func args =
     (fun (arg, freed) -> if Atomic.get freed then raise @@ Use_after_free { func; arg })
     args
 
+(* Finalizers must never raise: an exception escaping a [Gc.finalise] function surfaces at an
+   arbitrary allocation point. Owner retention (see [register_context]) normally guarantees a child
+   handle is destroyed before its owning context, but at process exit, or when the owner was
+   destroyed out of band, the driver reports one of these statuses -- the handle is already gone,
+   so there is nothing left to release. *)
+let ignore_dead_handle thunk =
+  try thunk ()
+  with
+  | Cuda_error
+      {
+        status =
+          ( CUDA_ERROR_DEINITIALIZED | CUDA_ERROR_INVALID_HANDLE | CUDA_ERROR_INVALID_CONTEXT
+          | CUDA_ERROR_CONTEXT_IS_DESTROYED );
+        _;
+      }
+  -> ()
+
 let init ?(flags = 0) () = check "cu_init" @@ Cuda.cu_init flags
 
 type memptr = Unsigned.uint64
@@ -1192,9 +1209,12 @@ type stream = {
   mutable args_lifetimes : (lifetime list[@sexp.opaque]);
   mutable owned_events : delimited_event list;
   stream : cu_stream;
+  keep_ctx_alive : cu_context option;
+      (* Retains the OCaml value whose finalizer destroys the owning context (see
+         [register_context]), so the context cannot be finalized while this stream is alive. *)
 }
 
-let sexp_of_stream { args_lifetimes = _; owned_events; stream } =
+let sexp_of_stream { args_lifetimes = _; owned_events; stream; keep_ctx_alive = _ } =
   Sexplib0.Sexp.List [
     Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "args_lifetimes"; Sexplib0.Sexp.Atom "<opaque>"];
     Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "owned_events"; sexp_of_list sexp_of_delimited_event owned_events];
@@ -1240,7 +1260,51 @@ let release_stream stream =
   stream.owned_events <- []
 
 let no_stream =
-  { args_lifetimes = []; owned_events = []; stream = Ctypes.(coerce (ptr void) cu_stream null) }
+  {
+    args_lifetimes = [];
+    owned_events = [];
+    stream = Ctypes.(coerce (ptr void) cu_stream null);
+    keep_ctx_alive = None;
+  }
+
+(* Contexts created by this library are destroyed by a [Gc.finalise] finalizer attached to the
+   specific OCaml value returned by [Context.create] / [Context.get_primary]. Dependent resources
+   (streams, events, modules) must keep that exact value reachable: [Gc.finalise] guarantees a
+   value referenced by a live (or not-yet-finalized) value is not finalized before it, so retention
+   ensures [cuCtxDestroy] cannot invalidate child handles that still have their own finalizers
+   pending. [cu_ctx_get_current] only yields a fresh wrapper that does not carry the finalizer, so
+   this registry maps raw context addresses back to the registered values. Entries are weak so the
+   registry itself does not keep contexts alive, and context finalizers never touch the registry
+   (cleared weak pointers are pruned on registration), so they cannot corrupt it by interleaving
+   with an in-progress update. *)
+let live_contexts : (nativeint * cu_context Weak.t) list Atomic.t = Atomic.make []
+
+let register_context (ctx : cu_context) =
+  let key = Ctypes.raw_address_of_ptr @@ Ctypes.to_voidp ctx in
+  let weak = Weak.create 1 in
+  Weak.set weak 0 (Some ctx);
+  let rec loop () =
+    let old_entries = Atomic.get live_contexts in
+    let entries = (key, weak) :: List.filter (fun (_, w) -> Weak.check w 0) old_entries in
+    if not (Atomic.compare_and_set live_contexts old_entries entries) then loop ()
+  in
+  loop ()
+
+(* The OCaml value carrying the current context's finalizer, if the current context was created by
+   this library and that value is still reachable. Returns [None] for externally-created contexts,
+   and when no context is current. *)
+let keep_alive_current_context () : cu_context option =
+  let open Ctypes in
+  let ctx = allocate_n cu_context ~count:1 in
+  if is_success @@ Cuda.cu_ctx_get_current ctx then
+    let key = raw_address_of_ptr @@ to_voidp !@ctx in
+    (* The same address can be registered more than once (e.g. two [Context.get_primary] calls for
+       the same device), so skip entries whose weak pointer has been cleared: a dead newer wrapper
+       must not shadow a live older one. *)
+    List.find_map
+      (fun (k, weak) -> if Nativeint.equal k key then Weak.get weak 0 else None)
+      (Atomic.get live_contexts)
+  else None
 
 module Context = struct
   type t = cu_context
@@ -1298,7 +1362,8 @@ module Context = struct
     let flags = List.fold_left (fun flags flag -> Infix.(flags lor uint_of_flag flag)) zero flags in
     check "cu_ctx_create" @@ Cuda.cu_ctx_create ctx flags device;
     let ctx = !@ctx in
-    Stdlib.Gc.finalise destroy ctx;
+    register_context ctx;
+    Stdlib.Gc.finalise (fun ctx -> ignore_dead_handle @@ fun () -> destroy ctx) ctx;
     ctx
 
   let get_flags () : flags =
@@ -1361,7 +1426,10 @@ module Context = struct
     let ctx = allocate_n cu_context ~count:1 in
     check "cu_device_primary_ctx_retain" @@ Cuda.cu_device_primary_ctx_retain ctx device;
     let ctx = !@ctx in
-    Stdlib.Gc.finalise (fun _ -> Device.primary_ctx_release device) ctx;
+    register_context ctx;
+    Stdlib.Gc.finalise
+      (fun _ -> ignore_dead_handle @@ fun () -> Device.primary_ctx_release device)
+      ctx;
     ctx
 
   let synchronize () =
@@ -1534,7 +1602,14 @@ module Deviceptr = struct
     let deviceptr = allocate_n cu_deviceptr ~count:1 in
     check "cu_mem_alloc" @@ Cuda.cu_mem_alloc deviceptr @@ Unsigned.Size_t.of_int size_in_bytes;
     let result = Deviceptr { ptr = !@deviceptr; freed = Atomic.make false } in
-    Gc.finalise mem_free result;
+    let keep_ctx_alive = keep_alive_current_context () in
+    (* The closure is a GC root until [result] is finalized, so the owning context cannot be
+       destroyed while the allocation is alive. *)
+    Gc.finalise
+      (fun result ->
+        ignore_dead_handle (fun () -> mem_free result);
+        ignore (Sys.opaque_identity keep_ctx_alive))
+      result;
     result
 
   let memcpy_H_to_D_unsafe ~dst:(Deviceptr { ptr = dst; freed }) ~(src : unit Ctypes.ptr)
@@ -1600,8 +1675,15 @@ module Deviceptr = struct
 end
 
 module Module = struct
-  type func = cu_function
   type t = cu_module
+
+  type func = {
+    func : cu_function;
+    keep_module_alive : t;
+        (* Retains the module that owns [func], so [cuModuleUnload] cannot run while the function
+           is still in use (issue #13). The module's finalizer in turn retains the context. *)
+  }
+  [@@warning "-69" (* [keep_module_alive] is never read: it exists only for retention. *)]
 
   type jit_target =
     | COMPUTE_30
@@ -1815,10 +1897,12 @@ module Module = struct
            options
     in
     let context = Context.get_current () in
+    let keep_ctx_alive = keep_alive_current_context () in
     let unload cu_mod =
       Context.push_current context;
       check "cu_module_unload" @@ Cuda.cu_module_unload cu_mod;
-      ignore (Context.pop_current () : cu_context)
+      ignore (Context.pop_current () : cu_context);
+      ignore (Sys.opaque_identity keep_ctx_alive)
     in
     let load () =
       check "cu_module_load_data_ex"
@@ -1886,14 +1970,16 @@ module Module = struct
               in
               attempt candidates)
     in
-    Gc.finalise unload result;
+    (* [unload] captures [keep_ctx_alive] and is a GC root until [result] is finalized, so the
+       owning context cannot be destroyed while the module is alive. *)
+    Gc.finalise (fun result -> ignore_dead_handle @@ fun () -> unload result) result;
     result
 
   let get_function module_ ~name =
     let open Ctypes in
     let func = allocate_n cu_function ~count:1 in
     check "cu_module_get_function" @@ Cuda.cu_module_get_function func module_ name;
-    !@func
+    { func = !@func; keep_module_alive = module_ }
 
   let get_global module_ ~name =
     let open Ctypes in
@@ -1918,7 +2004,8 @@ module Stream = struct
     check "cu_mem_alloc_async"
     @@ Cuda.cu_mem_alloc_async deviceptr (Unsigned.Size_t.of_int size_in_bytes) stream.stream;
     let result = Deviceptr { ptr = !@deviceptr; freed = Atomic.make false } in
-    Gc.finalise (mem_free stream) result;
+    (* The closure retains [stream], which retains the owning context. *)
+    Gc.finalise (fun result -> ignore_dead_handle @@ fun () -> mem_free stream result) result;
     result
 
   let memcpy_H_to_D_unsafe ~dst:(Deviceptr { ptr = dst; freed }) ~(src : unit Ctypes.ptr)
@@ -1967,7 +2054,7 @@ module Stream = struct
           if (not e.is_released) && query_event e.event then unf + 1 else unf ))
       (0, 0, 0) stream.owned_events
 
-  let launch_kernel func ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
+  let launch_kernel kernel ~grid_dim_x ?(grid_dim_y = 1) ?(grid_dim_z = 1) ~block_dim_x
       ?(block_dim_y = 1) ?(block_dim_z = 1) ~shared_mem_bytes stream kernel_params =
     let orig_params = kernel_params in
     let i2u = Unsigned.UInt.of_int in
@@ -1993,12 +2080,15 @@ module Stream = struct
     in
     let c_kernel_params = c_params |> CArray.of_list (p void) in
     check "cu_launch_kernel"
-    @@ Cuda.cu_launch_kernel func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z)
+    @@ Cuda.cu_launch_kernel kernel.Module.func (i2u grid_dim_x) (i2u grid_dim_y) (i2u grid_dim_z)
          (i2u block_dim_x) (i2u block_dim_y) (i2u block_dim_z) (i2u shared_mem_bytes) stream.stream
          (CArray.start c_kernel_params)
     @@ coerce (p void) (p @@ ptr void) null;
+    (* Remembering [kernel] keeps the module (via [keep_module_alive]) from being unloaded both
+       during this call -- destructuring the record earlier would let the GC collect it while
+       [c_params] is being allocated -- and while the launched kernel is still queued. *)
     stream.args_lifetimes <-
-      Remember (orig_params, c_params, c_kernel_params) :: stream.args_lifetimes
+      Remember (kernel, orig_params, c_params, c_kernel_params) :: stream.args_lifetimes
 
   type attach_mem = GLOBAL | HOST | SINGLE_stream
 
@@ -2030,12 +2120,14 @@ module Stream = struct
   let get_total_live_streams () = Atomic.get total_live_streams
 
   let destroy stream =
+    (* Decrement first: when the finalizer swallows a dead-handle error raised below, the stream
+       is gone regardless and must not stay counted as live. *)
+    Atomic.decr total_live_streams;
     (* cuStreamDestroy returns immediately when work is pending, so args_lifetimes must
        stay alive until all queued GPU work completes. Synchronize first, then release. *)
     (try check "cu_stream_synchronize" @@ Cuda.cu_stream_synchronize stream.stream
      with Cuda_error _ -> ());
     release_stream stream;
-    Atomic.decr total_live_streams;
     check "cu_stream_destroy" @@ Cuda.cu_stream_destroy stream.stream
 
   let create ?(non_blocking = false) ?(lower_priority = 0) () =
@@ -2046,8 +2138,15 @@ module Stream = struct
     @@ Cuda.cu_stream_create_with_priority stream
          (uint_of_cu_stream_flags ~non_blocking)
          lower_priority;
-    let stream = { args_lifetimes = []; owned_events = []; stream = !@stream } in
-    Stdlib.Gc.finalise destroy stream;
+    let stream =
+      {
+        args_lifetimes = [];
+        owned_events = [];
+        stream = !@stream;
+        keep_ctx_alive = keep_alive_current_context ();
+      }
+    in
+    Stdlib.Gc.finalise (fun stream -> ignore_dead_handle @@ fun () -> destroy stream) stream;
     stream
 
   let get_context = get_stream_context
@@ -2154,7 +2253,14 @@ module Event = struct
 
   let create ?blocking_sync ?enable_timing ?interprocess () =
     let event = create_event ?blocking_sync ?enable_timing ?interprocess () in
-    Gc.finalise destroy event;
+    let keep_ctx_alive = keep_alive_current_context () in
+    (* The closure is a GC root until [event] is finalized, so the owning context cannot be
+       destroyed while the event is alive. *)
+    Gc.finalise
+      (fun event ->
+        ignore_dead_handle (fun () -> destroy event);
+        ignore (Sys.opaque_identity keep_ctx_alive))
+      event;
     event
 
   let elapsed_time ~start ~end_ =
