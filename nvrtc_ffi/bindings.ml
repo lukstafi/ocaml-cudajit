@@ -21,8 +21,10 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let nvrtc_destroy_program =
     F.foreign "nvrtcDestroyProgram" F.(ptr nvrtc_program @-> returning E.nvrtc_result)
 
+  (* Bound through the compat shim in the ctypes preamble (see nvrtc_ffi/dune): the header wants
+     const-of-const char pointers for options and gcc >= 14 rejects the generated argument type. *)
   let nvrtc_compile_program =
-    F.foreign "nvrtcCompileProgram"
+    F.foreign "cudajit_nvrtcCompileProgram_compat"
       F.(nvrtc_program @-> int @-> ptr (ptr char) @-> returning E.nvrtc_result)
 
   let nvrtc_get_PTX_size =
