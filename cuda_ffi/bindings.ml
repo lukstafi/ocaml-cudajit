@@ -8,8 +8,12 @@ module Functions (F : Ctypes.FOREIGN) = struct
   let cu_device_get_count = F.foreign "cuDeviceGetCount" F.(ptr int @-> returning E.cu_result)
   let cu_device_get = F.foreign "cuDeviceGet" F.(ptr E.cu_device @-> int @-> returning E.cu_result)
 
+  (* Bound through the compat shim in the ctypes preamble (see cuda_ffi/dune): CUDA 13 changed
+     cuCtxCreate's arity, the shim keeps the classic (pctx, flags, dev) signature on every
+     toolkit. *)
   let cu_ctx_create =
-    F.foreign "cuCtxCreate" F.(ptr cu_context @-> uint @-> E.cu_device @-> returning E.cu_result)
+    F.foreign "cudajit_cuCtxCreate_compat"
+      F.(ptr cu_context @-> uint @-> E.cu_device @-> returning E.cu_result)
 
   let cu_ctx_get_flags = F.foreign "cuCtxGetFlags" F.(ptr uint @-> returning E.cu_result)
 

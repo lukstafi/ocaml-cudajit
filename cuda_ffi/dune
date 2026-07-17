@@ -14,6 +14,62 @@
    cuda-lib.txt
    (echo "cuda.lib"))))
 
+; CUDA >= 13 ships a cuda.lib that is not a plain import library: it embeds an
+; MSVC-compiled driver-loader object carrying /DEFAULTLIB:"uuid.lib",
+; /DEFAULTLIB:"LIBCMT" and /DEFAULTLIB:"OLDNAMES" directives. flexlink honors
+; the directives and fails on a MinGW port ("Cannot find file uuid.lib"). The
+; loader object itself links fine under MinGW (its only unresolved CRT symbol
+; is the _fltused marker, provided in the ctypes preamble below), so satisfy
+; the directives with empty archives placed, like the cuda_path_link junction,
+; under %LOCALAPPDATA%. The extra -L search path is written to
+; cuda-compat-libs.txt ("." where nothing is needed).
+(rule
+ (target empty-archive.lib)
+ (action
+  (with-stdout-to
+   empty-archive.lib
+   (echo "!<arch>\n"))))
+
+(rule
+ (enabled_if
+  (<> %{os_type} Win32))
+ (action
+  (with-stdout-to
+   cuda-compat-libs.txt
+   (echo "."))))
+
+(rule
+ (enabled_if
+  (and
+   (= %{os_type} Win32)
+   (= %{ocaml-config:ccomp_type} msvc)))
+ (action
+  (with-stdout-to
+   cuda-compat-libs.txt
+   (echo "."))))
+
+(rule
+ (enabled_if
+  (and
+   (= %{os_type} Win32)
+   (<> %{ocaml-config:ccomp_type} msvc)))
+ (target cuda-compat-libs.bat)
+ (action
+  (with-stdout-to
+   cuda-compat-libs.bat
+   (echo
+    "if not exist %LOCALAPPDATA%\\cudajit_link_compat mkdir %LOCALAPPDATA%\\cudajit_link_compat\r\ncopy /Y empty-archive.lib %LOCALAPPDATA%\\cudajit_link_compat\\uuid.lib > NUL\r\ncopy /Y empty-archive.lib %LOCALAPPDATA%\\cudajit_link_compat\\LIBCMT.lib > NUL\r\ncopy /Y empty-archive.lib %LOCALAPPDATA%\\cudajit_link_compat\\OLDNAMES.lib > NUL\r\necho | set /p=\"%LOCALAPPDATA:\\=/%/cudajit_link_compat\" > .\\cuda-compat-libs.txt\r\nexit /b 0"))))
+
+(rule
+ (enabled_if
+  (and
+   (= %{os_type} Win32)
+   (<> %{ocaml-config:ccomp_type} msvc)))
+ (target cuda-compat-libs.txt)
+ (deps cuda-compat-libs.bat empty-archive.lib)
+ (action
+  (run cmd "/C" ".\\cuda-compat-libs.bat")))
+
 (library
  (public_name cudajit.cuda_ffi)
  (name cuda_ffi)
@@ -34,9 +90,16 @@
      -L
      %{read:../src/cuda-path.txt}/lib64
      -L
-     %{read:../src/cuda-path.txt}/lib/x64)))
+     %{read:../src/cuda-path.txt}/lib/x64
+     -L
+     %{read:cuda-compat-libs.txt})))
   (headers
-   (include "cuda.h"))
+   ; CUDA 13 renamed cuCtxCreate to a 4-argument cuCtxCreate_v4 (an extra
+   ; CUctxCreateParams* before the flags), and the classic 3-argument
+   ; cuCtxCreate_v2 declaration is guarded behind __CUDA_API_VERSION_INTERNAL,
+   ; so bind through a compat shim that keeps one arity across toolkits.
+   (preamble
+    "#include \"cuda.h\"\n#if defined(__MINGW32__)\nint _fltused = 1;\n#endif\nstatic inline CUresult cudajit_cuCtxCreate_compat(CUcontext *pctx, unsigned int flags, CUdevice dev) {\n#if defined(CUDA_VERSION) && CUDA_VERSION >= 13000\n  return cuCtxCreate(pctx, (CUctxCreateParams *)0, flags, dev);\n#else\n  return cuCtxCreate(pctx, flags, dev);\n#endif\n}"))
   (type_description
    (instance Types)
    (functor Bindings_types))
