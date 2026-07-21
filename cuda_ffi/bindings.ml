@@ -180,7 +180,7 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "cuStreamGetCtx" F.(cu_stream @-> ptr cu_context @-> returning E.cu_result)
 
   let cu_stream_get_id =
-    F.foreign "cuStreamGetId" F.(cu_stream @-> ptr uint64_t @-> returning E.cu_result)
+    F.foreign "cuStreamGetId" F.(cu_stream @-> ptr ullong @-> returning E.cu_result)
 
   let cu_stream_query = F.foreign "cuStreamQuery" F.(cu_stream @-> returning E.cu_result)
 

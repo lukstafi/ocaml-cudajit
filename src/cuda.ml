@@ -2153,9 +2153,9 @@ module Stream = struct
 
   let get_id stream =
     let open Ctypes in
-    let id = allocate uint64_t Unsigned.UInt64.zero in
+    let id = allocate ullong Unsigned.ULLong.zero in
     check "cu_stream_get_id" @@ Cuda.cu_stream_get_id stream.stream id;
-    !@id
+    Unsigned.UInt64.of_int64 @@ Unsigned.ULLong.to_int64 !@id
 
   let is_ready stream =
     match Cuda.cu_stream_query stream.stream with

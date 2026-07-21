@@ -16,7 +16,16 @@ let () =
   let num_blocks = 32 in
   let num_threads = 128 in
   let module Cu = Cuda in
-  Cu.cuda_call_hook := Some (fun ~message ~status:_ -> Printf.printf "%s\n" message);
+  (* [Module.load_data_ex] retries [cu_module_load_data_ex] when the driver rejects the PTX
+     version emitted by a newer nvrtc, so the number of consecutive calls is machine-dependent —
+     collapse the repeats to keep the trace stable. *)
+  let last_message = ref "" in
+  Cu.cuda_call_hook :=
+    Some
+      (fun ~message ~status:_ ->
+        if not (String.equal message "cu_module_load_data_ex" && String.equal !last_message message)
+        then Printf.printf "%s\n" message;
+        last_message := message);
   let prog =
     Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
       ~with_debug:true

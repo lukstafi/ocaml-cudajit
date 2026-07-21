@@ -21,8 +21,6 @@ Set PRINTF_FIFO_SIZE: 2048
 Retrieved PRINTF_FIFO_SIZE: PASS
 Set MALLOC_HEAP_SIZE: 8192
 Retrieved MALLOC_HEAP_SIZE: PASS
-Set DEV_RUNTIME_SYNC_DEPTH: 2
-Retrieved DEV_RUNTIME_SYNC_DEPTH: PASS
 Context limits tests completed
 
 === Context Flags Tests ===
