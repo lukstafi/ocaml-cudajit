@@ -68,7 +68,8 @@ let test_context_limits () =
       Context.STACK_SIZE;
       Context.PRINTF_FIFO_SIZE;
       Context.MALLOC_HEAP_SIZE;
-      Context.DEV_RUNTIME_SYNC_DEPTH;
+      (* DEV_RUNTIME_SYNC_DEPTH omitted: setting it fails on CUDA 12+ drivers, which removed
+         device-side synchronization. *)
     ] in
     
     List.iter (fun limit ->
@@ -78,7 +79,6 @@ let test_context_limits () =
         | Context.STACK_SIZE -> 2048
         | Context.PRINTF_FIFO_SIZE -> 2048
         | Context.MALLOC_HEAP_SIZE -> 8192
-        | Context.DEV_RUNTIME_SYNC_DEPTH -> 2
         | _ -> 1024
         in
         

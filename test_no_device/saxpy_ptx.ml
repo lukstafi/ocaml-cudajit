@@ -12,9 +12,11 @@ extern "C" __global__ void saxpy(float a, float *x, float *y, float *out, size_t
 }
 |}
 
+(* The GPU architecture is pinned because the default arch determines instruction selection (e.g.
+   native f16 arithmetic needs sm_53+), and the default differs across nvrtc versions. *)
 let compilation () =
   let prog =
-    Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math" ]
+    Nvrtc.compile_to_ptx ~cu_src:kernel ~name:"saxpy" ~options:[ "--use_fast_math"; "--gpu-architecture=compute_75" ]
       ~with_debug:true
   in
   (match Nvrtc.compilation_log prog with
@@ -46,7 +48,7 @@ let kernel_half_prec =
 
 let half_precision_compilation () =
   let prog =
-    Nvrtc.compile_to_ptx ~cu_src:kernel_half_prec ~name:"saxpy_half" ~options:[ "--use_fast_math" ]
+    Nvrtc.compile_to_ptx ~cu_src:kernel_half_prec ~name:"saxpy_half" ~options:[ "--use_fast_math"; "--gpu-architecture=compute_75" ]
       ~with_debug:true
   in
   (match Nvrtc.compilation_log prog with

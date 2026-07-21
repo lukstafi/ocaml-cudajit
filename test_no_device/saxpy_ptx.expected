@@ -84,7 +84,6 @@ NNN
 {
 	.reg .pred 	%p<2>;
 	.reg .b16 	%rs<8>;
-	.reg .f32 	%f<7>;
 	.reg .b32 	%r<5>;
 	.reg .b64 	%rd<13>;
 
@@ -105,39 +104,21 @@ NNN
 	cvta.to.global.u64 	%rd6, %rd2;
 	shl.b64 	%rd7, %rd1, 1;
 	add.s64 	%rd8, %rd6, %rd7;
-	ld.global.u16 	%rs3, [%rd8];
+	ld.global.u16 	%rs4, [%rd8];
 	// begin inline asm
-	{  cvt.f32.f16 %f1, %rs1;}
-
-	// end inline asm
-	// begin inline asm
-	{  cvt.f32.f16 %f2, %rs3;}
-
-	// end inline asm
-	mul.ftz.f32 	%f3, %f1, %f2;
-	// begin inline asm
-	{  cvt.rn.f16.f32 %rs4, %f3;}
-
+	{mul.f16 %rs2,%rs1,%rs4;
+}
 	// end inline asm
 	cvta.to.global.u64 	%rd9, %rd3;
 	add.s64 	%rd10, %rd9, %rd7;
-	ld.global.u16 	%rs6, [%rd10];
+	ld.global.u16 	%rs7, [%rd10];
 	// begin inline asm
-	{  cvt.f32.f16 %f4, %rs4;}
-
-	// end inline asm
-	// begin inline asm
-	{  cvt.f32.f16 %f5, %rs6;}
-
-	// end inline asm
-	add.ftz.f32 	%f6, %f4, %f5;
-	// begin inline asm
-	{  cvt.rn.f16.f32 %rs7, %f6;}
-
+	{add.f16 %rs5,%rs2,%rs7;
+}
 	// end inline asm
 	cvta.to.global.u64 	%rd11, %rd4;
 	add.s64 	%rd12, %rd11, %rd7;
-	st.global.u16 	[%rd12], %rs7;
+	st.global.u16 	[%rd12], %rs5;
 
 $L__BB0_2:
 	ret;
