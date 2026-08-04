@@ -1212,9 +1212,14 @@ type stream = {
   keep_ctx_alive : cu_context option;
       (* Retains the OCaml value whose finalizer destroys the owning context (see
          [register_context]), so the context cannot be finalized while this stream is alive. *)
+  mutable capture_baseline : (lifetime list[@sexp.opaque]) option;
+      (* The [args_lifetimes] value snapshotted by [Graph.begin_capture]: records consed on since
+         then are the operations captured into the graph, and [Graph.end_capture] moves their
+         retention onto the graph value (a stream synchronize must not release resources a graph
+         replay still needs). *)
 }
 
-let sexp_of_stream { args_lifetimes = _; owned_events; stream; keep_ctx_alive = _ } =
+let sexp_of_stream { args_lifetimes = _; owned_events; stream; keep_ctx_alive = _; capture_baseline = _ } =
   Sexplib0.Sexp.List [
     Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "args_lifetimes"; Sexplib0.Sexp.Atom "<opaque>"];
     Sexplib0.Sexp.List [Sexplib0.Sexp.Atom "owned_events"; sexp_of_list sexp_of_delimited_event owned_events];
@@ -1265,6 +1270,7 @@ let no_stream =
     owned_events = [];
     stream = Ctypes.(coerce (ptr void) cu_stream null);
     keep_ctx_alive = None;
+    capture_baseline = None;
   }
 
 (* Contexts created by this library are destroyed by a [Gc.finalise] finalizer attached to the
@@ -2144,6 +2150,7 @@ module Stream = struct
         owned_events = [];
         stream = !@stream;
         keep_ctx_alive = keep_alive_current_context ();
+        capture_baseline = None;
       }
     in
     Stdlib.Gc.finalise (fun stream -> ignore_dead_handle @@ fun () -> destroy stream) stream;
@@ -2315,20 +2322,31 @@ module Delimited_event = struct
 end
 
 module Graph = struct
-  type t = Graph of { graph : cu_graph; destroyed : atomic_bool }
-  type exec = Exec of { exec : cu_graph_exec; destroyed : atomic_bool }
+  type t =
+    | Graph of {
+        graph : cu_graph;
+        destroyed : atomic_bool;
+        captured_lifetimes : lifetime list;
+            (* The [args_lifetimes] records of the operations captured into this graph (kernels
+               retaining their modules, kernel parameters, device pointers): graph nodes reference
+               them on every replay, so their retention moves from the capture stream — where a
+               synchronize would release them — onto the graph and, via [instantiate], onto the
+               executable graph. *)
+      }
+
+  type exec = Exec of { exec : cu_graph_exec; destroyed : atomic_bool; captured_lifetimes : lifetime list }
 
   let sexp_of_cu_graph (graph : cu_graph) = sexp_of_voidp @@ Ctypes.to_voidp graph
   let sexp_of_cu_graph_exec (exec : cu_graph_exec) = sexp_of_voidp @@ Ctypes.to_voidp exec
 
-  let sexp_of_t (Graph { graph; destroyed }) =
+  let sexp_of_t (Graph { graph; destroyed; captured_lifetimes = _ }) =
     Sexplib0.Sexp.List
       [
         Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "graph"; sexp_of_cu_graph graph ];
         Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "destroyed"; sexp_of_atomic_bool destroyed ];
       ]
 
-  let sexp_of_exec (Exec { exec; destroyed }) =
+  let sexp_of_exec (Exec { exec; destroyed; captured_lifetimes = _ }) =
     Sexplib0.Sexp.List
       [
         Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "exec"; sexp_of_cu_graph_exec exec ];
@@ -2349,17 +2367,32 @@ module Graph = struct
 
   let begin_capture ?(mode = GLOBAL) stream =
     check "cu_stream_begin_capture"
-    @@ Cuda.cu_stream_begin_capture stream.stream (cu_of_capture_mode mode)
+    @@ Cuda.cu_stream_begin_capture stream.stream (cu_of_capture_mode mode);
+    stream.capture_baseline <- Some stream.args_lifetimes
 
-  let destroy (Graph { graph; destroyed }) =
+  let destroy (Graph { graph; destroyed; captured_lifetimes = _ }) =
     if Atomic.compare_and_set destroyed false true then
       check "cu_graph_destroy" @@ Cuda.cu_graph_destroy graph
 
+  (* The records consed onto [args_lifetimes] since the [baseline] snapshot: the operations
+     captured between [begin_capture] and [end_capture]. *)
+  let rec lifetimes_since baseline l =
+    if l == baseline then [] else match l with [] -> [] | r :: tl -> r :: lifetimes_since baseline tl
+
   let end_capture stream =
     let open Ctypes in
+    let baseline = match stream.capture_baseline with Some b -> b | None -> [] in
+    stream.capture_baseline <- None;
     let graph = allocate_n cu_graph ~count:1 in
     check "cu_stream_end_capture" @@ Cuda.cu_stream_end_capture stream.stream graph;
-    let result = Graph { graph = !@graph; destroyed = Atomic.make false } in
+    let result =
+      Graph
+        {
+          graph = !@graph;
+          destroyed = Atomic.make false;
+          captured_lifetimes = lifetimes_since baseline stream.args_lifetimes;
+        }
+    in
     let keep_ctx_alive = keep_alive_current_context () in
     (* The closure is a GC root until [result] is finalized, so the owning context cannot be
        destroyed while the graph is alive. *)
@@ -2370,17 +2403,17 @@ module Graph = struct
       result;
     result
 
-  let exec_destroy (Exec { exec; destroyed }) =
+  let exec_destroy (Exec { exec; destroyed; captured_lifetimes = _ }) =
     if Atomic.compare_and_set destroyed false true then
       check "cu_graph_exec_destroy" @@ Cuda.cu_graph_exec_destroy exec
 
-  let instantiate (Graph { graph; destroyed }) =
+  let instantiate (Graph { graph; destroyed; captured_lifetimes }) =
     check_freed ~func:"Graph.instantiate" [ ("graph", destroyed) ];
     let open Ctypes in
     let exec = allocate_n cu_graph_exec ~count:1 in
     check "cu_graph_instantiate_with_flags"
     @@ Cuda.cu_graph_instantiate_with_flags exec graph Unsigned.ULLong.zero;
-    let result = Exec { exec = !@exec; destroyed = Atomic.make false } in
+    let result = Exec { exec = !@exec; destroyed = Atomic.make false; captured_lifetimes } in
     let keep_ctx_alive = keep_alive_current_context () in
     Gc.finalise
       (fun exec ->
@@ -2389,7 +2422,11 @@ module Graph = struct
       result;
     result
 
-  let launch (Exec { exec; destroyed }) stream =
+  let launch (Exec { exec; destroyed; captured_lifetimes = _ } as exec_value) stream =
     check_freed ~func:"Graph.launch" [ ("exec", destroyed) ];
-    check "cu_graph_launch" @@ Cuda.cu_graph_launch exec stream.stream
+    check "cu_graph_launch" @@ Cuda.cu_graph_launch exec stream.stream;
+    (* Retaining [exec_value] until the stream synchronizes (mirroring [Stream.launch_kernel]'s
+       argument retention) keeps the GC finalizer from destroying the executable graph — and,
+       through it, the captured operations' resources — while the launch is still pending. *)
+    stream.args_lifetimes <- Remember exec_value :: stream.args_lifetimes
 end

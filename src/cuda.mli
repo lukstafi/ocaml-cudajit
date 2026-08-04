@@ -956,11 +956,14 @@ end
      Graph Management}. *)
 module Graph : sig
   type t
-  (** A graph under construction (a template of work, not yet executable). See
+  (** A graph under construction (a template of work, not yet executable). The graph value retains
+      the OCaml-side resources of the operations captured into it (kernels — and through them
+      their modules — kernel parameters, device pointers), so a {!Stream.synchronize} of the
+      capture stream cannot free resources a replay still needs. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html} CUgraph}. *)
 
   type exec
-  (** An instantiated, executable graph. See
+  (** An instantiated, executable graph; retains the captured operations' resources like {!t}. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html} CUgraphExec}. *)
 
   val sexp_of_t : t -> Sexplib0.Sexp.t
@@ -1000,7 +1003,10 @@ module Graph : sig
        cuGraphInstantiate}. *)
 
   val launch : exec -> Stream.t -> unit
-  (** Enqueues the whole captured work sequence on the stream, as one API call. See
+  (** Enqueues the whole captured work sequence on the stream, as one API call. The stream retains
+      the exec until it is synchronized (mirroring {!Stream.launch_kernel}'s argument retention),
+      so dropping the last reference to a launched exec cannot destroy it while the launch is
+      pending. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH_1g6b2dceb3901e71a390d2bd8b0491e471}
        cuGraphLaunch}. *)
 

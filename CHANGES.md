@@ -7,7 +7,12 @@
   graph instead of executing it; `Graph.instantiate` builds an executable graph
   and `Graph.launch` replays the whole captured sequence as one API call.
   Handles are finalized via `cuGraphDestroy` / `cuGraphExecDestroy`, with
-  idempotent eager `Graph.destroy` / `Graph.exec_destroy`. New FFI bindings:
+  idempotent eager `Graph.destroy` / `Graph.exec_destroy`. Graph and exec
+  values retain the OCaml-side resources of the captured operations (kernels
+  and their modules, kernel parameters, device pointers), and a launched exec
+  is retained by the stream until synchronization — so neither a stream
+  synchronize nor the GC can invalidate resources a replay still needs. New
+  FFI bindings:
   `cuStreamBeginCapture`, `cuStreamEndCapture`, `cuGraphInstantiateWithFlags`,
   `cuGraphLaunch`, `cuGraphDestroy`, `cuGraphExecDestroy`, and the
   `CUstreamCaptureMode` enum.
