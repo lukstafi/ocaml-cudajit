@@ -1,0 +1,3 @@
+after capture, before launch: buf[0] = 0.0
+after two launches: buf[0] = 6.0, buf[127] = 6.0
+done

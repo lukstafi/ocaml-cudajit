@@ -2313,3 +2313,83 @@ module Delimited_event = struct
 
   let is_released event = event.is_released
 end
+
+module Graph = struct
+  type t = Graph of { graph : cu_graph; destroyed : atomic_bool }
+  type exec = Exec of { exec : cu_graph_exec; destroyed : atomic_bool }
+
+  let sexp_of_cu_graph (graph : cu_graph) = sexp_of_voidp @@ Ctypes.to_voidp graph
+  let sexp_of_cu_graph_exec (exec : cu_graph_exec) = sexp_of_voidp @@ Ctypes.to_voidp exec
+
+  let sexp_of_t (Graph { graph; destroyed }) =
+    Sexplib0.Sexp.List
+      [
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "graph"; sexp_of_cu_graph graph ];
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "destroyed"; sexp_of_atomic_bool destroyed ];
+      ]
+
+  let sexp_of_exec (Exec { exec; destroyed }) =
+    Sexplib0.Sexp.List
+      [
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "exec"; sexp_of_cu_graph_exec exec ];
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "destroyed"; sexp_of_atomic_bool destroyed ];
+      ]
+
+  type capture_mode = GLOBAL | THREAD_LOCAL | RELAXED
+
+  let sexp_of_capture_mode = function
+    | GLOBAL -> Sexplib0.Sexp.Atom "GLOBAL"
+    | THREAD_LOCAL -> Sexplib0.Sexp.Atom "THREAD_LOCAL"
+    | RELAXED -> Sexplib0.Sexp.Atom "RELAXED"
+
+  let cu_of_capture_mode = function
+    | GLOBAL -> CU_STREAM_CAPTURE_MODE_GLOBAL
+    | THREAD_LOCAL -> CU_STREAM_CAPTURE_MODE_THREAD_LOCAL
+    | RELAXED -> CU_STREAM_CAPTURE_MODE_RELAXED
+
+  let begin_capture ?(mode = GLOBAL) stream =
+    check "cu_stream_begin_capture"
+    @@ Cuda.cu_stream_begin_capture stream.stream (cu_of_capture_mode mode)
+
+  let destroy (Graph { graph; destroyed }) =
+    if Atomic.compare_and_set destroyed false true then
+      check "cu_graph_destroy" @@ Cuda.cu_graph_destroy graph
+
+  let end_capture stream =
+    let open Ctypes in
+    let graph = allocate_n cu_graph ~count:1 in
+    check "cu_stream_end_capture" @@ Cuda.cu_stream_end_capture stream.stream graph;
+    let result = Graph { graph = !@graph; destroyed = Atomic.make false } in
+    let keep_ctx_alive = keep_alive_current_context () in
+    (* The closure is a GC root until [result] is finalized, so the owning context cannot be
+       destroyed while the graph is alive. *)
+    Gc.finalise
+      (fun graph ->
+        ignore_dead_handle (fun () -> destroy graph);
+        ignore (Sys.opaque_identity keep_ctx_alive))
+      result;
+    result
+
+  let exec_destroy (Exec { exec; destroyed }) =
+    if Atomic.compare_and_set destroyed false true then
+      check "cu_graph_exec_destroy" @@ Cuda.cu_graph_exec_destroy exec
+
+  let instantiate (Graph { graph; destroyed }) =
+    check_freed ~func:"Graph.instantiate" [ ("graph", destroyed) ];
+    let open Ctypes in
+    let exec = allocate_n cu_graph_exec ~count:1 in
+    check "cu_graph_instantiate_with_flags"
+    @@ Cuda.cu_graph_instantiate_with_flags exec graph Unsigned.ULLong.zero;
+    let result = Exec { exec = !@exec; destroyed = Atomic.make false } in
+    let keep_ctx_alive = keep_alive_current_context () in
+    Gc.finalise
+      (fun exec ->
+        ignore_dead_handle (fun () -> exec_destroy exec);
+        ignore (Sys.opaque_identity keep_ctx_alive))
+      result;
+    result
+
+  let launch (Exec { exec; destroyed }) stream =
+    check_freed ~func:"Graph.launch" [ ("exec", destroyed) ];
+    check "cu_graph_launch" @@ Cuda.cu_graph_launch exec stream.stream
+end

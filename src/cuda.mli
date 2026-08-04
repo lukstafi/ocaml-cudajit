@@ -949,3 +949,65 @@ module Delimited_event : sig
   val wait : ?external_:bool -> Stream.t -> t -> unit
   (** See {!Event.wait}. [wait stream event] is a no-op if [event] is already released. *)
 end
+
+(** CUDA graphs: capture a sequence of stream operations once, then replay it with a single launch
+    call. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH}
+     Graph Management}. *)
+module Graph : sig
+  type t
+  (** A graph under construction (a template of work, not yet executable). See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html} CUgraph}. *)
+
+  type exec
+  (** An instantiated, executable graph. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html} CUgraphExec}. *)
+
+  val sexp_of_t : t -> Sexplib0.Sexp.t
+  val sexp_of_exec : exec -> Sexplib0.Sexp.t
+
+  type capture_mode = GLOBAL | THREAD_LOCAL | RELAXED
+  (** See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g4687a37c1c157c94d3a2ee16fde49c9c}
+       CUstreamCaptureMode}. [GLOBAL] (the CUDA default) invalidates the capture on potentially
+      unsafe API calls from any thread; [THREAD_LOCAL] restricts that to the capturing thread;
+      [RELAXED] imposes no cross-thread restrictions. *)
+
+  val sexp_of_capture_mode : capture_mode -> Sexplib0.Sexp.t
+
+  val begin_capture : ?mode:capture_mode -> Stream.t -> unit
+  (** Starts capturing work submitted to the stream instead of executing it. [mode] defaults to
+      [GLOBAL]. Between [begin_capture] and {!end_capture}, operations enqueued on the stream (e.g.
+      {!Stream.launch_kernel}) are recorded as graph nodes, not run. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1gac495e0527d1dd6437f95ee482f61865}
+       cuStreamBeginCapture}. *)
+
+  val end_capture : Stream.t -> t
+  (** Ends the capture begun by {!begin_capture} and returns the captured graph. Raises
+      [Cuda_error] if the capture was invalidated. The graph value is finalized using
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH_1g718cfd9681f078693d4be2426fd689c8}
+       cuGraphDestroy}; it can also be released eagerly with {!destroy}. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g03dab8b2ba76b00718955177a929970c}
+       cuStreamEndCapture}. *)
+
+  val instantiate : t -> exec
+  (** Creates an executable graph from a captured graph; the template can be destroyed afterwards.
+      The exec value is finalized using
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH_1ga32ad4944cc5d408158207c978bc43a7}
+       cuGraphExecDestroy}; it can also be released eagerly with {!exec_destroy}, but only once no
+      launch of it is pending (synchronize the stream first). See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH_1gb53b435e178cccfa37ac87285d2c3fa1}
+       cuGraphInstantiate}. *)
+
+  val launch : exec -> Stream.t -> unit
+  (** Enqueues the whole captured work sequence on the stream, as one API call. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html#group__CUDA__GRAPH_1g6b2dceb3901e71a390d2bd8b0491e471}
+       cuGraphLaunch}. *)
+
+  val destroy : t -> unit
+  (** Eagerly destroys the graph template. Idempotent; the finalizer covers the non-eager case. *)
+
+  val exec_destroy : exec -> unit
+  (** Eagerly destroys the executable graph. Idempotent; the finalizer covers the non-eager case.
+  *)
+end

@@ -318,6 +318,16 @@ type cu_event = cu_event_t structure ptr
 
 let cu_event : cu_event typ = typedef (ptr @@ structure "CUevent_st") "CUevent"
 
+type cu_graph_t
+type cu_graph = cu_graph_t structure ptr
+
+let cu_graph : cu_graph typ = typedef (ptr @@ structure "CUgraph_st") "CUgraph"
+
+type cu_graph_exec_t
+type cu_graph_exec = cu_graph_exec_t structure ptr
+
+let cu_graph_exec : cu_graph_exec typ = typedef (ptr @@ structure "CUgraphExec_st") "CUgraphExec"
+
 type cu_jit_target =
   | CU_TARGET_COMPUTE_30
   | CU_TARGET_COMPUTE_32
@@ -541,6 +551,12 @@ type cu_stream_flags =
   | CU_STREAM_DEFAULT
   | CU_STREAM_NON_BLOCKING
   | CU_STREAM_FLAGS_UNCATEGORIZED of int64
+
+type cu_stream_capture_mode =
+  | CU_STREAM_CAPTURE_MODE_GLOBAL
+  | CU_STREAM_CAPTURE_MODE_THREAD_LOCAL
+  | CU_STREAM_CAPTURE_MODE_RELAXED
+  | CU_STREAM_CAPTURE_MODE_UNCATEGORIZED of int64
 
 module Types (T : Ctypes.TYPE) = struct
   let cu_device_v1 = T.typedef T.int "CUdevice_v1"
@@ -1694,4 +1710,21 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_event_wait_external = T.constant "CU_EVENT_WAIT_EXTERNAL" T.int64_t
   let cu_event_record_default = T.constant "CU_EVENT_RECORD_DEFAULT" T.int64_t
   let cu_event_record_external = T.constant "CU_EVENT_RECORD_EXTERNAL" T.int64_t
+
+  let cu_stream_capture_mode_global = T.constant "CU_STREAM_CAPTURE_MODE_GLOBAL" T.int64_t
+
+  let cu_stream_capture_mode_thread_local =
+    T.constant "CU_STREAM_CAPTURE_MODE_THREAD_LOCAL" T.int64_t
+
+  let cu_stream_capture_mode_relaxed = T.constant "CU_STREAM_CAPTURE_MODE_RELAXED" T.int64_t
+
+  let cu_stream_capture_mode =
+    T.enum ~typedef:true
+      ~unexpected:(fun error_code -> CU_STREAM_CAPTURE_MODE_UNCATEGORIZED error_code)
+      "CUstreamCaptureMode"
+      [
+        (CU_STREAM_CAPTURE_MODE_GLOBAL, cu_stream_capture_mode_global);
+        (CU_STREAM_CAPTURE_MODE_THREAD_LOCAL, cu_stream_capture_mode_thread_local);
+        (CU_STREAM_CAPTURE_MODE_RELAXED, cu_stream_capture_mode_relaxed);
+      ]
 end

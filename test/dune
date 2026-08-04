@@ -6,6 +6,7 @@
   test_memory
   test_streams
   test_events
+  test_graphs
   test_integration)
  (libraries dynlink cudajit.cuda cudajit.nvrtc sexplib0)
  (modes native)
