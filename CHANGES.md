@@ -2,6 +2,16 @@
 
 ### Added
 
+- `Graph` module: CUDA graph capture and replay. `Graph.begin_capture` /
+  `Graph.end_capture` record the work submitted to a (non-default) stream as a
+  graph instead of executing it; `Graph.instantiate` builds an executable graph
+  and `Graph.launch` replays the whole captured sequence as one API call.
+  Handles are finalized via `cuGraphDestroy` / `cuGraphExecDestroy`, with
+  idempotent eager `Graph.destroy` / `Graph.exec_destroy`. New FFI bindings:
+  `cuStreamBeginCapture`, `cuStreamEndCapture`, `cuGraphInstantiateWithFlags`,
+  `cuGraphLaunch`, `cuGraphDestroy`, `cuGraphExecDestroy`, and the
+  `CUstreamCaptureMode` enum.
+
 - `Deviceptr.region`: a non-owning "allocated pointer + offset" device-region
   view. It is a borrow — it carries no finalizer and never frees the allocation;
   only the base `Deviceptr.t` does. Constructed via `Deviceptr.offset ptr

@@ -203,4 +203,25 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let cu_stream_wait_event =
     F.foreign "cuStreamWaitEvent" F.(cu_stream @-> cu_event @-> uint @-> returning E.cu_result)
+
+  (* Bound by the public macro names so the header picks the versioned symbols (e.g.
+     cuStreamBeginCapture_v2) uniformly across toolkits. *)
+  let cu_stream_begin_capture =
+    F.foreign "cuStreamBeginCapture"
+      F.(cu_stream @-> E.cu_stream_capture_mode @-> returning E.cu_result)
+
+  let cu_stream_end_capture =
+    F.foreign "cuStreamEndCapture" F.(cu_stream @-> ptr cu_graph @-> returning E.cu_result)
+
+  let cu_graph_destroy = F.foreign "cuGraphDestroy" F.(cu_graph @-> returning E.cu_result)
+
+  let cu_graph_instantiate_with_flags =
+    F.foreign "cuGraphInstantiateWithFlags"
+      F.(ptr cu_graph_exec @-> cu_graph @-> ullong @-> returning E.cu_result)
+
+  let cu_graph_exec_destroy =
+    F.foreign "cuGraphExecDestroy" F.(cu_graph_exec @-> returning E.cu_result)
+
+  let cu_graph_launch =
+    F.foreign "cuGraphLaunch" F.(cu_graph_exec @-> cu_stream @-> returning E.cu_result)
 end
