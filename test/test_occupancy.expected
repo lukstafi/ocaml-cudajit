@@ -1,0 +1,13 @@
+block_size   32: positive = true, threads within limit = true
+block_size   64: positive = true, threads within limit = true
+block_size  128: positive = true, threads within limit = true
+block_size  256: positive = true, threads within limit = true
+block_size  512: positive = true, threads within limit = true
+block_size 1024: positive = true, threads within limit = true
+non-increasing in block size: true
+within max_blocks_per_multiprocessor: true
+shared memory reduces residency: true
+unlaunchable configurations report 0: true
+grid fills the device: true
+launch at that grid size: first = 6.0, last = 6.0
+done

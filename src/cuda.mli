@@ -641,6 +641,25 @@ module Module : sig
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1gf3e43672e26073b1081476dbf47a86ab}
        cuModuleGetGlobal}. *)
+
+  val max_active_blocks_per_multiprocessor :
+    ?dynamic_smem_bytes:int -> func -> block_size:int -> int
+  (** The maximum number of blocks of [block_size] threads that can be simultaneously resident on
+      one multiprocessor, given the kernel's register and shared memory usage.
+      [dynamic_smem_bytes] (default 0) is the per-block dynamic shared memory the launch would
+      request, i.e. the [shared_mem_bytes] of {!Stream.launch_kernel}. The result is 0 for a
+      configuration that cannot be launched at all -- one asking for more shared memory or more
+      threads per block than the device provides -- rather than an error.
+
+      The theoretical occupancy of such a launch -- the fraction of a multiprocessor's warp slots
+      that are filled -- is [float (result * warps_per_block) /. float max_warps], where
+      [warps_per_block = (block_size + device_props.warp_size - 1) / device_props.warp_size] and
+      [max_warps = device_props.max_threads_per_multiprocessor / device_props.warp_size]. The
+      hardware allocates whole warps, so a block of 33 threads takes two warp slots rather than 33
+      thread slots; the two formulations coincide when [block_size] is a multiple of the warp size.
+      [result * device_props.multiprocessor_count] blocks are enough to fill the whole device. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__OCCUPANCY.html#group__CUDA__OCCUPANCY_1gcc6e1094d05cba2cee17fe33ddd04a98}
+       cuOccupancyMaxActiveBlocksPerMultiprocessor}. *)
 end
 
 (** CUDA streams are independent FIFO schedules for CUDA tasks, allowing them to potentially run in
