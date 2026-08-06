@@ -641,15 +641,9 @@ module Module : sig
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1gf3e43672e26073b1081476dbf47a86ab}
        cuModuleGetGlobal}. *)
-end
 
-(** Reasoning about how many blocks of a kernel can be resident on a multiprocessor, to pick launch
-    configurations. See:
-    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__OCCUPANCY.html#group__CUDA__OCCUPANCY}
-     Occupancy}. *)
-module Occupancy : sig
   val max_active_blocks_per_multiprocessor :
-    ?dynamic_smem_bytes:int -> Module.func -> block_size:int -> int
+    ?dynamic_smem_bytes:int -> func -> block_size:int -> int
   (** The maximum number of blocks of [block_size] threads that can be simultaneously resident on
       one multiprocessor, given the kernel's register and shared memory usage.
       [dynamic_smem_bytes] (default 0) is the per-block dynamic shared memory the launch would

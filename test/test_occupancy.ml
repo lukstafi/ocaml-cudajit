@@ -34,7 +34,7 @@ let () =
     let module_ = Cu.Module.load_data_ex prog [] in
     let func = Cu.Module.get_function module_ ~name:"scale" in
     let occupancy ?dynamic_smem_bytes block_size =
-      Cu.Occupancy.max_active_blocks_per_multiprocessor ?dynamic_smem_bytes func ~block_size
+      Cu.Module.max_active_blocks_per_multiprocessor ?dynamic_smem_bytes func ~block_size
     in
     let block_sizes = [ 32; 64; 128; 256; 512; 1024 ] in
     let blocks = List.map (fun block_size -> (block_size, occupancy block_size)) block_sizes in

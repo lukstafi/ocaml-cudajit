@@ -2,7 +2,7 @@
 
 ### Added
 
-- `Occupancy.max_active_blocks_per_multiprocessor`: how many blocks of a given
+- `Module.max_active_blocks_per_multiprocessor`: how many blocks of a given
   block size can be simultaneously resident on a multiprocessor, given the
   kernel's register and shared memory usage (and the dynamic shared memory the
   launch would request). Multiplied by `multiprocessor_count` it gives the grid
