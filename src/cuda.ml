@@ -1995,6 +1995,19 @@ module Module = struct
     (Deviceptr { ptr = !@devptr; freed = Atomic.make false }, !@size_in_bytes)
 end
 
+module Occupancy = struct
+  let max_active_blocks_per_multiprocessor ?(dynamic_smem_bytes = 0) kernel ~block_size =
+    let open Ctypes in
+    let num_blocks = allocate int 0 in
+    check "cu_occupancy_max_active_blocks_per_multiprocessor"
+    @@ Cuda.cu_occupancy_max_active_blocks_per_multiprocessor num_blocks kernel.Module.func
+         block_size (Unsigned.Size_t.of_int dynamic_smem_bytes);
+    (* Keeps [kernel] -- and via it the module -- alive across the call, so the module cannot be
+       unloaded while the driver is inspecting the function. *)
+    ignore (Sys.opaque_identity kernel);
+    !@num_blocks
+end
+
 module Stream = struct
   type t = stream
 

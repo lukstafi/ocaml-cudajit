@@ -1,6 +1,15 @@
-## [Unreleased]
+## [0.8.0] 2026-08-06
 
 ### Added
+
+- `Occupancy.max_active_blocks_per_multiprocessor`: how many blocks of a given
+  block size can be simultaneously resident on a multiprocessor, given the
+  kernel's register and shared memory usage (and the dynamic shared memory the
+  launch would request). Multiplied by `multiprocessor_count` it gives the grid
+  size that fills the device; divided into `max_threads_per_multiprocessor` it
+  gives the theoretical occupancy of a launch. Unlaunchable configurations
+  report 0 instead of raising. New FFI binding:
+  `cuOccupancyMaxActiveBlocksPerMultiprocessor`.
 
 - `Graph` module: CUDA graph capture and replay. `Graph.begin_capture` /
   `Graph.end_capture` record the work submitted to a (non-default) stream as a

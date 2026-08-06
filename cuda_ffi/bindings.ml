@@ -44,6 +44,10 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "cuModuleGetFunction"
       F.(ptr cu_function @-> cu_module @-> string @-> returning E.cu_result)
 
+  let cu_occupancy_max_active_blocks_per_multiprocessor =
+    F.foreign "cuOccupancyMaxActiveBlocksPerMultiprocessor"
+      F.(ptr int @-> cu_function @-> int @-> size_t @-> returning E.cu_result)
+
   let cu_mem_alloc =
     F.foreign "cuMemAlloc" F.(ptr cu_deviceptr @-> size_t @-> returning E.cu_result)
 

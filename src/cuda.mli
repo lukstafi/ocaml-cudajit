@@ -643,6 +643,28 @@ module Module : sig
        cuModuleGetGlobal}. *)
 end
 
+(** Reasoning about how many blocks of a kernel can be resident on a multiprocessor, to pick launch
+    configurations. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__OCCUPANCY.html#group__CUDA__OCCUPANCY}
+     Occupancy}. *)
+module Occupancy : sig
+  val max_active_blocks_per_multiprocessor :
+    ?dynamic_smem_bytes:int -> Module.func -> block_size:int -> int
+  (** The maximum number of blocks of [block_size] threads that can be simultaneously resident on
+      one multiprocessor, given the kernel's register and shared memory usage.
+      [dynamic_smem_bytes] (default 0) is the per-block dynamic shared memory the launch would
+      request, i.e. the [shared_mem_bytes] of {!Stream.launch_kernel}. The result is 0 for a
+      configuration that cannot be launched at all -- one asking for more shared memory or more
+      threads per block than the device provides -- rather than an error.
+
+      The theoretical occupancy of such a launch -- the fraction of a multiprocessor's thread slots
+      that are filled -- is
+      [float (result * block_size) /. float device_props.max_threads_per_multiprocessor], and
+      [result * device_props.multiprocessor_count] blocks are enough to fill the whole device. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__OCCUPANCY.html#group__CUDA__OCCUPANCY_1gcc6e1094d05cba2cee17fe33ddd04a98}
+       cuOccupancyMaxActiveBlocksPerMultiprocessor}. *)
+end
+
 (** CUDA streams are independent FIFO schedules for CUDA tasks, allowing them to potentially run in
     parallel. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM}
