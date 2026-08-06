@@ -56,12 +56,18 @@ let () =
     Printf.printf "non-increasing in block size: %b\n" (holds (non_increasing counts));
     Printf.printf "within max_blocks_per_multiprocessor: %b\n"
       (holds (List.for_all (fun n -> n <= props.max_blocks_per_multiprocessor) counts));
-    (* Dynamic shared memory competes with the blocks: asking for a sixteenth of a
-       multiprocessor's shared memory per block caps residency at 16 blocks. *)
-    let smem = props.max_shared_memory_per_multiprocessor / 16 in
-    let with_smem = occupancy ~dynamic_smem_bytes:smem 128 in
-    Printf.printf "shared memory limits residency: %b\n"
-      (holds (with_smem <= 16 && with_smem <= occupancy 128));
+    (* Dynamic shared memory competes with the resident blocks, so the count falls as the request
+       grows. At the largest per-block request the device accepts, the blocks must still be
+       schedulable, must be strictly fewer than with no dynamic shared memory at all, and cannot
+       outnumber what a multiprocessor's shared memory holds at that request. *)
+    let baseline = occupancy 128 in
+    let smem = props.max_shared_memory_per_block in
+    let quarter = occupancy ~dynamic_smem_bytes:(smem / 4) 128 in
+    let full = occupancy ~dynamic_smem_bytes:smem 128 in
+    Printf.printf "shared memory reduces residency: %b\n"
+      (holds
+         (full > 0 && full < baseline && full <= quarter && quarter <= baseline
+         && full <= props.max_shared_memory_per_multiprocessor / smem));
     (* Configurations that cannot be launched at all report 0 rather than raising. *)
     Printf.printf "unlaunchable configurations report 0: %b\n"
       (holds
