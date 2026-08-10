@@ -642,8 +642,21 @@ module Module : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1gf3e43672e26073b1081476dbf47a86ab}
        cuModuleGetGlobal}. *)
 
+  (** How the occupancy calculator handles special cases; the empty flag list is
+      [CU_OCCUPANCY_DEFAULT]. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1g40caa223198d058e073116b6a55eb895}
+       CUoccupancy_flags}. *)
+  type occupancy_flag =
+    | DISABLE_CACHING_OVERRIDE
+        (** On platforms where global caching affects occupancy, the calculator's default behavior
+            is to fall back to computing as if caching were disabled when caching is on but the
+            per-block resource usage would leave zero occupancy. This flag suppresses that
+            fallback, so such a configuration reports 0. *)
+
+  val sexp_of_occupancy_flag : occupancy_flag -> Sexplib0.Sexp.t
+
   val max_active_blocks_per_multiprocessor :
-    ?dynamic_smem_bytes:int -> func -> block_size:int -> int
+    ?dynamic_smem_bytes:int -> ?flags:occupancy_flag list -> func -> block_size:int -> int
   (** The maximum number of blocks of [block_size] threads that can be simultaneously resident on
       one multiprocessor, given the kernel's register and shared memory usage.
       [dynamic_smem_bytes] (default 0) is the per-block dynamic shared memory the launch would
@@ -659,7 +672,41 @@ module Module : sig
       thread slots; the two formulations coincide when [block_size] is a multiple of the warp size.
       [result * device_props.multiprocessor_count] blocks are enough to fill the whole device. See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__OCCUPANCY.html#group__CUDA__OCCUPANCY_1gcc6e1094d05cba2cee17fe33ddd04a98}
-       cuOccupancyMaxActiveBlocksPerMultiprocessor}. *)
+       cuOccupancyMaxActiveBlocksPerMultiprocessor}, and with a non-empty [flags] (default [[]])
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__OCCUPANCY.html#group__CUDA__OCCUPANCY_1g8f1da4d4983e5c3025447665423ae2c2}
+       cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags}. *)
+
+  type suggested_launch_config = {
+    min_grid_size : int;  (** Grid size, in blocks, that achieves the maximum occupancy. *)
+    block_size : int;  (** Block size, in threads, that achieves the maximum occupancy. *)
+  }
+  (** The launch configuration suggested by {!val:suggested_launch_config}. *)
+
+  val sexp_of_suggested_launch_config : suggested_launch_config -> Sexplib0.Sexp.t
+
+  val suggested_launch_config :
+    ?dynamic_smem_bytes:int ->
+    ?block_size_limit:int ->
+    ?flags:occupancy_flag list ->
+    func ->
+    suggested_launch_config
+  (** A block size that achieves the kernel's maximum occupancy -- more precisely, the maximum
+      number of active warps with the fewest blocks per multiprocessor -- together with the
+      minimum grid size that achieves that occupancy. Where
+      {!max_active_blocks_per_multiprocessor} scores a block size you picked, this picks one for
+      you; the two agree in that [max_active_blocks_per_multiprocessor func ~block_size] at the
+      suggested [block_size] times [device_props.multiprocessor_count] is the returned
+      [min_grid_size].
+
+      [dynamic_smem_bytes] (default 0) is a per-block dynamic shared memory request that does not
+      vary with the block size -- the driver also accepts a block-size-to-shared-memory callback,
+      which this binding does not expose. [block_size_limit] (default 0, meaning the maximum the
+      device and the kernel permit) caps the block size considered, for a kernel that is only
+      correct up to some number of threads. Always calls
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__OCCUPANCY.html#group__CUDA__OCCUPANCY_1g04c0bb65630f82d9b99a5ca0203ee5aa}
+       cuOccupancyMaxPotentialBlockSizeWithFlags}, of which
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__OCCUPANCY.html#group__CUDA__OCCUPANCY_1gf179c4ab78962a8468e41c3f57851f03}
+       cuOccupancyMaxPotentialBlockSize} is the empty-[flags] case. *)
 end
 
 (** CUDA streams are independent FIFO schedules for CUDA tasks, allowing them to potentially run in

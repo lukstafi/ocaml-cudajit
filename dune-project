@@ -4,7 +4,7 @@
 
 (name cudajit)
 
-(version 0.8.0)
+(version 0.9.0)
 
 (generate_opam_files true)
 

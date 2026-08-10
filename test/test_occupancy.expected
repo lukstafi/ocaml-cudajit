@@ -8,6 +8,11 @@ non-increasing in block size: true
 within max_blocks_per_multiprocessor: true
 shared memory reduces residency: true
 unlaunchable configurations report 0: true
+disabling the caching override does not raise the count: true
+suggested block size is legal: true
+suggested grid size agrees with the occupancy query: true
+block_size_limit caps the suggestion: true
 grid fills the device: true
 launch at that grid size: first = 6.0, last = 6.0
+launch at the suggested config: first = 6.0, last = 6.0
 done

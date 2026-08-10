@@ -1711,6 +1711,11 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_event_record_default = T.constant "CU_EVENT_RECORD_DEFAULT" T.int64_t
   let cu_event_record_external = T.constant "CU_EVENT_RECORD_EXTERNAL" T.int64_t
 
+  let cu_occupancy_default = T.constant "CU_OCCUPANCY_DEFAULT" T.int64_t
+
+  let cu_occupancy_disable_caching_override =
+    T.constant "CU_OCCUPANCY_DISABLE_CACHING_OVERRIDE" T.int64_t
+
   let cu_stream_capture_mode_global = T.constant "CU_STREAM_CAPTURE_MODE_GLOBAL" T.int64_t
 
   let cu_stream_capture_mode_thread_local =
