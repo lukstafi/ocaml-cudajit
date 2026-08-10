@@ -1994,16 +1994,63 @@ module Module = struct
     check "cu_module_get_global" @@ Cuda.cu_module_get_global devptr size_in_bytes module_ name;
     (Deviceptr { ptr = !@devptr; freed = Atomic.make false }, !@size_in_bytes)
 
-  let max_active_blocks_per_multiprocessor ?(dynamic_smem_bytes = 0) kernel ~block_size =
+  type occupancy_flag = DISABLE_CACHING_OVERRIDE
+
+  let sexp_of_occupancy_flag = function
+    | DISABLE_CACHING_OVERRIDE -> Sexplib0.Sexp.Atom "DISABLE_CACHING_OVERRIDE"
+
+  let uint_of_occupancy_flag = function
+    | DISABLE_CACHING_OVERRIDE ->
+        Unsigned.UInt.of_int64 Cuda_ffi.Types_generated.cu_occupancy_disable_caching_override
+
+  let uint_of_occupancy_flags flags =
+    let open Unsigned.UInt in
+    List.fold_left
+      (fun acc flag -> Infix.(acc lor uint_of_occupancy_flag flag))
+      (of_int64 Cuda_ffi.Types_generated.cu_occupancy_default)
+      flags
+
+  let max_active_blocks_per_multiprocessor ?(dynamic_smem_bytes = 0) ?(flags = []) kernel
+      ~block_size =
     let open Ctypes in
     let num_blocks = allocate int 0 in
-    check "cu_occupancy_max_active_blocks_per_multiprocessor"
-    @@ Cuda.cu_occupancy_max_active_blocks_per_multiprocessor num_blocks kernel.func block_size
-         (Unsigned.Size_t.of_int dynamic_smem_bytes);
+    let dynamic_smem_bytes = Unsigned.Size_t.of_int dynamic_smem_bytes in
+    (* [CU_OCCUPANCY_DEFAULT] is documented to reproduce the flagless entry point exactly, but
+       calling it keeps the no-flags path on the API the driver has always had. *)
+    (match flags with
+    | [] ->
+        check "cu_occupancy_max_active_blocks_per_multiprocessor"
+        @@ Cuda.cu_occupancy_max_active_blocks_per_multiprocessor num_blocks kernel.func block_size
+             dynamic_smem_bytes
+    | flags ->
+        check "cu_occupancy_max_active_blocks_per_multiprocessor_with_flags"
+        @@ Cuda.cu_occupancy_max_active_blocks_per_multiprocessor_with_flags num_blocks kernel.func
+             block_size dynamic_smem_bytes (uint_of_occupancy_flags flags));
     (* Keeps [kernel] -- and via it the module -- alive across the call, so the module cannot be
        unloaded while the driver is inspecting the function. *)
     ignore (Sys.opaque_identity kernel);
     !@num_blocks
+
+  type suggested_launch_config = { min_grid_size : int; block_size : int }
+
+  let sexp_of_suggested_launch_config { min_grid_size; block_size } =
+    Sexplib0.Sexp.List
+      [
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "min_grid_size"; sexp_of_int min_grid_size ];
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "block_size"; sexp_of_int block_size ];
+      ]
+
+  let suggested_launch_config ?(dynamic_smem_bytes = 0) ?(block_size_limit = 0) ?(flags = []) kernel
+      =
+    let open Ctypes in
+    let min_grid_size = allocate int 0 in
+    let block_size = allocate int 0 in
+    check "cu_occupancy_max_potential_block_size"
+    @@ Cuda.cu_occupancy_max_potential_block_size min_grid_size block_size kernel.func
+         (Unsigned.Size_t.of_int dynamic_smem_bytes)
+         block_size_limit (uint_of_occupancy_flags flags);
+    ignore (Sys.opaque_identity kernel);
+    { min_grid_size = !@min_grid_size; block_size = !@block_size }
 end
 
 module Stream = struct

@@ -73,6 +73,31 @@ let () =
       (holds
          (occupancy ~dynamic_smem_bytes:(2 * props.max_shared_memory_per_multiprocessor) 128 = 0
          && occupancy (2 * props.max_threads_per_block) = 0));
+    (* DISABLE_CACHING_OVERRIDE only suppresses a recalculation that raises the reported
+       occupancy, so the flagged count never exceeds the default one. On a device where global
+       caching does not affect occupancy the two coincide. *)
+    let flagged block_size =
+      Cu.Module.max_active_blocks_per_multiprocessor
+        ~flags:[ Cu.Module.DISABLE_CACHING_OVERRIDE ]
+        func ~block_size
+    in
+    Printf.printf "disabling the caching override does not raise the count: %b\n"
+      (holds (List.for_all (fun (block_size, n) -> flagged block_size <= n) blocks));
+    (* The suggested configuration is launchable as-is, and it is consistent with the per-block
+       query: min_grid_size is the residency at the suggested block size, over the whole device. *)
+    let suggested = Cu.Module.suggested_launch_config func in
+    Printf.printf "suggested block size is legal: %b\n"
+      (holds
+         (suggested.block_size > 0
+         && suggested.block_size <= props.max_threads_per_block
+         && suggested.min_grid_size > 0));
+    Printf.printf "suggested grid size agrees with the occupancy query: %b\n"
+      (holds
+         (suggested.min_grid_size = occupancy suggested.block_size * props.multiprocessor_count));
+    (* A block size limit caps the suggestion; a kernel correct only up to N threads asks for it. *)
+    let capped = Cu.Module.suggested_launch_config ~block_size_limit:64 func in
+    Printf.printf "block_size_limit caps the suggestion: %b\n"
+      (holds (capped.block_size > 0 && capped.block_size <= 64));
     (* Full-device grid dimension derived from the occupancy of the launch we actually make. *)
     let block_size = 128 in
     let grid_dim_x = occupancy block_size * props.multiprocessor_count in
@@ -91,6 +116,22 @@ let () =
       (Host.get hBuf [| size - 1 |]);
     (* 2.0 *. 3.0 is exact in binary32, so an equality test is safe here. *)
     ignore (holds (Host.get hBuf [| 0 |] = 6.0 && Host.get hBuf [| size - 1 |] = 6.0) : bool);
+    (* The same launch driven entirely by the suggested configuration. Its shared memory request
+       scales with the block size, which the fixed-size query cannot express; at these sizes the
+       few kilobytes involved are not what limits residency anyway. *)
+    let sug_size = suggested.min_grid_size * suggested.block_size in
+    let hSug = Host.init Bigarray.Float32 Bigarray.C_layout [| sug_size |] (fun _ -> 2.0) in
+    let dSug = Cu.Deviceptr.alloc_and_memcpy hSug in
+    Cu.Stream.launch_kernel func ~grid_dim_x:suggested.min_grid_size
+      ~block_dim_x:suggested.block_size ~shared_mem_bytes:(suggested.block_size * 4)
+      Cu.Stream.no_stream
+      [ Tensor dSug; Single 3.0; Size_t (Unsigned.Size_t.of_int sug_size) ];
+    Cu.Context.synchronize ();
+    Cu.Deviceptr.memcpy_D_to_H ~dst:hSug ~src:dSug ();
+    Printf.printf "launch at the suggested config: first = %.1f, last = %.1f\n"
+      (Host.get hSug [| 0 |])
+      (Host.get hSug [| sug_size - 1 |]);
+    ignore (holds (Host.get hSug [| 0 |] = 6.0 && Host.get hSug [| sug_size - 1 |] = 6.0) : bool);
     ignore (Sys.opaque_identity context);
     Printf.printf "done\n";
     if !failures > 0 then exit 1)

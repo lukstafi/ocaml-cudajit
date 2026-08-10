@@ -94,12 +94,21 @@
      -L
      %{read:cuda-compat-libs.txt})))
   (headers
+   ; Two compat shims live in the preamble.
+   ;
    ; CUDA 13 renamed cuCtxCreate to a 4-argument cuCtxCreate_v4 (an extra
    ; CUctxCreateParams* before the flags), and the classic 3-argument
    ; cuCtxCreate_v2 declaration is guarded behind __CUDA_API_VERSION_INTERNAL,
    ; so bind through a compat shim that keeps one arity across toolkits.
+   ;
+   ; cuOccupancyMaxPotentialBlockSizeWithFlags takes a CUoccupancyB2DSize
+   ; callback (a __stdcall function pointer on Windows) that we do not expose:
+   ; the OCaml API passes a fixed dynamic shared memory size, which is the
+   ; NULL-callback case. Dropping the parameter in a shim keeps the null out of
+   ; the generated stub, where a ctypes void pointer would be an incompatible
+   ; pointer type and a ctypes funptr would carry the wrong calling convention.
    (preamble
-    "#include \"cuda.h\"\n#if defined(__MINGW32__)\nint _fltused = 1;\n#endif\nstatic inline CUresult cudajit_cuCtxCreate_compat(CUcontext *pctx, unsigned int flags, CUdevice dev) {\n#if defined(CUDA_VERSION) && CUDA_VERSION >= 13000\n  return cuCtxCreate(pctx, (CUctxCreateParams *)0, flags, dev);\n#else\n  return cuCtxCreate(pctx, flags, dev);\n#endif\n}"))
+    "#include \"cuda.h\"\n#if defined(__MINGW32__)\nint _fltused = 1;\n#endif\nstatic inline CUresult cudajit_cuCtxCreate_compat(CUcontext *pctx, unsigned int flags, CUdevice dev) {\n#if defined(CUDA_VERSION) && CUDA_VERSION >= 13000\n  return cuCtxCreate(pctx, (CUctxCreateParams *)0, flags, dev);\n#else\n  return cuCtxCreate(pctx, flags, dev);\n#endif\n}\nstatic inline CUresult cudajit_cuOccupancyMaxPotentialBlockSize_compat(int *min_grid_size, int *block_size, CUfunction func, size_t dynamic_smem_bytes, int block_size_limit, unsigned int flags) {\n  return cuOccupancyMaxPotentialBlockSizeWithFlags(min_grid_size, block_size, func, (CUoccupancyB2DSize)0, dynamic_smem_bytes, block_size_limit, flags);\n}"))
   (type_description
    (instance Types)
    (functor Bindings_types))

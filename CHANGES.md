@@ -1,3 +1,25 @@
+## [0.9.0] unreleased
+
+### Added
+
+- `?flags:Module.occupancy_flag list` on
+  `Module.max_active_blocks_per_multiprocessor`. The one flag,
+  `DISABLE_CACHING_OVERRIDE`, suppresses the calculator's default fallback of
+  computing as if global caching were disabled where caching would otherwise
+  leave zero occupancy, so such a configuration reports 0. The empty list
+  (the default) keeps the previous behavior and the previous entry point. New
+  FFI binding: `cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags`.
+
+- `Module.suggested_launch_config`: the block size that achieves a kernel's
+  maximum occupancy, and the minimum grid size that achieves it, as a
+  `{ min_grid_size; block_size }` record. Where
+  `max_active_blocks_per_multiprocessor` scores a block size you picked, this
+  picks one for you. Takes the same `?dynamic_smem_bytes` and `?flags`, plus
+  `?block_size_limit` for a kernel that is only correct up to some number of
+  threads. New FFI binding: `cuOccupancyMaxPotentialBlockSizeWithFlags`, via a
+  preamble shim that drops the `CUoccupancyB2DSize` callback (a
+  block-size-to-shared-memory function, not exposed) and passes NULL for it.
+
 ## [0.8.0] 2026-08-06
 
 ### Added

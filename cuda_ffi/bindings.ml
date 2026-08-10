@@ -48,6 +48,18 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "cuOccupancyMaxActiveBlocksPerMultiprocessor"
       F.(ptr int @-> cu_function @-> int @-> size_t @-> returning E.cu_result)
 
+  let cu_occupancy_max_active_blocks_per_multiprocessor_with_flags =
+    F.foreign "cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags"
+      F.(ptr int @-> cu_function @-> int @-> size_t @-> uint @-> returning E.cu_result)
+
+  (* Bound through the compat shim in the ctypes preamble (see cuda_ffi/dune): the shim drops the
+     CUoccupancyB2DSize callback, passing NULL for it, so the dynamic shared memory size is the
+     fixed one given here. *)
+  let cu_occupancy_max_potential_block_size =
+    F.foreign "cudajit_cuOccupancyMaxPotentialBlockSize_compat"
+      F.(
+        ptr int @-> ptr int @-> cu_function @-> size_t @-> int @-> uint @-> returning E.cu_result)
+
   let cu_mem_alloc =
     F.foreign "cuMemAlloc" F.(ptr cu_deviceptr @-> size_t @-> returning E.cu_result)
 
