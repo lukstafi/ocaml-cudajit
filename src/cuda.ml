@@ -1483,7 +1483,7 @@ module Context = struct
   let get_limit limit =
     let open Ctypes in
     let value = allocate size_t Unsigned.Size_t.zero in
-    check "cu_ctx_set_limit" @@ Cuda.cu_ctx_get_limit value (cu_of_limit limit);
+    check "cu_ctx_get_limit" @@ Cuda.cu_ctx_get_limit value (cu_of_limit limit);
     Unsigned.Size_t.to_int !@value
 end
 
