@@ -1,0 +1,29 @@
+name: base watch
+
+# Gives a red main an owner (lukstafi/ludics-lite#349): when `ci` finishes a push run on main,
+# and daily as a backstop, ludics-lite's reusable base watch reads main's standing CI verdict with
+# `pr-review.sh base` and opens (or extends) one issue per red episode here. Mergers do not watch
+# trailing CI, so without this a red main stays unnamed until the next session trips over it.
+# What the two jobs do and why is in lukstafi/ludics-lite's .github/workflows/base-watch-reusable.yml.
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: '43 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    uses: lukstafi/ludics-lite/.github/workflows/base-watch-reusable.yml@main
+    with:
+      branch: main
+    permissions:
+      contents: read
+      actions: read
+      issues: write
