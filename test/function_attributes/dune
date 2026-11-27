@@ -1,0 +1,6 @@
+(test
+ (name test_function_attributes)
+ (libraries cudajit.cuda cudajit.nvrtc)
+ (modes native)
+ (enabled_if
+  (<> %{env:CUDAJIT_NO_GPU=false} true)))

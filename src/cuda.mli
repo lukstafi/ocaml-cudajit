@@ -637,6 +637,22 @@ module Module : sig
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1ga52be009b0d4045811b30c965e1cb2cf}
        cuModuleGetFunction}. *)
 
+  (** Resource usage and compilation properties of a CUDA function. *)
+  type function_attribute =
+    | MAX_THREADS_PER_BLOCK  (** Maximum threads per block for this function on its device. *)
+    | SHARED_SIZE_BYTES  (** Static shared memory in bytes per block. *)
+    | CONST_SIZE_BYTES  (** User-allocated constant memory in bytes. *)
+    | LOCAL_SIZE_BYTES  (** Local memory in bytes per thread. *)
+    | NUM_REGS  (** Registers per thread. *)
+    | PTX_VERSION  (** PTX virtual architecture, encoded as [10 * major + minor]. *)
+    | BINARY_VERSION  (** Binary architecture, encoded as [10 * major + minor]. *)
+
+  val get_function_attribute : func -> function_attribute -> int
+  (** Query the driver for a property of an already-loaded function. Raises {!Cuda_error} if the
+      driver query fails. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EXEC.html} cuFuncGetAttribute}.
+  *)
+
   val get_global : t -> name:string -> Deviceptr.t * Unsigned.size_t
   (** See
       {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE_1gf3e43672e26073b1081476dbf47a86ab}

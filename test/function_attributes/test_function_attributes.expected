@@ -1,0 +1,2 @@
+static shared bytes = 256
+thread limit respects device and kernel bounds: true
