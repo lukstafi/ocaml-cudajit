@@ -1851,57 +1851,50 @@ module Module = struct
   let load_data_ex ptx options =
     let open Ctypes in
     let cu_mod = allocate_n cu_module ~count:1 in
-    let n_opts = List.length options in
-    let c_options =
-      CArray.of_list Cuda_ffi.Types_generated.cu_jit_option
-      @@ List.concat_map
-           (function
-             | MAX_REGISTERS _ -> [ CU_JIT_MAX_REGISTERS ]
-             | THREADS_PER_BLOCK _ -> [ CU_JIT_THREADS_PER_BLOCK ]
-             | WALL_TIME _ -> [ CU_JIT_WALL_TIME ]
-             | INFO_LOG_BUFFER _ -> [ CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES; CU_JIT_INFO_LOG_BUFFER ]
-             | ERROR_LOG_BUFFER _ -> [ CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES; CU_JIT_ERROR_LOG_BUFFER ]
-             | OPTIMIZATION_LEVEL _ -> [ CU_JIT_OPTIMIZATION_LEVEL ]
-             | TARGET_FROM_CUCONTEXT -> [ CU_JIT_TARGET_FROM_CUCONTEXT ]
-             | TARGET _ -> [ CU_JIT_TARGET ]
-             | FALLBACK_STRATEGY _ -> [ CU_JIT_FALLBACK_STRATEGY ]
-             | GENERATE_DEBUG_INFO _ -> [ CU_JIT_GENERATE_DEBUG_INFO ]
-             | LOG_VERBOSE _ -> [ CU_JIT_LOG_VERBOSE ]
-             | GENERATE_LINE_INFO _ -> [ CU_JIT_GENERATE_LINE_INFO ]
-             | CACHE_MODE _ -> [ CU_JIT_CACHE_MODE ]
-             | POSITION_INDEPENDENT_CODE _ -> [ CU_JIT_POSITION_INDEPENDENT_CODE ])
-           options
+    (* CUDA packs scalar option values into the void* slots. Only buffers and wall time use
+       addresses of backing storage. *)
+    let uint_value u = ptr_of_raw_address (Int64.to_nativeint (Unsigned.UInt.to_int64 u)) in
+    let int_value i = uint_value (Unsigned.UInt.of_int i) in
+    let bool_value b = int_value (Bool.to_int b) in
+    let log_options buffer_key size_key buffer =
+      [
+        (buffer_key, get_ptr_not_managed ~reftyp:void buffer);
+        (size_key, int_value (Bigarray.Array1.size_in_bytes buffer));
+      ]
     in
-    let i2u2vp i = coerce (ptr uint) (ptr void) @@ allocate uint @@ Unsigned.UInt.of_int i in
-    let u2vp u = coerce (ptr uint) (ptr void) @@ allocate uint u in
-    let f2vp f = coerce (ptr float) (ptr void) @@ allocate float f in
-    let i2vp i = coerce (ptr int) (ptr void) @@ allocate int i in
-    let bi2vp b = coerce (ptr int) (ptr void) @@ allocate int (if b then 1 else 0) in
-    let ba2vp b = get_ptr_not_managed ~reftyp:Ctypes_static.void b in
-    let c_opts_args =
-      CArray.of_list (ptr void)
+    let option_keys, option_values =
+      List.split
       @@ List.concat_map
            (function
-             | MAX_REGISTERS v -> [ i2u2vp v ]
-             | THREADS_PER_BLOCK v -> [ i2u2vp v ]
-             | WALL_TIME { milliseconds } -> [ f2vp milliseconds ]
+             | MAX_REGISTERS v -> [ (CU_JIT_MAX_REGISTERS, int_value v) ]
+             | THREADS_PER_BLOCK v -> [ (CU_JIT_THREADS_PER_BLOCK, int_value v) ]
+             | WALL_TIME { milliseconds } ->
+                 [ (CU_JIT_WALL_TIME, to_voidp (allocate float milliseconds)) ]
              | INFO_LOG_BUFFER b ->
-                 let size = u2vp @@ Unsigned.UInt.of_int @@ Bigarray.Array1.size_in_bytes b in
-                 [ size; ba2vp b ]
+                 log_options CU_JIT_INFO_LOG_BUFFER CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES b
              | ERROR_LOG_BUFFER b ->
-                 let size = u2vp @@ Unsigned.UInt.of_int @@ Bigarray.Array1.size_in_bytes b in
-                 [ size; ba2vp b ]
-             | OPTIMIZATION_LEVEL i -> [ i2vp i ]
-             | TARGET_FROM_CUCONTEXT -> [ null ]
-             | TARGET t -> [ u2vp @@ uint_of_cu_jit_target @@ cu_jit_target_of t ]
-             | FALLBACK_STRATEGY t -> [ u2vp @@ uint_of_cu_jit_fallback @@ cu_jit_fallback_of t ]
-             | GENERATE_DEBUG_INFO c -> [ bi2vp c ]
-             | LOG_VERBOSE c -> [ bi2vp c ]
-             | GENERATE_LINE_INFO c -> [ bi2vp c ]
-             | CACHE_MODE t -> [ u2vp @@ uint_of_cu_jit_cache_mode @@ cu_jit_cache_mode_of t ]
-             | POSITION_INDEPENDENT_CODE c -> [ bi2vp c ])
+                 log_options CU_JIT_ERROR_LOG_BUFFER CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES b
+             | OPTIMIZATION_LEVEL i -> [ (CU_JIT_OPTIMIZATION_LEVEL, int_value i) ]
+             | TARGET_FROM_CUCONTEXT -> [ (CU_JIT_TARGET_FROM_CUCONTEXT, null) ]
+             | TARGET t ->
+                 [ (CU_JIT_TARGET, uint_value (uint_of_cu_jit_target (cu_jit_target_of t))) ]
+             | FALLBACK_STRATEGY t ->
+                 [
+                   ( CU_JIT_FALLBACK_STRATEGY,
+                     uint_value (uint_of_cu_jit_fallback (cu_jit_fallback_of t)) );
+                 ]
+             | GENERATE_DEBUG_INFO b -> [ (CU_JIT_GENERATE_DEBUG_INFO, bool_value b) ]
+             | LOG_VERBOSE b -> [ (CU_JIT_LOG_VERBOSE, bool_value b) ]
+             | GENERATE_LINE_INFO b -> [ (CU_JIT_GENERATE_LINE_INFO, bool_value b) ]
+             | CACHE_MODE t ->
+                 [
+                   ( CU_JIT_CACHE_MODE,
+                     uint_value (uint_of_cu_jit_cache_mode (cu_jit_cache_mode_of t)) );
+                 ]
+             | POSITION_INDEPENDENT_CODE b -> [ (CU_JIT_POSITION_INDEPENDENT_CODE, bool_value b) ])
            options
     in
+    let c_options = CArray.of_list Cuda_ffi.Types_generated.cu_jit_option option_keys in
     let context = Context.get_current () in
     let keep_ctx_alive = keep_alive_current_context () in
     let unload cu_mod =
@@ -1911,11 +1904,16 @@ module Module = struct
       ignore (Sys.opaque_identity keep_ctx_alive)
     in
     let load () =
-      check "cu_module_load_data_ex"
-      @@ Cuda.cu_module_load_data_ex cu_mod
-           (coerce (ptr char) (ptr void) ptx.Nvrtc.ptx)
-           n_opts (CArray.start c_options)
-      @@ CArray.start c_opts_args;
+      (* The driver can overwrite in/out slots such as log capacities. Each attempt needs the
+         original values. *)
+      let c_values = CArray.of_list (ptr void) option_values in
+      let status =
+        Cuda.cu_module_load_data_ex cu_mod (to_voidp ptx.Nvrtc.ptx) (CArray.length c_options)
+          (CArray.start c_options) (CArray.start c_values)
+      in
+      (* The value array only contains raw addresses into storage owned by these lists. *)
+      ignore (Sys.opaque_identity (options, option_values));
+      check "cu_module_load_data_ex" status;
       !@cu_mod
     in
     (* The driver's JIT rejects PTX assembled by an nvrtc newer than the driver

@@ -24,6 +24,12 @@
   memory and register usage, and compiled architecture versions.
   New FFI binding: `cuFuncGetAttribute`.
 
+### Fixed
+
+- `Module.load_data_ex` now passes scalar JIT options and log buffer capacities
+  in the format CUDA expects. JIT error buffers can report diagnostics when
+  loading PTX fails.
+
 ## [0.8.0] 2026-08-06
 
 ### Added

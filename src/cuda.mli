@@ -593,11 +593,17 @@ module Module : sig
   type jit_option =
     | MAX_REGISTERS of int  (** Max number of registers that a thread may use. *)
     | THREADS_PER_BLOCK of int
-        (** Specifies minimum number of threads per block to target compilation for or returns the
-            number of threads the compiler actually targeted. Cannot be combined with [TARGET]. *)
-    | WALL_TIME of { milliseconds : float }  (**  *)
+        (** Minimum number of threads per block to target during compilation. Cannot be combined
+            with [TARGET]. *)
+    | WALL_TIME of { milliseconds : float }
+        (** Provides temporary storage for the driver's wall-clock measurement. The measurement is
+            discarded. *)
     | INFO_LOG_BUFFER of bigstring
+        (** Writable buffer for JIT informational messages. Its capacity includes the terminating
+            NUL. *)
     | ERROR_LOG_BUFFER of bigstring
+        (** Writable buffer for JIT error messages, including when the load raises [Cuda_error]. Its
+            capacity includes the terminating NUL. *)
     | OPTIMIZATION_LEVEL of int
         (** 0 to 4, with 4 being the default and highest level of optimizations. *)
     | TARGET_FROM_CUCONTEXT

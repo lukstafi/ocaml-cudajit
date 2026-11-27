@@ -9,7 +9,17 @@
   test_graphs
   test_occupancy
   test_integration)
+ (modules
+  (:standard \ test_jit_options))
  (libraries dynlink cudajit.cuda cudajit.nvrtc sexplib0)
+ (modes native)
+ (enabled_if
+  (<> %{env:CUDAJIT_NO_GPU=false} true)))
+
+(test
+ (name test_jit_options)
+ (modules test_jit_options)
+ (libraries cudajit.cuda cudajit.nvrtc ctypes sexplib0)
  (modes native)
  (enabled_if
   (<> %{env:CUDAJIT_NO_GPU=false} true)))

@@ -1,0 +1,2 @@
+valid PTX loads with error-only and paired log buffers: true
+invalid PTX error log names the rejected instruction: true
