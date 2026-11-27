@@ -1777,28 +1777,42 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_STREAM_CAPTURE_MODE_RELAXED, cu_stream_capture_mode_relaxed);
       ]
 
+  let cu_mempool_attr_release_threshold = T.constant "CU_MEMPOOL_ATTR_RELEASE_THRESHOLD" T.int64_t
+
+  let cu_mempool_attr_reserved_mem_current =
+    T.constant "CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT" T.int64_t
+
+  let cu_mempool_attr_reserved_mem_high = T.constant "CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH" T.int64_t
+  let cu_mempool_attr_used_mem_current = T.constant "CU_MEMPOOL_ATTR_USED_MEM_CURRENT" T.int64_t
+  let cu_mempool_attr_used_mem_high = T.constant "CU_MEMPOOL_ATTR_USED_MEM_HIGH" T.int64_t
+
   let cu_mem_pool_attribute =
     T.enum ~typedef:true "CUmemPool_attribute"
       [
-        ( CU_MEMPOOL_ATTR_RELEASE_THRESHOLD,
-          T.constant "CU_MEMPOOL_ATTR_RELEASE_THRESHOLD" T.int64_t );
-        ( CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT,
-          T.constant "CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT" T.int64_t );
-        ( CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH,
-          T.constant "CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH" T.int64_t );
-        (CU_MEMPOOL_ATTR_USED_MEM_CURRENT, T.constant "CU_MEMPOOL_ATTR_USED_MEM_CURRENT" T.int64_t);
-        (CU_MEMPOOL_ATTR_USED_MEM_HIGH, T.constant "CU_MEMPOOL_ATTR_USED_MEM_HIGH" T.int64_t);
+        (CU_MEMPOOL_ATTR_RELEASE_THRESHOLD, cu_mempool_attr_release_threshold);
+        (CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT, cu_mempool_attr_reserved_mem_current);
+        (CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH, cu_mempool_attr_reserved_mem_high);
+        (CU_MEMPOOL_ATTR_USED_MEM_CURRENT, cu_mempool_attr_used_mem_current);
+        (CU_MEMPOOL_ATTR_USED_MEM_HIGH, cu_mempool_attr_used_mem_high);
       ]
+
+  let cu_graph_mem_attr_used_mem_current =
+    T.constant "CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT" T.int64_t
+
+  let cu_graph_mem_attr_used_mem_high = T.constant "CU_GRAPH_MEM_ATTR_USED_MEM_HIGH" T.int64_t
+
+  let cu_graph_mem_attr_reserved_mem_current =
+    T.constant "CU_GRAPH_MEM_ATTR_RESERVED_MEM_CURRENT" T.int64_t
+
+  let cu_graph_mem_attr_reserved_mem_high =
+    T.constant "CU_GRAPH_MEM_ATTR_RESERVED_MEM_HIGH" T.int64_t
 
   let cu_graph_mem_attribute =
     T.enum ~typedef:true "CUgraphMem_attribute"
       [
-        ( CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT,
-          T.constant "CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT" T.int64_t );
-        (CU_GRAPH_MEM_ATTR_USED_MEM_HIGH, T.constant "CU_GRAPH_MEM_ATTR_USED_MEM_HIGH" T.int64_t);
-        ( CU_GRAPH_MEM_ATTR_RESERVED_MEM_CURRENT,
-          T.constant "CU_GRAPH_MEM_ATTR_RESERVED_MEM_CURRENT" T.int64_t );
-        ( CU_GRAPH_MEM_ATTR_RESERVED_MEM_HIGH,
-          T.constant "CU_GRAPH_MEM_ATTR_RESERVED_MEM_HIGH" T.int64_t );
+        (CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT, cu_graph_mem_attr_used_mem_current);
+        (CU_GRAPH_MEM_ATTR_USED_MEM_HIGH, cu_graph_mem_attr_used_mem_high);
+        (CU_GRAPH_MEM_ATTR_RESERVED_MEM_CURRENT, cu_graph_mem_attr_reserved_mem_current);
+        (CU_GRAPH_MEM_ATTR_RESERVED_MEM_HIGH, cu_graph_mem_attr_reserved_mem_high);
       ]
 end

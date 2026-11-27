@@ -65,19 +65,20 @@ let () =
 
   let stream = Cu.Stream.create () in
 
-  (* 1. Default threshold (0): async allocation raises used and reserved; async free + sync drops
-     used back to 0 while keeping high-water marks. CUDA documents threshold 0 as triggering an
-     attempt (not a hard guarantee) to return backing memory, so reserved is checked not to grow. *)
+  (* 1. Default threshold (0): a 4 MiB async allocation (a multiple of the 2 MiB granularity)
+     reports exact USED_MEM_CURRENT = 4 MiB, while RESERVED_MEM_CURRENT holds at least the
+     allocation in OS backing chunks; async free + sync releases the backing memory below the
+     peak reservation (0 B on Linux) while preserving both high-water marks. *)
   let p1 = Cu.Stream.mem_alloc stream ~size_in_bytes:alloc_bytes in
   Cu.Stream.synchronize stream;
   let used_alloc = pool_attr default_pool USED_MEM_CURRENT in
   let used_high_alloc = pool_attr default_pool USED_MEM_HIGH in
   let reserved_alloc = pool_attr default_pool RESERVED_MEM_CURRENT in
   let reserved_high_alloc = pool_attr default_pool RESERVED_MEM_HIGH in
-  check "after alloc: pool used covers allocation" (U64.compare used_alloc alloc_u64 >= 0);
+  check "after alloc: pool used equals 4 MiB exactly" (U64.equal used_alloc alloc_u64);
   check "after alloc: current pool matches default pool"
     (U64.equal (pool_attr current_pool USED_MEM_CURRENT) used_alloc);
-  check "after alloc: pool used high >= used current" (U64.compare used_high_alloc used_alloc >= 0);
+  check "after alloc: pool used high equals 4 MiB" (U64.equal used_high_alloc alloc_u64);
   check "after alloc: pool reserved >= used" (U64.compare reserved_alloc used_alloc >= 0);
   check "after alloc: pool reserved high >= reserved current"
     (U64.compare reserved_high_alloc reserved_alloc >= 0);
@@ -87,16 +88,19 @@ let () =
   let reserved_after_free = pool_attr default_pool RESERVED_MEM_CURRENT in
   check "after free+sync (threshold 0): pool used is 0"
     (U64.equal (pool_attr default_pool USED_MEM_CURRENT) zero);
-  check "after free+sync (threshold 0): pool reserved did not grow"
-    (U64.compare reserved_after_free reserved_alloc <= 0);
+  check "after free+sync (threshold 0): pool reserved dropped below peak"
+    (U64.compare reserved_after_free reserved_alloc < 0);
+  check "after free+sync (threshold 0): pool reserved returned to 0"
+    (U64.equal reserved_after_free zero);
   check "after free+sync (threshold 0): pool used high retained"
-    (U64.compare (pool_attr default_pool USED_MEM_HIGH) used_high_alloc >= 0);
+    (U64.equal (pool_attr default_pool USED_MEM_HIGH) used_high_alloc);
   check "after free+sync (threshold 0): pool reserved high retained"
     (U64.compare (pool_attr default_pool RESERVED_MEM_HIGH) reserved_high_alloc >= 0);
 
   (* 2. Release threshold configuration: finite value, UINT64_MAX retention, and restoration to 0.
      When threshold = UINT64_MAX, held backing memory can never exceed the threshold, so free +
-     sync retains backing memory in RESERVED_MEM_CURRENT. *)
+     sync retains backing memory strictly above the threshold-0 post-free reading; lowering the
+     threshold back to 0 and synchronizing releases it again. *)
   Cu.Mem_pool.set_release_threshold default_pool alloc_u64;
   check "release threshold reads back finite byte count"
     (U64.equal (pool_attr default_pool RELEASE_THRESHOLD) alloc_u64);
@@ -115,15 +119,23 @@ let () =
     (U64.equal (pool_attr default_pool USED_MEM_CURRENT) zero);
   check "after free+sync (threshold max): pool reserved retained"
     (U64.compare reserved_retained alloc_u64 >= 0);
+  check "after free+sync (threshold max): retained reserved > threshold-0 post-free"
+    (U64.compare reserved_retained reserved_after_free > 0);
 
   Cu.Mem_pool.set_release_threshold default_pool zero;
   check "release threshold restored to 0"
     (U64.equal (pool_attr default_pool RELEASE_THRESHOLD) zero);
   Cu.Stream.synchronize stream;
-  check "after lowering threshold to 0 + sync: pool reserved did not grow"
-    (U64.compare (pool_attr default_pool RESERVED_MEM_CURRENT) reserved_retained <= 0);
+  let reserved_after_lower = pool_attr default_pool RESERVED_MEM_CURRENT in
+  check "after lowering threshold to 0 + sync: pool reserved dropped"
+    (U64.compare reserved_after_lower reserved_retained < 0);
+  check "after lowering threshold to 0 + sync: pool reserved returned to 0"
+    (U64.equal reserved_after_lower zero);
 
-  (* 3. Graph asynchronous allocator statistics. *)
+  (* 3. Graph asynchronous allocator statistics.
+     Unlike the stream pool, CUDA's graph allocator rounds mapped blocks to its internal chunk
+     granularity (32 MiB on CUDA 13.5 / RTX 5070 Ti), so USED_MEM_CURRENT is checked to cover the
+     requested bytes and grow strictly when a second allocation pushes past the first chunk. *)
   check "initial graph used current is 0" (U64.equal (graph_attr USED_MEM_CURRENT) zero);
   check "initial graph used high is 0" (U64.equal (graph_attr USED_MEM_HIGH) zero);
   check "initial graph reserved current is 0" (U64.equal (graph_attr RESERVED_MEM_CURRENT) zero);
@@ -169,33 +181,32 @@ let () =
   check "after second graph alloc launch: graph used covers combined allocations"
     (U64.compare g2_used total_u64 >= 0);
   check "after second graph alloc launch: graph used grew" (U64.compare g2_used g1_used > 0);
+  check "after second graph alloc launch: graph reserved grew" (U64.compare g2_res g1_res > 0);
   check "after second graph alloc launch: graph used high >= used current"
     (U64.compare g2_used_high g2_used >= 0);
   check "after second graph alloc launch: graph reserved >= used" (U64.compare g2_res g2_used >= 0);
   check "after second graph alloc launch: graph reserved high >= reserved current"
     (U64.compare g2_res_high g2_res >= 0);
 
-  (* Free the graph allocations and destroy the executable graphs; high-water marks persist and
-     the reserved >= used and current <= high invariants hold regardless of whether the driver
-     retains backing chunks until cuDeviceGraphMemTrim. *)
+  (* Free the graph allocations and destroy the executable graphs. CUDA's graph allocator retains
+     its cached backing blocks until cuDeviceGraphMemTrim is called (the retention measured in
+     lukstafi/ocannl-staging#2157), so RESERVED_MEM_CURRENT stays non-zero and high-water marks
+     stay at least the peak footprint. *)
   Cu.Stream.mem_free stream gp2;
   Cu.Stream.mem_free stream gp1;
   Cu.Stream.synchronize stream;
   Cu.Graph.exec_destroy exec2;
   Cu.Graph.exec_destroy exec1;
   Cu.Context.synchronize ();
-  let g3_used = graph_attr USED_MEM_CURRENT in
   let g3_used_high = graph_attr USED_MEM_HIGH in
   let g3_res = graph_attr RESERVED_MEM_CURRENT in
   let g3_res_high = graph_attr RESERVED_MEM_HIGH in
-  check "after destroying graphs: graph used high retained"
-    (U64.compare g3_used_high g2_used_high >= 0);
-  check "after destroying graphs: graph reserved high retained"
-    (U64.compare g3_res_high g2_res_high >= 0);
-  check "after destroying graphs: graph used <= used high" (U64.compare g3_used g3_used_high <= 0);
-  check "after destroying graphs: graph reserved <= reserved high"
-    (U64.compare g3_res g3_res_high <= 0);
-  check "after destroying graphs: graph reserved >= used" (U64.compare g3_res g3_used >= 0);
+  check "after destroying graphs: graph reserved backing retained until trim"
+    (U64.compare g3_res total_u64 >= 0);
+  check "after destroying graphs: graph used high covers peak"
+    (U64.compare g3_used_high total_u64 >= 0);
+  check "after destroying graphs: graph reserved high covers peak"
+    (U64.compare g3_res_high total_u64 >= 0);
 
   ignore (Sys.opaque_identity context);
   if !failures > 0 then exit 1

@@ -8,13 +8,14 @@ initial pool used current is 0: true
 initial pool used high is 0: true
 initial pool reserved current is 0: true
 initial pool reserved high is 0: true
-after alloc: pool used covers allocation: true
+after alloc: pool used equals 4 MiB exactly: true
 after alloc: current pool matches default pool: true
-after alloc: pool used high >= used current: true
+after alloc: pool used high equals 4 MiB: true
 after alloc: pool reserved >= used: true
 after alloc: pool reserved high >= reserved current: true
 after free+sync (threshold 0): pool used is 0: true
-after free+sync (threshold 0): pool reserved did not grow: true
+after free+sync (threshold 0): pool reserved dropped below peak: true
+after free+sync (threshold 0): pool reserved returned to 0: true
 after free+sync (threshold 0): pool used high retained: true
 after free+sync (threshold 0): pool reserved high retained: true
 release threshold reads back finite byte count: true
@@ -22,8 +23,10 @@ release threshold reads back UINT64_MAX: true
 current pool reflects updated release threshold: true
 after free+sync (threshold max): pool used is 0: true
 after free+sync (threshold max): pool reserved retained: true
+after free+sync (threshold max): retained reserved > threshold-0 post-free: true
 release threshold restored to 0: true
-after lowering threshold to 0 + sync: pool reserved did not grow: true
+after lowering threshold to 0 + sync: pool reserved dropped: true
+after lowering threshold to 0 + sync: pool reserved returned to 0: true
 initial graph used current is 0: true
 initial graph used high is 0: true
 initial graph reserved current is 0: true
@@ -34,11 +37,10 @@ after first graph alloc launch: graph reserved >= used: true
 after first graph alloc launch: graph reserved high >= reserved current: true
 after second graph alloc launch: graph used covers combined allocations: true
 after second graph alloc launch: graph used grew: true
+after second graph alloc launch: graph reserved grew: true
 after second graph alloc launch: graph used high >= used current: true
 after second graph alloc launch: graph reserved >= used: true
 after second graph alloc launch: graph reserved high >= reserved current: true
-after destroying graphs: graph used high retained: true
-after destroying graphs: graph reserved high retained: true
-after destroying graphs: graph used <= used high: true
-after destroying graphs: graph reserved <= reserved high: true
-after destroying graphs: graph reserved >= used: true
+after destroying graphs: graph reserved backing retained until trim: true
+after destroying graphs: graph used high covers peak: true
+after destroying graphs: graph reserved high covers peak: true
