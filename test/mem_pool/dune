@@ -1,0 +1,6 @@
+(test
+ (name test_mem_pool)
+ (libraries cudajit.cuda sexplib0)
+ (modes native)
+ (enabled_if
+  (<> %{env:CUDAJIT_NO_GPU=false} true)))
