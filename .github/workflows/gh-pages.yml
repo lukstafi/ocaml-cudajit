@@ -5,18 +5,22 @@ on:
     branches:
       - main  # Set a branch name to trigger deployment
 
+permissions:
+  contents: read
+  id-token: write
+  pages: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  deploy:
+  build:
     # Avoid Ubuntu 24.04, see: https://github.com/ocaml/opam/issues/5968
     runs-on: ubuntu-22.04
 
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-      pages: 'write'
-
     steps:
-      - uses: actions/checkout@main
+      - uses: actions/checkout@v4
 
       - uses: Jimver/cuda-toolkit@v0.2.22
         id: cuda-toolkit
@@ -46,7 +50,7 @@ jobs:
 
       - name: Build
         run: opam exec -- dune build @doc
-        
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
@@ -55,6 +59,18 @@ jobs:
         with:
           path: './_build/default/_doc/_html'
 
+  deploy:
+    # Split from build so artifact finalization settles before deploy-pages
+    # lists run artifacts and re-running a failed deploy does not upload a
+    # duplicate github-pages artifact.
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
