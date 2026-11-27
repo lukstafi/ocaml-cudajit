@@ -650,8 +650,8 @@ module Module : sig
   val get_function_attribute : func -> function_attribute -> int
   (** Query the driver for a property of an already-loaded function. Raises {!Cuda_error} if the
       driver query fails. See
-      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EXEC.html} cuFuncGetAttribute}.
-  *)
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/cuda_driver_api/group__CUDA__EXEC.html#group__cuda__exec_1ga5e92a1b0d8d1b82cb00dcfb2de15961b}
+       cuFuncGetAttribute}. *)
 
   val get_global : t -> name:string -> Deviceptr.t * Unsigned.size_t
   (** See

@@ -1,2 +1,9 @@
 static shared bytes = 256
-thread limit respects device and kernel bounds: true
+thread limit is positive: true
+thread limit respects the device limit: true
+thread limit respects the kernel launch bound: true
+register count is positive: true
+constant memory covers offsets: true
+local memory is nonnegative: true
+PTX architecture version is positive: true
+JIT binary architecture matches the device: true

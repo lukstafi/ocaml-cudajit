@@ -21,8 +21,8 @@
   block-size-to-shared-memory function, not exposed) and passes NULL for it.
 
 - `Module.get_function_attribute` queries a loaded kernel's thread limit,
-  memory and register usage, and compiled architecture versions through
-  `cuFuncGetAttribute`.
+  memory and register usage, and compiled architecture versions.
+  New FFI binding: `cuFuncGetAttribute`.
 
 ## [0.8.0] 2026-08-06
 
