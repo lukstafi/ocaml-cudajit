@@ -16,6 +16,7 @@ let () =
   let device = Cu.Device.get ~ordinal:0 in
   let props = Cu.Device.get_attributes device in
   check "device supports memory pools" props.memory_pools_supported;
+  if not props.memory_pools_supported then exit 1;
   let context = Cu.Context.create [] device in
   let default_pool = Cu.Mem_pool.get_default device in
   let current_pool = Cu.Mem_pool.get_current device in
@@ -65,7 +66,8 @@ let () =
   let stream = Cu.Stream.create () in
 
   (* 1. Default threshold (0): async allocation raises used and reserved; async free + sync drops
-     both current readings back to 0 while keeping high-water marks. *)
+     used back to 0 while keeping high-water marks. CUDA documents threshold 0 as triggering an
+     attempt (not a hard guarantee) to return backing memory, so reserved is checked not to grow. *)
   let p1 = Cu.Stream.mem_alloc stream ~size_in_bytes:alloc_bytes in
   Cu.Stream.synchronize stream;
   let used_alloc = pool_attr default_pool USED_MEM_CURRENT in
@@ -82,17 +84,22 @@ let () =
 
   Cu.Stream.mem_free stream p1;
   Cu.Stream.synchronize stream;
+  let reserved_after_free = pool_attr default_pool RESERVED_MEM_CURRENT in
   check "after free+sync (threshold 0): pool used is 0"
     (U64.equal (pool_attr default_pool USED_MEM_CURRENT) zero);
-  check "after free+sync (threshold 0): pool reserved is 0"
-    (U64.equal (pool_attr default_pool RESERVED_MEM_CURRENT) zero);
+  check "after free+sync (threshold 0): pool reserved did not grow"
+    (U64.compare reserved_after_free reserved_alloc <= 0);
   check "after free+sync (threshold 0): pool used high retained"
     (U64.compare (pool_attr default_pool USED_MEM_HIGH) used_high_alloc >= 0);
   check "after free+sync (threshold 0): pool reserved high retained"
     (U64.compare (pool_attr default_pool RESERVED_MEM_HIGH) reserved_high_alloc >= 0);
 
-  (* 2. High release threshold (UINT64_MAX): free + sync keeps backing memory reserved until the
-     threshold is lowered back to 0 and synchronized. *)
+  (* 2. Release threshold configuration: finite value, UINT64_MAX retention, and restoration to 0.
+     When threshold = UINT64_MAX, held backing memory can never exceed the threshold, so free +
+     sync retains backing memory in RESERVED_MEM_CURRENT. *)
+  Cu.Mem_pool.set_release_threshold default_pool alloc_u64;
+  check "release threshold reads back finite byte count"
+    (U64.equal (pool_attr default_pool RELEASE_THRESHOLD) alloc_u64);
   Cu.Mem_pool.set_release_threshold default_pool U64.max_int;
   check "release threshold reads back UINT64_MAX"
     (U64.equal (pool_attr default_pool RELEASE_THRESHOLD) U64.max_int);
@@ -103,17 +110,18 @@ let () =
   Cu.Stream.synchronize stream;
   Cu.Stream.mem_free stream p2;
   Cu.Stream.synchronize stream;
+  let reserved_retained = pool_attr default_pool RESERVED_MEM_CURRENT in
   check "after free+sync (threshold max): pool used is 0"
     (U64.equal (pool_attr default_pool USED_MEM_CURRENT) zero);
   check "after free+sync (threshold max): pool reserved retained"
-    (U64.compare (pool_attr default_pool RESERVED_MEM_CURRENT) alloc_u64 >= 0);
+    (U64.compare reserved_retained alloc_u64 >= 0);
 
   Cu.Mem_pool.set_release_threshold default_pool zero;
   check "release threshold restored to 0"
     (U64.equal (pool_attr default_pool RELEASE_THRESHOLD) zero);
   Cu.Stream.synchronize stream;
-  check "after lowering threshold to 0 + sync: pool reserved released"
-    (U64.equal (pool_attr default_pool RESERVED_MEM_CURRENT) zero);
+  check "after lowering threshold to 0 + sync: pool reserved did not grow"
+    (U64.compare (pool_attr default_pool RESERVED_MEM_CURRENT) reserved_retained <= 0);
 
   (* 3. Graph asynchronous allocator statistics. *)
   check "initial graph used current is 0" (U64.equal (graph_attr USED_MEM_CURRENT) zero);
