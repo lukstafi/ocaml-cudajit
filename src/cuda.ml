@@ -1851,8 +1851,7 @@ module Module = struct
   let load_data_ex ptx options =
     let open Ctypes in
     let cu_mod = allocate_n cu_module ~count:1 in
-    (* CUDA packs scalar option values into the void* slots. Only buffers and wall time use
-       addresses of backing storage. *)
+    (* CUDA stores scalars directly in option slots and uses addresses for log buffers. *)
     let uint_value u = ptr_of_raw_address (Int64.to_nativeint (Unsigned.UInt.to_int64 u)) in
     let int_value i = uint_value (Unsigned.UInt.of_int i) in
     let bool_value b = int_value (Bool.to_int b) in
@@ -1868,8 +1867,7 @@ module Module = struct
            (function
              | MAX_REGISTERS v -> [ (CU_JIT_MAX_REGISTERS, int_value v) ]
              | THREADS_PER_BLOCK v -> [ (CU_JIT_THREADS_PER_BLOCK, int_value v) ]
-             | WALL_TIME { milliseconds } ->
-                 [ (CU_JIT_WALL_TIME, to_voidp (allocate float milliseconds)) ]
+             | WALL_TIME _ -> [ (CU_JIT_WALL_TIME, null) ]
              | INFO_LOG_BUFFER b ->
                  log_options CU_JIT_INFO_LOG_BUFFER CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES b
              | ERROR_LOG_BUFFER b ->
@@ -1911,8 +1909,8 @@ module Module = struct
         Cuda.cu_module_load_data_ex cu_mod (to_voidp ptx.Nvrtc.ptx) (CArray.length c_options)
           (CArray.start c_options) (CArray.start c_values)
       in
-      (* The value array only contains raw addresses into storage owned by these lists. *)
-      ignore (Sys.opaque_identity (options, option_values));
+      (* The Bigarrays in [options] own the storage behind the log buffer addresses. *)
+      ignore (Sys.opaque_identity options);
       check "cu_module_load_data_ex" status;
       !@cu_mod
     in

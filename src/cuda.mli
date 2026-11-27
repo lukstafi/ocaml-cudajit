@@ -596,8 +596,8 @@ module Module : sig
         (** Minimum number of threads per block to target during compilation. Cannot be combined
             with [TARGET]. *)
     | WALL_TIME of { milliseconds : float }
-        (** Provides temporary storage for the driver's wall-clock measurement. The measurement is
-            discarded. *)
+        (** Requests a wall-clock measurement, which the driver writes into the option slot. The
+            binding ignores [milliseconds] and discards the measurement. *)
     | INFO_LOG_BUFFER of bigstring
         (** Writable buffer for JIT informational messages. Its capacity includes the terminating
             NUL. *)

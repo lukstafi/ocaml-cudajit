@@ -42,6 +42,7 @@ let () =
          OPTIMIZATION_LEVEL 0;
          LOG_VERBOSE true;
        ]);
+  (* Every load and symbol lookup above must succeed to reach this line. *)
   Printf.printf "valid PTX loads with error-only and paired log buffers: true\n";
   let bad_instruction = "cudajit_invalid_instruction" in
   let bad_image = ptx (bad_instruction ^ ";") in
