@@ -1987,6 +1987,32 @@ module Module = struct
     check "cu_module_get_function" @@ Cuda.cu_module_get_function func module_ name;
     { func = !@func; keep_module_alive = module_ }
 
+  type function_attribute =
+    | MAX_THREADS_PER_BLOCK
+    | SHARED_SIZE_BYTES
+    | CONST_SIZE_BYTES
+    | LOCAL_SIZE_BYTES
+    | NUM_REGS
+    | PTX_VERSION
+    | BINARY_VERSION
+
+  let get_function_attribute kernel attribute =
+    let open Ctypes in
+    let attribute =
+      match attribute with
+      | MAX_THREADS_PER_BLOCK -> CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK
+      | SHARED_SIZE_BYTES -> CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES
+      | CONST_SIZE_BYTES -> CU_FUNC_ATTRIBUTE_CONST_SIZE_BYTES
+      | LOCAL_SIZE_BYTES -> CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES
+      | NUM_REGS -> CU_FUNC_ATTRIBUTE_NUM_REGS
+      | PTX_VERSION -> CU_FUNC_ATTRIBUTE_PTX_VERSION
+      | BINARY_VERSION -> CU_FUNC_ATTRIBUTE_BINARY_VERSION
+    in
+    let value = allocate int 0 in
+    check "cu_func_get_attribute" @@ Cuda.cu_func_get_attribute value attribute kernel.func;
+    ignore (Sys.opaque_identity kernel);
+    !@value
+
   let get_global module_ ~name =
     let open Ctypes in
     let devptr = allocate_n cu_deviceptr ~count:1 in

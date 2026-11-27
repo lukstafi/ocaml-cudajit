@@ -358,6 +358,15 @@ type cu_jit_cache_mode =
   | CU_JIT_CACHE_OPTION_CA
   | CU_JIT_CACHE_OPTION_UNCATEGORIZED of int64
 
+type cu_function_attribute =
+  | CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK
+  | CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES
+  | CU_FUNC_ATTRIBUTE_CONST_SIZE_BYTES
+  | CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES
+  | CU_FUNC_ATTRIBUTE_NUM_REGS
+  | CU_FUNC_ATTRIBUTE_PTX_VERSION
+  | CU_FUNC_ATTRIBUTE_BINARY_VERSION
+
 type cu_device_attribute =
   | CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK
   | CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X
@@ -959,6 +968,22 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_JIT_CACHE_OPTION_NONE, cu_jit_cache_option_none);
         (CU_JIT_CACHE_OPTION_CG, cu_jit_cache_option_cg);
         (CU_JIT_CACHE_OPTION_CA, cu_jit_cache_option_ca);
+      ]
+
+  let cu_function_attribute =
+    T.enum ~typedef:true "CUfunction_attribute"
+      [
+        ( CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK,
+          T.constant "CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK" T.int64_t );
+        ( CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
+          T.constant "CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES" T.int64_t );
+        ( CU_FUNC_ATTRIBUTE_CONST_SIZE_BYTES,
+          T.constant "CU_FUNC_ATTRIBUTE_CONST_SIZE_BYTES" T.int64_t );
+        ( CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES,
+          T.constant "CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES" T.int64_t );
+        (CU_FUNC_ATTRIBUTE_NUM_REGS, T.constant "CU_FUNC_ATTRIBUTE_NUM_REGS" T.int64_t);
+        (CU_FUNC_ATTRIBUTE_PTX_VERSION, T.constant "CU_FUNC_ATTRIBUTE_PTX_VERSION" T.int64_t);
+        (CU_FUNC_ATTRIBUTE_BINARY_VERSION, T.constant "CU_FUNC_ATTRIBUTE_BINARY_VERSION" T.int64_t);
       ]
 
   let cu_device_attribute_max_threads_per_block =
