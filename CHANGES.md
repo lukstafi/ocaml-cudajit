@@ -38,8 +38,8 @@
   (plus raw-pointer `register_unsafe` / `unregister_unsafe`) page-lock and
   unpin host bigarrays or slices with typed `Host_memory.register_flag` values
   (`PORTABLE`, `DEVICEMAP`, `IOMEMORY`, `READ_ONLY`). New FFI bindings:
-  `cuMemHostRegister_v2` (accepting non-page-aligned buffers, unlike v1) and
-  `cuMemHostUnregister`.
+  `cuMemHostRegister_v2` (the current ABI mapped by `cuda.h`, accepting
+  non-page-aligned buffers) and `cuMemHostUnregister`.
 
 ### Fixed
 

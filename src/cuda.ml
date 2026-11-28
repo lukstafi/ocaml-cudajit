@@ -1493,6 +1493,13 @@ let get_ptr_not_managed ~reftyp arr =
   (* Work around because Ctypes.bigarray_start doesn't support half precision. *)
   Ctypes_static.CPointer (Ctypes_memory.make_unmanaged ~reftyp @@ bigarray_start_not_managed arr)
 
+let host_ptr_at ~elem_bytes ?(host_offset = 0) arr =
+  let open Ctypes in
+  if host_offset = 0 then get_ptr_not_managed ~reftyp:void arr
+  else
+    let base = get_ptr_not_managed ~reftyp:uint8_t arr in
+    coerce (ptr uint8_t) (ptr void) (base +@ (host_offset * elem_bytes))
+
 (* Advance a device pointer by a byte [offset] for use at a single copy operation. For a zero
    [offset] the original [Deviceptr.t] is returned unchanged, so its finalizer-bearing block stays
    reachable through the copy (this is the path every existing, offset-free call site takes). For a
@@ -1704,13 +1711,6 @@ module Host_memory = struct
     let total_bytes = Bigarray.Genarray.size_in_bytes arr in
     (elem_bytes, total_bytes / elem_bytes)
 
-  let host_ptr ~host_offset ~elem_bytes arr =
-    let open Ctypes in
-    if host_offset = 0 then get_ptr_not_managed ~reftyp:void arr
-    else
-      let base = get_ptr_not_managed ~reftyp:uint8_t arr in
-      coerce (ptr uint8_t) (ptr void) (base +@ (host_offset * elem_bytes))
-
   let register_unsafe ?(flags = []) ~ptr ~size_in_bytes () =
     if size_in_bytes < 0 then
       invalid_arg "Cuda.Host_memory.register_unsafe: negative size_in_bytes";
@@ -1733,7 +1733,7 @@ module Host_memory = struct
             invalid_arg "Cuda.Host_memory.register: length out of bounds";
           len
     in
-    let ptr = host_ptr ~host_offset ~elem_bytes arr in
+    let ptr = host_ptr_at ~elem_bytes ~host_offset arr in
     let size_in_bytes = len * elem_bytes in
     let status =
       Cuda.cu_mem_host_register ptr (Unsigned.Size_t.of_int size_in_bytes)
@@ -1749,7 +1749,7 @@ module Host_memory = struct
        cannot compute the base address of an adjacent registered slice. *)
     if host_offset < 0 || host_offset >= total_elems then
       invalid_arg "Cuda.Host_memory.unregister: host_offset out of bounds";
-    let ptr = host_ptr ~host_offset ~elem_bytes arr in
+    let ptr = host_ptr_at ~elem_bytes ~host_offset arr in
     let status = Cuda.cu_mem_host_unregister ptr in
     ignore (Sys.opaque_identity arr);
     check "cu_mem_host_unregister" status

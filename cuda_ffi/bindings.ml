@@ -71,7 +71,8 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "cuMemAllocAsync"
       F.(ptr cu_deviceptr @-> size_t @-> cu_stream @-> returning E.cu_result)
 
-  (* Bind the _v2 symbol directly: v1 rejects non-page-aligned host buffers. *)
+  (* Bind the _v2 symbol explicitly (what cuda.h maps cuMemHostRegister to; the legacy v1 ABI was
+     documented as requiring page-aligned host buffers). *)
   let cu_mem_host_register =
     F.foreign "cuMemHostRegister_v2" F.(ptr void @-> size_t @-> uint @-> returning E.cu_result)
 
