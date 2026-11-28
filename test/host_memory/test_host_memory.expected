@@ -1,0 +1,12 @@
+slice start is non-page-aligned: true
+slice byte length is non-page-aligned: true
+sync H2D/D2H round-trip through registered unaligned slice: true
+neighboring backing elements untouched: true
+double registration refused with CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED: true
+unregistering an unregistered slice fails with CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED: true
+re-register with PORTABLE+DEVICEMAP and async stream round-trip: true
+host_offset/length register, copy, and double-register refusal: true
+READ_ONLY flag matches device capability: true
+register_unsafe/unregister_unsafe on unaligned slice and double-register refusal: true
+sexp_of_register_flag covers all variants: true
+out-of-bounds offsets and negative lengths rejected: true

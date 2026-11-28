@@ -1680,6 +1680,81 @@ module Deviceptr = struct
     check "cu_memset_d32" @@ Cuda.cu_memset_d32 ptr v @@ Unsigned.Size_t.of_int length
 end
 
+module Host_memory = struct
+  type register_flag = PORTABLE | DEVICEMAP | IOMEMORY | READ_ONLY
+
+  let sexp_of_register_flag = function
+    | PORTABLE -> Sexplib0.Sexp.Atom "PORTABLE"
+    | DEVICEMAP -> Sexplib0.Sexp.Atom "DEVICEMAP"
+    | IOMEMORY -> Sexplib0.Sexp.Atom "IOMEMORY"
+    | READ_ONLY -> Sexplib0.Sexp.Atom "READ_ONLY"
+
+  let uint_of_register_flag = function
+    | PORTABLE -> Unsigned.UInt.of_int64 Cuda_ffi.Types_generated.cu_memhostregister_portable
+    | DEVICEMAP -> Unsigned.UInt.of_int64 Cuda_ffi.Types_generated.cu_memhostregister_devicemap
+    | IOMEMORY -> Unsigned.UInt.of_int64 Cuda_ffi.Types_generated.cu_memhostregister_iomemory
+    | READ_ONLY -> Unsigned.UInt.of_int64 Cuda_ffi.Types_generated.cu_memhostregister_read_only
+
+  let uint_of_register_flags flags =
+    let open Unsigned.UInt in
+    List.fold_left (fun acc flag -> Infix.(acc lor uint_of_register_flag flag)) zero flags
+
+  let elem_count arr =
+    let elem_bytes = Bigarray.kind_size_in_bytes (Bigarray.Genarray.kind arr) in
+    let total_bytes = Bigarray.Genarray.size_in_bytes arr in
+    (elem_bytes, total_bytes / elem_bytes)
+
+  let host_ptr ~host_offset ~elem_bytes arr =
+    let open Ctypes in
+    if host_offset = 0 then get_ptr_not_managed ~reftyp:void arr
+    else
+      let base = get_ptr_not_managed ~reftyp:uint8_t arr in
+      coerce (ptr uint8_t) (ptr void) (base +@ (host_offset * elem_bytes))
+
+  let register_unsafe ?(flags = []) ~ptr ~size_in_bytes () =
+    if size_in_bytes < 0 then
+      invalid_arg "Cuda.Host_memory.register_unsafe: negative size_in_bytes";
+    check "cu_mem_host_register"
+    @@ Cuda.cu_mem_host_register ptr (Unsigned.Size_t.of_int size_in_bytes)
+         (uint_of_register_flags flags)
+
+  let unregister_unsafe ~ptr =
+    check "cu_mem_host_unregister" @@ Cuda.cu_mem_host_unregister ptr
+
+  let register ?(flags = []) ?(host_offset = 0) ?length arr =
+    let elem_bytes, total_elems = elem_count arr in
+    if host_offset < 0 || (host_offset > 0 && host_offset >= total_elems) then
+      invalid_arg "Cuda.Host_memory.register: host_offset out of bounds";
+    let len =
+      match length with
+      | None -> total_elems - host_offset
+      | Some len ->
+          if len < 0 || len > total_elems - host_offset then
+            invalid_arg "Cuda.Host_memory.register: length out of bounds";
+          len
+    in
+    let ptr = host_ptr ~host_offset ~elem_bytes arr in
+    let size_in_bytes = len * elem_bytes in
+    let status =
+      Cuda.cu_mem_host_register ptr (Unsigned.Size_t.of_int size_in_bytes)
+        (uint_of_register_flags flags)
+    in
+    (* Keep the OCaml bigarray alive across the unlocked FFI call. *)
+    ignore (Sys.opaque_identity arr);
+    check "cu_mem_host_register" status
+
+  let unregister ?(host_offset = 0) arr =
+    let elem_bytes, total_elems = elem_count arr in
+    (* Strictly require [host_offset < total_elems] so a one-past-end offset on a bigarray slice
+       cannot compute the base address of an adjacent registered slice. *)
+    if host_offset < 0 || host_offset >= total_elems then
+      invalid_arg "Cuda.Host_memory.unregister: host_offset out of bounds";
+    let ptr = host_ptr ~host_offset ~elem_bytes arr in
+    let status = Cuda.cu_mem_host_unregister ptr in
+    ignore (Sys.opaque_identity arr);
+    check "cu_mem_host_unregister" status
+end
+
 module Module = struct
   type t = cu_module
 

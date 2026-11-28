@@ -71,6 +71,13 @@ module Functions (F : Ctypes.FOREIGN) = struct
     F.foreign "cuMemAllocAsync"
       F.(ptr cu_deviceptr @-> size_t @-> cu_stream @-> returning E.cu_result)
 
+  (* Bind the _v2 symbol directly: v1 rejects non-page-aligned host buffers. *)
+  let cu_mem_host_register =
+    F.foreign "cuMemHostRegister_v2" F.(ptr void @-> size_t @-> uint @-> returning E.cu_result)
+
+  let cu_mem_host_unregister =
+    F.foreign "cuMemHostUnregister" F.(ptr void @-> returning E.cu_result)
+
   let cu_memcpy_H_to_D =
     F.foreign "cuMemcpyHtoD" F.(cu_deviceptr @-> ptr void @-> size_t @-> returning E.cu_result)
 

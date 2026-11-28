@@ -540,6 +540,79 @@ module Deviceptr : sig
        cuMemsetD32}. *)
 end
 
+(** Page-locking (pinning) existing host memory buffers with the CUDA driver. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM} Memory
+     Management}. *)
+module Host_memory : sig
+  (** Flags controlling how host memory is registered with {!register} / {!register_unsafe}. Passing
+      an empty list uses the driver default (page-locked in the current context). See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gf0a9fe11544326dabd743b7aa6b54223}
+       cuMemHostRegister}. *)
+  type register_flag =
+    | PORTABLE
+        (** The registered memory is considered pinned by all CUDA contexts, not only the one
+            current at registration time ([CU_MEMHOSTREGISTER_PORTABLE]). *)
+    | DEVICEMAP
+        (** Maps the allocation into the CUDA address space so a device pointer can be obtained
+            ([CU_MEMHOSTREGISTER_DEVICEMAP]). *)
+    | IOMEMORY
+        (** Treats the memory pointer as memory-mapped I/O space belonging to a third-party device
+            ([CU_MEMHOSTREGISTER_IOMEMORY]). *)
+    | READ_ONLY
+        (** Treats the memory as read-only by the device; check
+            [Device.attributes.read_only_host_register_supported] before passing this flag
+            ([CU_MEMHOSTREGISTER_READ_ONLY]). *)
+
+  val sexp_of_register_flag : register_flag -> Sexplib0.Sexp.t
+
+  val register :
+    ?flags:register_flag list ->
+    ?host_offset:int ->
+    ?length:int ->
+    ('a, 'b, 'c) Bigarray.Genarray.t ->
+    unit
+  (** Page-locks the bigarray (or a contiguous element range of it) via [cuMemHostRegister_v2].
+      Using the v2 entry point allows non-page-aligned addresses and sizes, including bigarray slices
+      such as [Bigarray.Array1.sub] or [Bigarray.Genarray.sub_left].
+
+      [flags] defaults to [[]] (driver flags [0]). [host_offset] (default [0]) and [length]
+      (default all remaining elements from [host_offset]) are measured in elements of the bigarray's
+      contiguous backing buffer; raises [Invalid_argument] if negative or out of bounds (including
+      a non-zero [host_offset] at or past the end of the bigarray). Raises {!Cuda_error} if the
+      driver rejects the registration (for example [CUDA_ERROR_HOST_MEMORY_ALREADY_REGISTERED] when
+      the range is already registered, or [CUDA_ERROR_INVALID_VALUE] for a zero-length range).
+
+      Registration mutates driver state on OCaml-owned memory without attaching a finalizer: the
+      caller must keep the bigarray alive and call {!unregister} with the same base address before
+      the bigarray is garbage-collected. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gf0a9fe11544326dabd743b7aa6b54223}
+       cuMemHostRegister}. *)
+
+  val unregister : ?host_offset:int -> ('a, 'b, 'c) Bigarray.Genarray.t -> unit
+  (** Unregisters a host memory range previously registered with {!register}, making it pageable
+      again. [host_offset] (default [0], in elements) must refer to an element within the bigarray
+      ([0 <= host_offset < element_count]) and yield the exact base address that was passed to
+      {!register}; raises [Invalid_argument] if out of bounds (preventing an adjacent slice from
+      being unregistered via a one-past-end offset), and {!Cuda_error} with
+      [CUDA_ERROR_HOST_MEMORY_NOT_REGISTERED] if the address is not currently registered. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g63f450c8125359be87b7623b1c0b2a14}
+       cuMemHostUnregister}. *)
+
+  val register_unsafe :
+    ?flags:register_flag list -> ptr:unit Ctypes.ptr -> size_in_bytes:int -> unit -> unit
+  (** Low-level counterpart to {!register} operating directly on a raw host pointer and byte size.
+      Raises [Invalid_argument] if [size_in_bytes < 0]. The caller is responsible for ensuring the
+      pointed-to range stays valid until {!unregister_unsafe} is called. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1gf0a9fe11544326dabd743b7aa6b54223}
+       cuMemHostRegister}. *)
+
+  val unregister_unsafe : ptr:unit Ctypes.ptr -> unit
+  (** Low-level counterpart to {!unregister} operating on the raw host base pointer passed to
+      {!register_unsafe}. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g63f450c8125359be87b7623b1c0b2a14}
+       cuMemHostUnregister}. *)
+end
+
 (** A CUDA module type represents CUDA code that's ready to execute, i.e. is loaded. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html#group__CUDA__MODULE}
      Module Management}. *)
