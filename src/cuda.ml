@@ -2310,6 +2310,61 @@ module Stream = struct
     @@ Cuda.cu_memset_d32_async ptr v (Unsigned.Size_t.of_int length) stream.stream
 end
 
+module Mem_pool = struct
+  type t = cu_memory_pool
+
+  let sexp_of_t (pool : t) = sexp_of_voidp @@ Ctypes.to_voidp pool
+
+  let get_default device =
+    let open Ctypes in
+    let pool = allocate_n cu_memory_pool ~count:1 in
+    check "cu_device_get_default_mem_pool" @@ Cuda.cu_device_get_default_mem_pool pool device;
+    !@pool
+
+  let get_current device =
+    let open Ctypes in
+    let pool = allocate_n cu_memory_pool ~count:1 in
+    check "cu_device_get_mem_pool" @@ Cuda.cu_device_get_mem_pool pool device;
+    !@pool
+
+  type attribute =
+    | RELEASE_THRESHOLD
+    | RESERVED_MEM_CURRENT
+    | RESERVED_MEM_HIGH
+    | USED_MEM_CURRENT
+    | USED_MEM_HIGH
+
+  let sexp_of_attribute = function
+    | RELEASE_THRESHOLD -> Sexplib0.Sexp.Atom "RELEASE_THRESHOLD"
+    | RESERVED_MEM_CURRENT -> Sexplib0.Sexp.Atom "RESERVED_MEM_CURRENT"
+    | RESERVED_MEM_HIGH -> Sexplib0.Sexp.Atom "RESERVED_MEM_HIGH"
+    | USED_MEM_CURRENT -> Sexplib0.Sexp.Atom "USED_MEM_CURRENT"
+    | USED_MEM_HIGH -> Sexplib0.Sexp.Atom "USED_MEM_HIGH"
+
+  let cu_of_attribute = function
+    | RELEASE_THRESHOLD -> CU_MEMPOOL_ATTR_RELEASE_THRESHOLD
+    | RESERVED_MEM_CURRENT -> CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT
+    | RESERVED_MEM_HIGH -> CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH
+    | USED_MEM_CURRENT -> CU_MEMPOOL_ATTR_USED_MEM_CURRENT
+    | USED_MEM_HIGH -> CU_MEMPOOL_ATTR_USED_MEM_HIGH
+
+  let get_attribute pool attr =
+    let open Ctypes in
+    let value = allocate uint64_t Unsigned.UInt64.zero in
+    check "cu_mem_pool_get_attribute"
+    @@ Cuda.cu_mem_pool_get_attribute pool (cu_of_attribute attr)
+         (coerce (ptr uint64_t) (ptr void) value);
+    !@value
+
+  let set_release_threshold pool threshold =
+    let open Ctypes in
+    let value = allocate uint64_t threshold in
+    check "cu_mem_pool_set_attribute"
+    @@ Cuda.cu_mem_pool_set_attribute pool CU_MEMPOOL_ATTR_RELEASE_THRESHOLD
+         (coerce (ptr uint64_t) (ptr void) value);
+    ignore (Sys.opaque_identity value)
+end
+
 module Event = struct
   type t = cu_event
 
@@ -2509,4 +2564,30 @@ module Graph = struct
        argument retention) keeps the GC finalizer from destroying the executable graph — and,
        through it, the captured operations' resources — while the launch is still pending. *)
     stream.args_lifetimes <- Remember exec_value :: stream.args_lifetimes
+
+  type mem_attribute =
+    | USED_MEM_CURRENT
+    | USED_MEM_HIGH
+    | RESERVED_MEM_CURRENT
+    | RESERVED_MEM_HIGH
+
+  let sexp_of_mem_attribute = function
+    | USED_MEM_CURRENT -> Sexplib0.Sexp.Atom "USED_MEM_CURRENT"
+    | USED_MEM_HIGH -> Sexplib0.Sexp.Atom "USED_MEM_HIGH"
+    | RESERVED_MEM_CURRENT -> Sexplib0.Sexp.Atom "RESERVED_MEM_CURRENT"
+    | RESERVED_MEM_HIGH -> Sexplib0.Sexp.Atom "RESERVED_MEM_HIGH"
+
+  let cu_of_mem_attribute = function
+    | USED_MEM_CURRENT -> CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT
+    | USED_MEM_HIGH -> CU_GRAPH_MEM_ATTR_USED_MEM_HIGH
+    | RESERVED_MEM_CURRENT -> CU_GRAPH_MEM_ATTR_RESERVED_MEM_CURRENT
+    | RESERVED_MEM_HIGH -> CU_GRAPH_MEM_ATTR_RESERVED_MEM_HIGH
+
+  let get_mem_attribute device attr =
+    let open Ctypes in
+    let value = allocate uint64_t Unsigned.UInt64.zero in
+    check "cu_device_get_graph_mem_attribute"
+    @@ Cuda.cu_device_get_graph_mem_attribute device (cu_of_mem_attribute attr)
+         (coerce (ptr uint64_t) (ptr void) value);
+    !@value
 end

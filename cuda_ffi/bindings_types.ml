@@ -328,6 +328,12 @@ type cu_graph_exec = cu_graph_exec_t structure ptr
 
 let cu_graph_exec : cu_graph_exec typ = typedef (ptr @@ structure "CUgraphExec_st") "CUgraphExec"
 
+type cu_memory_pool_t
+type cu_memory_pool = cu_memory_pool_t structure ptr
+
+let cu_memory_pool : cu_memory_pool typ =
+  typedef (ptr @@ structure "CUmemPoolHandle_st") "CUmemoryPool"
+
 type cu_jit_target =
   | CU_TARGET_COMPUTE_30
   | CU_TARGET_COMPUTE_32
@@ -566,6 +572,19 @@ type cu_stream_capture_mode =
   | CU_STREAM_CAPTURE_MODE_THREAD_LOCAL
   | CU_STREAM_CAPTURE_MODE_RELAXED
   | CU_STREAM_CAPTURE_MODE_UNCATEGORIZED of int64
+
+type cu_mem_pool_attribute =
+  | CU_MEMPOOL_ATTR_RELEASE_THRESHOLD
+  | CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT
+  | CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH
+  | CU_MEMPOOL_ATTR_USED_MEM_CURRENT
+  | CU_MEMPOOL_ATTR_USED_MEM_HIGH
+
+type cu_graph_mem_attribute =
+  | CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT
+  | CU_GRAPH_MEM_ATTR_USED_MEM_HIGH
+  | CU_GRAPH_MEM_ATTR_RESERVED_MEM_CURRENT
+  | CU_GRAPH_MEM_ATTR_RESERVED_MEM_HIGH
 
 module Types (T : Ctypes.TYPE) = struct
   let cu_device_v1 = T.typedef T.int "CUdevice_v1"
@@ -1756,5 +1775,44 @@ module Types (T : Ctypes.TYPE) = struct
         (CU_STREAM_CAPTURE_MODE_GLOBAL, cu_stream_capture_mode_global);
         (CU_STREAM_CAPTURE_MODE_THREAD_LOCAL, cu_stream_capture_mode_thread_local);
         (CU_STREAM_CAPTURE_MODE_RELAXED, cu_stream_capture_mode_relaxed);
+      ]
+
+  let cu_mempool_attr_release_threshold = T.constant "CU_MEMPOOL_ATTR_RELEASE_THRESHOLD" T.int64_t
+
+  let cu_mempool_attr_reserved_mem_current =
+    T.constant "CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT" T.int64_t
+
+  let cu_mempool_attr_reserved_mem_high = T.constant "CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH" T.int64_t
+  let cu_mempool_attr_used_mem_current = T.constant "CU_MEMPOOL_ATTR_USED_MEM_CURRENT" T.int64_t
+  let cu_mempool_attr_used_mem_high = T.constant "CU_MEMPOOL_ATTR_USED_MEM_HIGH" T.int64_t
+
+  let cu_mem_pool_attribute =
+    T.enum ~typedef:true "CUmemPool_attribute"
+      [
+        (CU_MEMPOOL_ATTR_RELEASE_THRESHOLD, cu_mempool_attr_release_threshold);
+        (CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT, cu_mempool_attr_reserved_mem_current);
+        (CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH, cu_mempool_attr_reserved_mem_high);
+        (CU_MEMPOOL_ATTR_USED_MEM_CURRENT, cu_mempool_attr_used_mem_current);
+        (CU_MEMPOOL_ATTR_USED_MEM_HIGH, cu_mempool_attr_used_mem_high);
+      ]
+
+  let cu_graph_mem_attr_used_mem_current =
+    T.constant "CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT" T.int64_t
+
+  let cu_graph_mem_attr_used_mem_high = T.constant "CU_GRAPH_MEM_ATTR_USED_MEM_HIGH" T.int64_t
+
+  let cu_graph_mem_attr_reserved_mem_current =
+    T.constant "CU_GRAPH_MEM_ATTR_RESERVED_MEM_CURRENT" T.int64_t
+
+  let cu_graph_mem_attr_reserved_mem_high =
+    T.constant "CU_GRAPH_MEM_ATTR_RESERVED_MEM_HIGH" T.int64_t
+
+  let cu_graph_mem_attribute =
+    T.enum ~typedef:true "CUgraphMem_attribute"
+      [
+        (CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT, cu_graph_mem_attr_used_mem_current);
+        (CU_GRAPH_MEM_ATTR_USED_MEM_HIGH, cu_graph_mem_attr_used_mem_high);
+        (CU_GRAPH_MEM_ATTR_RESERVED_MEM_CURRENT, cu_graph_mem_attr_reserved_mem_current);
+        (CU_GRAPH_MEM_ATTR_RESERVED_MEM_HIGH, cu_graph_mem_attr_reserved_mem_high);
       ]
 end

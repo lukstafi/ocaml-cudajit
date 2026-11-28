@@ -947,6 +947,62 @@ module Stream : sig
   (** The total non-garbage-collected streams across all devices. *)
 end
 
+(** CUDA stream-ordered memory pools backing {!Stream.mem_alloc} and {!Stream.mem_free}. See:
+    {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC}
+     Stream Ordered Memory Allocator}. *)
+module Mem_pool : sig
+  type t
+  (** A handle to a CUDA stream-ordered memory pool. Handles returned by {!get_default} and
+      {!get_current} are borrowed from the device and carry no destructor. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html} CUmemoryPool}. *)
+
+  val sexp_of_t : t -> Sexplib0.Sexp.t
+
+  val get_default : Device.t -> t
+  (** Returns the default memory pool for the device. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html}
+       cuDeviceGetDefaultMemPool}. *)
+
+  val get_current : Device.t -> t
+  (** Returns the current memory pool for the device (the default pool unless another pool was set
+      on the device). See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html}
+       cuDeviceGetMemPool}. *)
+
+  (** Memory-pool byte-count statistics and release-threshold configuration. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html}
+       CUmemPool_attribute}. *)
+  type attribute =
+    | RELEASE_THRESHOLD
+        (** Amount of reserved memory in bytes to hold onto before trying to release backing memory
+            back to the OS on the next stream, event, or context synchronization (default [0]). *)
+    | RESERVED_MEM_CURRENT
+        (** Amount of backing memory in bytes currently allocated for the pool. *)
+    | RESERVED_MEM_HIGH
+        (** High watermark of backing memory in bytes allocated for the pool since the last reset.
+        *)
+    | USED_MEM_CURRENT
+        (** Amount of memory in bytes from the pool currently in use by the application. *)
+    | USED_MEM_HIGH
+        (** High watermark of memory in bytes from the pool in use by the application since the last
+            reset. *)
+
+  val sexp_of_attribute : attribute -> Sexplib0.Sexp.t
+
+  val get_attribute : t -> attribute -> Unsigned.uint64
+  (** Queries a 64-bit unsigned byte-count attribute of the memory pool. Raises {!Cuda_error} if the
+      driver query fails. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html}
+       cuMemPoolGetAttribute}. *)
+
+  val set_release_threshold : t -> Unsigned.uint64 -> unit
+  (** Sets [RELEASE_THRESHOLD] (in bytes) on the memory pool. Pass [Unsigned.UInt64.max_int] to keep
+      all reserved backing memory until explicitly trimmed or released. Raises {!Cuda_error} if the
+      driver call fails. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html}
+       cuMemPoolSetAttribute}. *)
+end
+
 (** CUDA events can be used for synchronization between streams without blocking the CPU, and to
     time the on-device execution. See:
     {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT}
@@ -1104,4 +1160,25 @@ module Graph : sig
   val exec_destroy : exec -> unit
   (** Eagerly destroys the executable graph. Idempotent; the finalizer covers the non-eager case.
   *)
+
+  (** Graph asynchronous-allocator byte-count statistics. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html}
+       CUgraphMem_attribute}. *)
+  type mem_attribute =
+    | USED_MEM_CURRENT  (** Amount of memory in bytes currently associated with graphs. *)
+    | USED_MEM_HIGH
+        (** High watermark of memory in bytes associated with graphs since the last reset. *)
+    | RESERVED_MEM_CURRENT
+        (** Amount of backing memory in bytes currently allocated for the CUDA graph allocator. *)
+    | RESERVED_MEM_HIGH
+        (** High watermark of backing memory in bytes allocated for the CUDA graph allocator since
+            the last reset. *)
+
+  val sexp_of_mem_attribute : mem_attribute -> Sexplib0.Sexp.t
+
+  val get_mem_attribute : Device.t -> mem_attribute -> Unsigned.uint64
+  (** Queries a 64-bit unsigned byte-count attribute of a device's CUDA graph asynchronous
+      allocator. Raises {!Cuda_error} if the driver query fails. See
+      {{:https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__GRAPH.html}
+       cuDeviceGetGraphMemAttribute}. *)
 end

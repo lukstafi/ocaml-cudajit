@@ -244,4 +244,23 @@ module Functions (F : Ctypes.FOREIGN) = struct
 
   let cu_graph_launch =
     F.foreign "cuGraphLaunch" F.(cu_graph_exec @-> cu_stream @-> returning E.cu_result)
+
+  let cu_device_get_default_mem_pool =
+    F.foreign "cuDeviceGetDefaultMemPool"
+      F.(ptr cu_memory_pool @-> E.cu_device @-> returning E.cu_result)
+
+  let cu_device_get_mem_pool =
+    F.foreign "cuDeviceGetMemPool" F.(ptr cu_memory_pool @-> E.cu_device @-> returning E.cu_result)
+
+  let cu_mem_pool_get_attribute =
+    F.foreign "cuMemPoolGetAttribute"
+      F.(cu_memory_pool @-> E.cu_mem_pool_attribute @-> ptr void @-> returning E.cu_result)
+
+  let cu_mem_pool_set_attribute =
+    F.foreign "cuMemPoolSetAttribute"
+      F.(cu_memory_pool @-> E.cu_mem_pool_attribute @-> ptr void @-> returning E.cu_result)
+
+  let cu_device_get_graph_mem_attribute =
+    F.foreign "cuDeviceGetGraphMemAttribute"
+      F.(E.cu_device @-> E.cu_graph_mem_attribute @-> ptr void @-> returning E.cu_result)
 end

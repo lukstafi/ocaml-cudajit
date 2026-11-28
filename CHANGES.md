@@ -24,6 +24,16 @@
   memory and register usage, and compiled architecture versions.
   New FFI binding: `cuFuncGetAttribute`.
 
+- `Mem_pool` module (`get_default`, `get_current`, `get_attribute`,
+  `set_release_threshold`) and `Graph.get_mem_attribute`: typed 64-bit unsigned
+  byte-count queries for CUDA stream-ordered memory pools (`RELEASE_THRESHOLD`,
+  `RESERVED_MEM_CURRENT`, `RESERVED_MEM_HIGH`, `USED_MEM_CURRENT`,
+  `USED_MEM_HIGH`) and the CUDA graph asynchronous allocator (`USED_MEM_CURRENT`,
+  `USED_MEM_HIGH`, `RESERVED_MEM_CURRENT`, `RESERVED_MEM_HIGH`). New FFI
+  bindings: `cuDeviceGetDefaultMemPool`, `cuDeviceGetMemPool`,
+  `cuMemPoolGetAttribute`, `cuMemPoolSetAttribute`, and
+  `cuDeviceGetGraphMemAttribute`.
+
 ### Fixed
 
 - `Module.load_data_ex` now passes scalar JIT options and log buffer capacities
