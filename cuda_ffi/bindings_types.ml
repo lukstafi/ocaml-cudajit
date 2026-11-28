@@ -1760,6 +1760,11 @@ module Types (T : Ctypes.TYPE) = struct
   let cu_occupancy_disable_caching_override =
     T.constant "CU_OCCUPANCY_DISABLE_CACHING_OVERRIDE" T.int64_t
 
+  let cu_memhostregister_portable = T.constant "CU_MEMHOSTREGISTER_PORTABLE" T.int64_t
+  let cu_memhostregister_devicemap = T.constant "CU_MEMHOSTREGISTER_DEVICEMAP" T.int64_t
+  let cu_memhostregister_iomemory = T.constant "CU_MEMHOSTREGISTER_IOMEMORY" T.int64_t
+  let cu_memhostregister_read_only = T.constant "CU_MEMHOSTREGISTER_READ_ONLY" T.int64_t
+
   let cu_stream_capture_mode_global = T.constant "CU_STREAM_CAPTURE_MODE_GLOBAL" T.int64_t
 
   let cu_stream_capture_mode_thread_local =

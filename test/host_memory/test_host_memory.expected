@@ -1,0 +1,5 @@
+slice start is non-page-aligned: true
+slice byte length is non-page-aligned: true
+sexp_of_register_flag covers all variants: true
+out-of-bounds offsets and negative lengths rejected: true
+host registration matches device capability: true

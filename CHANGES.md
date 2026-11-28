@@ -34,6 +34,13 @@
   `cuMemPoolGetAttribute`, `cuMemPoolSetAttribute`, and
   `cuDeviceGetGraphMemAttribute`.
 
+- `Host_memory` module: `Host_memory.register` and `Host_memory.unregister`
+  (plus raw-pointer `register_unsafe` / `unregister_unsafe`) page-lock and
+  unpin host bigarrays or slices with typed `Host_memory.register_flag` values
+  (`PORTABLE`, `DEVICEMAP`, `IOMEMORY`, `READ_ONLY`). New FFI bindings:
+  `cuMemHostRegister_v2` (the current ABI mapped by `cuda.h`, accepting
+  non-page-aligned buffers) and `cuMemHostUnregister`.
+
 ### Fixed
 
 - `Module.load_data_ex` now passes scalar JIT options and log buffer capacities

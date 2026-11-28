@@ -1,0 +1,6 @@
+(test
+ (name test_host_memory)
+ (libraries cudajit.cuda ctypes sexplib0)
+ (modes native)
+ (enabled_if
+  (<> %{env:CUDAJIT_NO_GPU=false} true)))
